@@ -213,14 +213,17 @@ def test_repo_detail(client, calls, box, repo, monkeypatch):
         item = make_item(repo, n)
         make_decision(make_run(item), "issue.type", "bug", {"bug": 0.9, "feature": 0.1}, 0.9)
         make_truth(item, "issue.type", truth)
+        make_decision(make_run(item), "issue.has_repro", "true", {"true": 0.9, "false": 0.1}, 0.9)
+        make_truth(item, "issue.has_repro", "true")
     body = client.get(f"/api/repos/{repo['id']}").json()
     assert (body["role"], body["backend"], body["model"], body["calibrated"]) == ("viewer", "jev", settings.jev_model, True)
     assert body["features"] == {"issue_triage": "auto", "spam": "off"}
     assert body["config_source"] == "default" and body["default_branch"] == "main" and body["backfill_status"] is None
     qs = {q["id"]: q for q in body["questions"]}
     assert set(qs) == set(QUESTIONS)
-    assert qs["issue.type"]["n"] == 3 and qs["issue.type"]["measured"] is True
-    assert qs["issue.type"]["accuracy"] == pytest.approx(2 / 3)
+    assert qs["issue.type"]["n"] == 3 and qs["issue.type"]["accuracy"] == pytest.approx(2 / 3)
+    assert qs["issue.type"]["measured"] is False  # n >= min_samples, but 67% < the 85% threshold
+    assert qs["issue.has_repro"]["measured"] is True and qs["issue.has_repro"]["accuracy"] == 1
     assert (qs["priority"]["threshold"], qs["priority"]["default_threshold"]) == (0.7, 0.9)
     assert qs["priority"]["n"] == 0 and qs["priority"]["accuracy"] is None and qs["priority"]["measured"] is False
     assert qs["issue.type"]["type"] == "choice" and qs["issue.type"]["feature"] == "issue_triage"

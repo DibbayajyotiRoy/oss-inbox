@@ -135,10 +135,10 @@ def _detail(repo: dict) -> dict:
     jev = settings.decision_backend == "jev"
     questions = []
     for q in QUESTIONS.values():
-        s = metrics.question_stats(row["id"], q.id)
+        s, thr = metrics.question_stats(row["id"], q.id), cfg.thresholds.get(q.id, q.default_threshold)
         questions.append({"id": q.id, "feature": q.feature, "type": q.type, "default_threshold": q.default_threshold,
-                          "threshold": cfg.thresholds.get(q.id, q.default_threshold), "n": s.n, "accuracy": s.accuracy,
-                          "measured": s.n >= cfg.evaluation.min_samples})
+                          "threshold": thr, "n": s.n, "accuracy": s.accuracy,
+                          "measured": s.n >= cfg.evaluation.min_samples and s.accuracy is not None and s.accuracy >= thr})  # CONTRACT rule 2
     return {
         "id": row["id"], "full_name": row["full_name"], "private": row["private"], "enabled": row["enabled"],
         "role": repo["role"], "default_branch": row["default_branch"], "backend": settings.decision_backend,

@@ -3,9 +3,10 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from app import actions, auth, db, demo
+from app import actions, auth, db, demo, metrics, repo_config
 from app.github import GitHubClient, client_for
 from app.main import app
+from app.questions import QUESTIONS
 from app.settings import settings
 
 DEMO_USER = auth.User(0, "demo", "", "demo")
@@ -94,6 +95,12 @@ def test_seeded_demo_org_fills_every_screen(demo_mode):
         d = api_get(c, f"/api/repos/{rid}")
         assert d["backfill_status"] == "done" and d["config_source"] == "repo" and "auto" in d["features"].values() and d["config_error"] is None
         assert sum(q["measured"] for q in d["questions"]) >= 8
+        min_samples = repo_config.load(db.fetch_one("SELECT * FROM repos WHERE id = %s", (rid,))).evaluation.min_samples
+        auto = [q for q in d["questions"] if d["features"][q["feature"]] == "auto"]
+        assert len(auto) >= 4
+        for q in auto:  # CONTRACT rule 2: `auto` is only ever shown for features whose every question is measured and above its threshold
+            s = metrics.question_stats(rid, q["id"])
+            assert s.n >= min_samples and s.accuracy >= q["threshold"] and q["measured"], (card["full_name"], q["id"], s)
         ob = api_get(c, f"/api/repos/{rid}/onboarding")
         assert ob["complete"] and all(s["done"] for s in ob["steps"])
         assert api_get(c, f"/api/repos/{rid}/labels/plan")["missing"] == []
@@ -109,8 +116,17 @@ def test_seeded_demo_org_fills_every_screen(demo_mode):
         assert api_get(c, f"/api/repos/{rid}/flaky-tests")["items"] and api_get(c, f"/api/repos/{rid}/ci-tokens")["items"]
         cfg = api_get(c, f"/api/repos/{rid}/config")
         assert cfg["source"] == "repo" and "areas:" in cfg["yaml"] and cfg["labels"]
-        audit = api_get(c, f"/api/repos/{rid}/audit", limit=200)["items"]
+        audit, page = [], {"next_cursor": None}
+        while True:  # the oldest entries (repo.enable, ci_token.create) sit on the last page
+            page = api_get(c, f"/api/repos/{rid}/audit", limit=200, **({"cursor": page["next_cursor"]} if page["next_cursor"] else {}))
+            audit += page["items"]
+            if not page["next_cursor"]:
+                break
         assert {"repo.enable", "queue.accept", "ci_token.create"} <= {a["action"] for a in audit}
+
+    qs = {q["id"]: q for q in api_get(c, f"/api/repos/{api['id']}")["questions"]}  # the "not yet" state: shadow, measured, a few points short
+    follows = qs["pr.follows_rules"]
+    assert not follows["measured"] and follows["n"] >= 20 and 0.02 < follows["threshold"] - follows["accuracy"] < 0.12
 
     reports = api_get(c, f"/api/repos/{api['id']}/ci-reports", limit=200)["items"]
     assert {r["outcome"] for r in reports} >= {"filed", "merged", "flaky", "infra", "queued", "rate_limited", "held"}

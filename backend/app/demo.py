@@ -9,6 +9,7 @@ import os
 import random
 import re
 import secrets
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from functools import partial
 
@@ -25,7 +26,7 @@ CONTRIBUTORS = ["lena-ostrom", "dev-anand", "carlos-m", "yuki-t", "fatima-z", "b
 STRANGERS = ["throwaway2291", "user48213", "jdoe-dev", "acme-it-ops", "k4rma", "bluefox88", "new-to-oss", "sysadmin_greg",
              "anon-reporter", "maria-g", "cto-at-startup", "devops-dan", "hana-b", "diego-f", "oleg-s", "maya-l"]
 INSTALL_DAYS = 35  # Jev was installed this long ago; older items arrived through the backfill
-HARD = {"priority": .5, "route.area": .66, "pr.follows_rules": .55, "route.repo": .8, "issue.type": .74, "ci.kind": .78}  # P(confident band); default .84
+HARD = {"priority": .5, "route.area": .66, "pr.follows_rules": .45, "route.repo": .8, "issue.type": .74, "ci.kind": .78}  # P(confident band); default .84
 
 _AREA = {  # owner, description, files
     "api": {
@@ -59,7 +60,7 @@ REPOS = {
                 promoted={"issue_triage": 24, "routing": 20, "inbound_gate": 16, "ci_gate": 22},
                 thresholds={"issue.type": 0.8, "route.area": 0.8}),
     "web": dict(gid=90_000_002, desc="Orbit Console: the React admin dashboard", private=False, enabled=True,
-                issues=140, prs=50, first=267, ci=12, open_review=6,
+                issues=180, prs=50, first=267, ci=30, open_review=6,
                 modes={"inbound_gate": "auto", "issue_triage": "shadow", "pr_checks": "auto", "routing": "shadow",
                        "priority": "shadow", "spam": "off", "ci_gate": "auto"},
                 promoted={"pr_checks": 12, "ci_gate": 9, "inbound_gate": 10}, thresholds={}),
@@ -286,13 +287,13 @@ def _options(base: str, cfg, repos: list[str]) -> list[str]:
     return ["true", "false"] if q.type == "noul" else [str(i) for i in range(len(q.criteria))] if q.type == "score" else list(q.criteria)
 
 
-def _verdict(rng, base: str, truth: str, options: list[str], force: str | None = None):
+def _verdict(rng, base: str, truth: str, options: list[str], force: str | None = None, right: bool = False):
     """Simulated calibrated model -> (answer, probabilities, confidence): mostly confident and right, some unsure, a few
-    confident-wrong. force="hi" is confident and right, "lo" is unsure."""
+    confident-wrong. force="hi" is confident and right, "lo" is unsure; right=True never errs (the error budget is spent)."""
     hi, u = HARD.get(base, .84), rng.random()
     band = force or ("hi" if u < hi else "mid" if u < hi + (1 - hi) * .65 else "lo")
     conf = {"hi": rng.uniform(.9, .995), "mid": rng.uniform(.6, .9), "lo": rng.uniform(max(.4, 1 / len(options) + .04), .6)}[band]
-    right = force == "hi" or rng.random() < {"hi": .97, "mid": .72, "lo": .42}[band]
+    right = right or force == "hi" or rng.random() < {"hi": .97, "mid": .72, "lo": .42}[band]
     answer = truth if right else rng.choice([o for o in options if o != truth])
     rest = [o for o in options if o != answer]
     w = [rng.random() ** 2 + .02 for _ in rest]
@@ -345,8 +346,8 @@ def _issue_specs(rng, rk: str, n: int, sibling: str) -> list[dict]:
                 parts.append(f"Concretely: {_lc(title)}.")
                 parts.append("**Steps to reproduce**\n1. Start the server with the default config\n2. Run:\n```\n" + rng.choice(T["snippet"]) + "\n```\n3. Observe the failure"
                              if L["issue.has_repro"] == "true" else rng.choice(VAGUE))
-                if rng.random() < .12 and area != "none":
-                    fake = rng.random() < .3
+                if rng.random() < .65 and area != "none":
+                    fake = rng.random() < .2
                     path = rng.choice(_AREA[rk][area][2])
                     path = path.replace(".py", "_v2.py").replace(".ts", "_legacy.ts") if fake else path
                     spec["refs"] = [(path, not fake)]
@@ -393,6 +394,7 @@ class _Seed:
     def __init__(self, c, rng, now, install):
         self.c, self.rng, self.now, self.install = c, rng, now, install
         self.repos, self.queue, self.items, self.audit, self.flaky, self.backfilled = [], [], [], [], {}, 0
+        self.wrong = Counter()  # wrong decisions so far per (repo id, base question)
 
     def ago(self, days: float) -> datetime:
         return self.now - timedelta(days=days)
@@ -464,7 +466,7 @@ class _Seed:
                 qs.append(q := f"gate.same_as#{c['number']}")
                 L[q] = "true" if c is dup else "false"
                 force[q] = "hi" if c is dup else None
-        error = "jev: request timed out after 30s" if live and rng.random() < .008 else None
+        error = "jev: request timed out after 30s" if live and not spec.get("sure") and rng.random() < .008 else None  # the showcase reports always get a verdict
         V = self.triage(repo, item, t, self.state_text(repo, item, body, refs), qs, L, force, live, error)
         repo["issues"].append(dict(id=item["id"], number=item["number"], title=title, area=area, type=typ))
         if not live:
@@ -501,10 +503,13 @@ class _Seed:
         V = {}
         for qid in qs:
             base = base_id(qid)
-            truth = latent[qid] if qid in latent else latent[base]
-            ans, probs, conf = _verdict(self.rng, base, truth, _options(base, repo["cfg"], repos), force.get(qid) or force.get(base))
-            V[qid] = dict(qid=qid, base=base, feature=QUESTIONS[base].feature, answer=ans, probs=probs, conf=conf, truth=truth, outcome="shadow",
-                          thr=repo["cfg"].thresholds.get(base) or QUESTIONS[base].default_threshold)
+            cfg, q = repo["cfg"], QUESTIONS[base]
+            truth, thr = latent[qid] if qid in latent else latent[base], cfg.thresholds.get(base) or q.default_threshold
+            # an `auto` feature earned its mode: its questions make so few errors that they always measure above threshold (see review())
+            spent = cfg.mode(q.feature) == "auto" and self.wrong[repo["id"], base] >= int((1 - thr - .03) * (cfg.evaluation.min_samples + 5))
+            ans, probs, conf = _verdict(self.rng, base, truth, _options(base, cfg, repos), force.get(qid) or force.get(base), spent)
+            self.wrong[repo["id"], base] += ans != truth
+            V[qid] = dict(qid=qid, base=base, feature=q.feature, answer=ans, probs=probs, conf=conf, truth=truth, outcome="shadow", thr=thr)
         return V
 
     def triage(self, repo, item, t, state, qs, latent, force, live, error=None) -> dict:
@@ -645,6 +650,26 @@ class _Seed:
                 self.c.execute("INSERT INTO ground_truth (item_id, question_id, answer, source, created_at) VALUES (%s, %s, %s, 'backfill', %s) "
                                "ON CONFLICT DO NOTHING", (item["id"], q, V[q]["truth"], item["run_at"]))
 
+    def review(self, repo, base: str, lo: float, hi: float = 1.0) -> None:
+        """Maintainers confirmed enough decisions of a question to measure it: n >= min_samples + 5, accuracy within [lo, hi].
+        That is how a feature earned `auto` (lo = threshold + 3 points) and how a shadow one stays just short of it."""
+        rows = self.c.execute("SELECT d.id, d.answer = g.answer AS ok FROM decisions d JOIN ground_truth g ON g.item_id = d.item_id AND "
+                              "g.question_id = d.question_id WHERE d.repo_id = %s AND d.base_question = %s", (repo["id"], base)).fetchall()
+        done, n, ok = {r["id"] for r in rows}, len(rows), sum(r["ok"] for r in rows)
+        todo = [(i, d) for i in self.items if i["repo"] is repo for d in i["decisions"].values() if d["base"] == base and d["id"] not in done]
+        self.rng.shuffle(todo)
+        while todo:
+            low, high = ok < lo * n, ok > hi * n
+            if n >= repo["cfg"].evaluation.min_samples + 5 and not (low or high):
+                break
+            want = True if low else False if high else None  # confirm a correct decision when accuracy is short, a wrong one when too high
+            k = next((k for k, (_, x) in enumerate(todo) if want is None or (x["answer"] == x["truth"]) == want), None)
+            if k is None:
+                break
+            item, d = todo.pop(k)
+            self.upsert_truth(item, d["qid"], d["truth"], min(item["run_at"] + timedelta(hours=self.rng.uniform(2, 70)), self.now - timedelta(minutes=30)))
+            n, ok = n + 1, ok + (d["answer"] == d["truth"])
+
     # ---- CI gate -------------------------------------------------------------------------------------------------
     def ci_report(self, repo, t, scenario, external=None) -> None:
         rng, cfg, rk = self.rng, repo["cfg"], repo["key"]
@@ -736,7 +761,7 @@ class _Seed:
                 item = x["item"]
                 if x["bucket"] == "held":  # a justified hold usually stays; a false alarm is released
                     real = any(item["decisions"][q]["truth"] == bad for q, bad in HOLD_IF if q in item["decisions"])
-                    action = "dismiss" if real and rng.random() < .7 else "release"
+                    action = "dismiss" if real else "release"
                 else:
                     action = "dismiss" if rng.random() < .45 else "accept"
                 final = {}
@@ -832,6 +857,11 @@ def seed() -> dict:
         for repo in (r for r in s.repos if r["enabled"]):
             s.history(repo, f"{DEMO_ORG}/{'web' if repo['key'] == 'api' else 'api'}")
         s.resolve()
+        for repo in (r for r in s.repos if r["enabled"]):
+            for q in QUESTIONS.values():  # trust-consistent: every question of an `auto` feature is measured and above its threshold
+                if repo["cfg"].mode(q.feature) == "auto":
+                    s.review(repo, q.id, (repo["cfg"].thresholds.get(q.id) or q.default_threshold) + .03)
+        s.review(s.repos[0], "pr.follows_rules", .70, .77)  # api's pr_checks stays in shadow: measured, but close (~74% vs 80%), not there yet
         for repo in (r for r in s.repos if r["enabled"]):
             n = sum(1 for i in s.items if i["repo"] is repo and i["kind"] in ("issue", "pr") and i["t"] < s.install)
             truth = c.execute("SELECT count(DISTINCT g.item_id) AS n FROM ground_truth g JOIN items i ON i.id = g.item_id "
