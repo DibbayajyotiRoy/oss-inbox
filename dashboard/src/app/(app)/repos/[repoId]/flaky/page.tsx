@@ -1,42 +1,57 @@
 "use client";
+import Link from "next/link";
+import { FlakyList } from "@/components/ci/flaky-list";
 import { useRepo } from "@/components/repo";
-import { Empty, Load } from "@/components/ui";
-import { day } from "@/lib/fmt";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Load } from "@/components/ui/load";
+import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
+import { repoPath } from "@/lib/fmt";
 import type { FlakyTest } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
+
+const skeleton = (
+  <div role="status" aria-busy="true" className="divide-y rounded-xl border bg-card">
+    <span className="sr-only">Loading</span>
+    {Array.from({ length: 6 }, (_, i) => (
+      <div key={i} className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-5 md:grid-cols-[2rem_minmax(0,1fr)_11rem_6rem_6rem_5rem]">
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="col-start-2 h-4 md:col-start-auto" />
+        <Skeleton className="col-start-2 h-3.5 w-24 md:col-start-auto" />
+        <Skeleton className="hidden h-3.5 w-20 md:block" />
+        <Skeleton className="hidden h-3.5 w-14 md:block" />
+      </div>
+    ))}
+  </div>
+);
 
 export default function Flaky() {
   const { repo } = useRepo();
   const res = useApi<{ items: FlakyTest[] }>(`/api/repos/${repo.id}/flaky-tests`);
   return (
-    <Load
-      res={res}
-      isEmpty={(d) => d.items.length === 0}
-      empty={
-        <Empty title="No flaky tests recorded">
-          A test is listed here when the CI gate sees it fail repeatedly across reports and classifies it as flaky. Nothing has been classified yet.
-        </Empty>
-      }
-    >
-      {(d) => (
-        <div className="overflow-x-auto">
-          <table>
-            <thead><tr><th>#</th><th>Test</th><th>Occurrences</th><th>First seen</th><th>Last seen</th><th>Last run</th></tr></thead>
-            <tbody>
-              {[...d.items].sort((a, b) => b.occurrences - a.occurrences).map((t, i) => (
-                <tr key={t.test_id}>
-                  <td className="text-muted">{i + 1}</td>
-                  <td className="break-all font-mono">{t.test_id}</td>
-                  <td className="tabular-nums">{t.occurrences}</td>
-                  <td>{day(t.first_seen)}</td>
-                  <td>{day(t.last_seen)}</td>
-                  <td>{t.last_run_url ? <a href={t.last_run_url} target="_blank" rel="noreferrer">CI run ↗</a> : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </Load>
+    <>
+      <PageHeader title="Flaky tests" description="Tests that fail intermittently, worst first." />
+      <Load
+        res={res}
+        fallback={skeleton}
+        isEmpty={(d) => d.items.length === 0}
+        empty={
+          <EmptyState
+            art="chart"
+            title="No flaky tests yet"
+            description="Tests show up after repeated flaky CI failures."
+            action={
+              <Button asChild variant="outline">
+                <Link href={repoPath(repo.id, "ci-gate")}>Open CI gate</Link>
+              </Button>
+            }
+          />
+        }
+      >
+        {(d) => <FlakyList tests={d.items} />}
+      </Load>
+    </>
   );
 }

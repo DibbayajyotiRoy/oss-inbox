@@ -1,156 +1,255 @@
 "use client";
+import { RotateCcw } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Hist } from "@/components/charts";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useId, useState } from "react";
+import { snap, ThresholdChart, type Bin } from "@/components/measure/threshold-chart";
 import { useRepo } from "@/components/repo";
-import { Badge, Copy, Empty, ErrorBox } from "@/components/ui";
-import { api } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { CardSection } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/load";
+import { NumberTicker } from "@/components/ui/number-ticker";
+import { PageHeader } from "@/components/ui/page-header";
+import { FadePresence } from "@/components/ui/presence";
+import { Select } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Stat, StatStrip } from "@/components/ui/stat-strip";
+import { Status } from "@/components/ui/status";
 import { pct, repoPath } from "@/lib/fmt";
-import type { ConfigDoc, Preview, QuestionInfo, Rendered } from "@/lib/types";
-import { useAction, useApi } from "@/lib/use-api";
-import type { Counts, In } from "./preview.worker";
+import type { Evaluation, QuestionInfo, Repo } from "@/lib/types";
+import { useApi } from "@/lib/use-api";
+import { cn } from "@/lib/utils";
+import { PendingTray, type Change } from "./pending-tray";
+import type { Counts } from "./preview.worker";
+import { usePreview } from "./use-preview";
 
-/** One shared worker, created lazily on first message. */
-function usePreviewWorker() {
-  const ref = useRef<Worker | null>(null);
-  const [counts, setCounts] = useState<Record<string, Counts>>({});
-  const post = useCallback((m: In) => {
-    if (!ref.current) {
-      ref.current = new Worker(new URL("./preview.worker.ts", import.meta.url));
-      ref.current.onmessage = (e: MessageEvent<Counts>) => setCounts((c) => ({ ...c, [e.data.id]: e.data }));
-    }
-    ref.current.postMessage(m);
-  }, []);
-  useEffect(() => () => {
-    ref.current?.terminate();
-    ref.current = null;
-  }, []);
-  return { counts, post };
-}
+const same = (a: number, b: number) => Math.abs(a - b) < 0.0005;
 
 export default function Thresholds() {
-  const { repo, canAct } = useRepo();
-  const { counts, post } = usePreviewWorker();
+  const { repo } = useRepo();
+  const sp = useSearchParams();
+  const [sel, setSel] = useState(() => repo.questions.find((q) => q.id === sp.get("q"))?.id ?? repo.questions[0]?.id);
   const [vals, setVals] = useState<Record<string, number>>({});
-  const [out, setOut] = useState<Rendered>();
-  const act = useAction();
-  const changed = repo.questions.filter((q) => vals[q.id] !== undefined && vals[q.id] !== q.threshold);
+  const evaluation = useApi<Evaluation>(`/api/repos/${repo.id}/evaluation`); // only for the recommended threshold
+  const value = (q: QuestionInfo) => vals[q.id] ?? q.threshold;
+  const edited = (q: QuestionInfo) => !same(value(q), q.threshold);
+  const changes: Change[] = repo.questions.filter(edited).map((q) => ({ id: q.id, from: q.threshold, to: value(q), isDefault: same(value(q), q.default_threshold) }));
+  const q = repo.questions.find((x) => x.id === sel);
+  const set = useCallback((id: string, v: number | undefined) => setVals((s) => ({ ...s, [id]: v as number })), []);
 
-  async function generate() {
-    const r = await act.run(async () => {
-      const cfg = await api<ConfigDoc>(`/api/repos/${repo.id}/config`);
-      const thresholds = { ...(cfg.parsed.thresholds ?? {}) };
-      for (const q of changed) {
-        if (vals[q.id] === q.default_threshold) delete thresholds[q.id]; // equal to default: keep the YAML minimal
-        else thresholds[q.id] = vals[q.id];
-      }
-      return api<Rendered>(`/api/repos/${repo.id}/config/render`, { method: "POST", body: { parsed: { ...cfg.parsed, thresholds } } });
-    });
-    if (r) setOut(r);
+  function pick(id: string) {
+    setSel(id);
+    window.history.replaceState(null, "", `?q=${encodeURIComponent(id)}`);
   }
 
-  if (repo.questions.length === 0)
-    return <Empty title="No questions yet">Questions appear once at least one feature is enabled in the repo config and has processed an item.</Empty>;
+  if (!q)
+    return (
+      <>
+        <PageHeader title="Thresholds" />
+        <EmptyState art="chart" title="No questions yet" description="They appear once a feature has processed an item." />
+      </>
+    );
+  const ev = evaluation.data?.questions.find((x) => x.id === q.id);
   return (
     <>
-      <p className="note mb-3">
-        Move a slider to see, on this repo&apos;s measured history, how many items Jev would handle on its own and how many of those it would get
-        wrong. Jev never writes to your repository: changes become YAML you commit yourself.
-      </p>
-      <ul className="space-y-3">
-        {repo.questions.map((q) => (
-          <QRow key={q.id} q={q} repoId={repo.id} value={vals[q.id] ?? q.threshold} counts={counts[q.id]} post={post}
-            onChange={(v) => setVals((s) => ({ ...s, [q.id]: v }))} />
-        ))}
-      </ul>
-
-      <section className="card mt-4" aria-labelledby="gen">
-        <h2 id="gen" className="font-semibold">Apply changes</h2>
-        <p className="text-sm text-muted">
-          {changed.length ? `${changed.length} threshold${changed.length > 1 ? "s" : ""} changed: ${changed.map((q) => q.id).join(", ")}.` : "No changes yet."}{" "}
-          Jev only reads <code>.github/jev-triage.yml</code>; it never commits for you.
-        </p>
-        <button className="btn btn-primary mt-2" onClick={generate} disabled={act.busy || changed.length === 0 || !canAct}>
-          {act.busy ? "Rendering…" : "Generate YAML"}
-        </button>
-        {!canAct && <span className="ml-2 text-xs text-muted">Maintainer access required.</span>}
-        {act.error && <div className="mt-2"><ErrorBox error={act.error} /></div>}
-        {out && (
-          <div className="mt-3">
-            {out.errors.length > 0 && (
-              <ul role="alert" className="mb-2 rounded-md bg-bad-soft p-2 text-bad">{out.errors.map((e) => <li key={e}>{e}</li>)}</ul>
-            )}
-            <pre className="max-h-80 overflow-auto rounded-md border border-line bg-surface p-2 font-mono text-xs">{out.yaml}</pre>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <a className="btn btn-primary" href={out.edit_url} target="_blank" rel="noreferrer">Open in GitHub to commit ↗</a>
-              <Copy text={out.yaml} label="Copy YAML" />
-            </div>
-          </div>
-        )}
-      </section>
+      <PageHeader
+        title="Thresholds"
+        description="Preview each threshold on measured history."
+        actions={
+          changes.length > 0 && (
+            <Button asChild variant="outline" size="sm">
+              <a href="#pending">{changes.length} pending</a>
+            </Button>
+          )
+        }
+      />
+      <div className="grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start">
+        <Picker questions={repo.questions} sel={q.id} onPick={pick} value={value} edited={edited} />
+        <div className="flex min-w-0 flex-col gap-6">
+          <Panel
+            key={q.id}
+            repo={repo}
+            q={q}
+            value={value(q)}
+            edited={edited(q)}
+            recommended={ev?.recommended_threshold ?? null}
+            evalN={ev?.n}
+            set={set}
+          />
+          <FadePresence show={changes.length > 0} mode="collapse">
+            <PendingTray repoId={repo.id} changes={changes} onUndo={(id) => set(id, undefined)} onClear={() => setVals({})} />
+          </FadePresence>
+        </div>
+      </div>
     </>
   );
 }
 
-function QRow({ q, repoId, value, counts, post, onChange }: {
-  q: QuestionInfo; repoId: number; value: number; counts?: Counts; post: (m: In) => void; onChange: (v: number) => void;
+function Picker({ questions, sel, onPick, value, edited }: {
+  questions: QuestionInfo[]; sel: string; onPick: (id: string) => void; value: (q: QuestionInfo) => number; edited: (q: QuestionInfo) => boolean;
 }) {
-  const prev = useApi<Preview>(`/api/repos/${repoId}/preview?question_id=${encodeURIComponent(q.id)}`);
-  const pts = prev.data?.points;
-  useEffect(() => {
-    if (pts) post({ op: "load", id: q.id, points: pts });
-  }, [pts, q.id, post]);
-  useEffect(() => {
-    if (pts) post({ op: "query", id: q.id, t: value });
-  }, [pts, q.id, value, post]);
-
-  const fresh = counts && counts.t === value ? counts : undefined;
-  const measuredActed = fresh ? fresh.acted - fresh.unmeasured : 0;
   return (
-    <li className="card">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono font-medium">{q.id}</span>
-        <Badge>{q.feature}</Badge>
-        <span className="text-xs text-muted">
-          {q.measured ? `measured: accuracy ${pct(q.accuracy, 1)} on n=${q.n}` : `not measured yet (n=${q.n}) — auto mode will not act on it`}
+    <>
+      <Select wrapperClassName="lg:hidden" aria-label="Question" value={sel} onValueChange={onPick}>
+        {questions.map((q) => (
+          <option key={q.id} value={q.id}>{q.id} · {pct(value(q))}</option>
+        ))}
+      </Select>
+      <nav aria-label="Questions" className="hidden lg:sticky lg:top-0 lg:block lg:max-h-[calc(100dvh-10rem)] lg:overflow-y-auto">
+        <ul className="flex flex-col gap-1">
+          {questions.map((q) => {
+            const on = q.id === sel;
+            return (
+              <li key={q.id}>
+                <button
+                  type="button"
+                  aria-current={on || undefined}
+                  onClick={() => onPick(q.id)}
+                  className={cn(
+                    "w-full rounded-lg px-3 py-2.5 text-left ring-1 ring-transparent outline-none ring-inset hover:bg-accent/60 focus-visible:ring-ring motion-safe:transition-[background-color,box-shadow] motion-safe:duration-150 motion-safe:ease-settle",
+                    on && "bg-accent ring-border",
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate font-mono text-[13px] font-medium">{q.id}</span>
+                    {edited(q) && <span className="size-1.5 rounded-full bg-warning"><span className="sr-only">edited</span></span>}
+                    <span className="text-[13px] font-medium tabular-nums">{pct(value(q))}</span>
+                  </span>
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">{q.feature} · default {pct(q.default_threshold)}</span>
+                  <span className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span className="tabular-nums">{pct(q.accuracy, 1)} · n={q.n}</span>
+                    <Badge variant={q.measured ? "outline" : "warning"}>{q.measured ? "Measured" : "Not measured"}</Badge>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </>
+  );
+}
+
+function Panel({ repo, q, value, edited, recommended, evalN, set }: {
+  repo: Repo; q: QuestionInfo; value: number; edited: boolean; recommended: number | null; evalN?: number; set: (id: string, v: number) => void;
+}) {
+  const onChange = useCallback((v: number) => set(q.id, v), [set, q.id]);
+  const { res, empty, bins, counts } = usePreview(repo.id, q.id, value);
+  const reading = useId();
+  return (
+    <CardSection
+      title={<span className="font-mono">{q.id}</span>}
+      hint="Drag the tick, or focus it and use the arrow keys (Shift for 5 points). Counts come from this repo's labeled history."
+      description={
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Badge variant="outline">{q.feature}</Badge>
+          <span className="tabular-nums">{q.measured ? `Accuracy ${pct(q.accuracy, 1)}, n=${q.n}` : `Not measured, n=${q.n}`}</span>
         </span>
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-3">
-        <label htmlFor={`t-${q.id}`} className="text-sm">Threshold</label>
-        <input id={`t-${q.id}`} type="range" min={0.5} max={0.99} step={0.01} value={value} className="min-w-40 flex-1 accent-(--accent) max-sm:h-8"
-          onChange={(e) => onChange(Number(e.target.value))} />
-        <output htmlFor={`t-${q.id}`} className="w-12 font-mono font-semibold">{pct(value)}</output>
-        <span className="text-xs text-muted">default {pct(q.default_threshold)} · current {pct(q.threshold)}</span>
-        {value !== q.threshold && <Badge tone="info">edited</Badge>}
-        <button className="btn" onClick={() => onChange(q.threshold)} disabled={value === q.threshold}>Reset</button>
-        <button className="btn" onClick={() => onChange(q.default_threshold)} disabled={value === q.default_threshold}>Default</button>
-      </div>
-      <div className="mt-2" aria-live="polite">
-        {prev.error ? (
-          <ErrorBox error={prev.error} retry={prev.reload} />
-        ) : !prev.data ? (
-          <p className="text-muted">Loading history…</p>
-        ) : prev.data.points.length === 0 ? (
-          <p className="text-muted">No history to preview yet. Resolve items in the queue or run a backfill on the Evaluation tab to measure this question.</p>
-        ) : !fresh ? (
-          <p className="text-muted">Calculating…</p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-[1fr_20rem]">
-            <p>
-              At {pct(value)}, of <b>{fresh.n}</b> past decisions: <b>{fresh.acted}</b> ({pct(fresh.acted / fresh.n)}) would be auto-acted,{" "}
-              <Link href={repoPath(repoId, "queue")}><b>{fresh.queued}</b> queued</Link> for you.
-              {" "}Among auto-acted ones with a known answer (n={measuredActed}), <b>{fresh.wrong}</b> would be wrong
-              {measuredActed > 0 && <> (accuracy {pct(1 - fresh.wrong / measuredActed, 1)})</>}
-              {fresh.wrong > 0 && <> — <Link href={`${repoPath(repoId, "evaluation")}?q=${encodeURIComponent(q.id)}&lo=${value}`}>see them</Link></>}.
-              {fresh.unmeasured > 0 && <> {fresh.unmeasured} auto-acted have no known answer.</>}
-            </p>
-            <div>
-              <Hist bins={fresh.bins} t={value} />
-              <p className="text-xs text-muted"><span className="text-ok">■</span> correct <span className="text-bad">■</span> wrong <span>■</span> unmeasured · line = threshold</p>
-            </div>
+      }
+      action={
+        <div className="text-right">
+          <div className="text-3xl leading-none font-semibold tracking-tight">
+            <NumberTicker value={Math.round(value * 100)} suffix="%" animateOnMount={false} duration={0.4} />
           </div>
+          <p className="mt-1.5 text-xs whitespace-nowrap text-muted-foreground tabular-nums">{edited ? `was ${pct(q.threshold)} · ` : ""}default {pct(q.default_threshold)}</p>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        {!q.measured && <Status tone="warning">Not measured yet: auto mode will not act on this question.</Status>}
+        {!repo.calibrated && <Status tone="warning">Uncalibrated backend: confidence is a ranking, not a probability.</Status>}
+        {res.error ? (
+          <ErrorState error={res.error} retry={res.reload} />
+        ) : empty ? (
+          <EmptyState
+            art="chart"
+            title="No labeled history yet"
+            description="Run a backfill to measure this question."
+            action={<Button asChild variant="outline"><Link href={repoPath(repo.id, "evaluation")}>Run backfill</Link></Button>}
+          />
+        ) : !bins || !counts ? (
+          <Skeleton className="h-[26rem] w-full" />
+        ) : (
+          <Body repoId={repo.id} q={q} value={value} edited={edited} recommended={recommended} evalN={evalN} bins={bins} counts={counts} onChange={onChange} reading={reading} />
         )}
       </div>
-    </li>
+    </CardSection>
+  );
+}
+
+function Body({ repoId, q, value, edited, recommended, evalN, bins, counts: c, onChange, reading }: {
+  repoId: number; q: QuestionInfo; value: number; edited: boolean; recommended: number | null; evalN?: number; reading: string;
+  bins: Bin[]; counts: Counts; onChange: (v: number) => void;
+}) {
+  const labeled = c.acted - c.unmeasured; // auto-acted with a known answer
+  const roll = (n: number, cls?: string) => <span className={cn("text-3xl sm:text-4xl", cls)}><NumberTicker value={n} locale animateOnMount={false} duration={0.4} /></span>;
+  return (
+    <>
+      <div>
+        <ul className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <li className="flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-destructive" />Wrong</li>
+          <li className="flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-muted-foreground" />Correct</li>
+          <li className="flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-chart-4" />Unlabeled</li>
+          <li className="flex items-center gap-1.5"><i className="h-3 w-0.5 rounded-full bg-warning" />Threshold</li>
+          {recommended != null && <li className="flex items-center gap-1.5"><i className="h-3 w-0 border-l-2 border-dashed border-warning/70" />Recommended {pct(recommended)}</li>}
+        </ul>
+        <ThresholdChart bins={bins} value={value} onChange={onChange} recommended={recommended} label={`Threshold for ${q.id}`} describedBy={reading} />
+      </div>
+
+      <StatStrip className="grid-cols-3 gap-x-4 sm:gap-x-8 lg:grid-cols-3">
+        <Stat
+          label={<span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-foreground" />Auto-acted</span>}
+          value={roll(c.acted)}
+          detail={`${pct(c.acted / c.n)} of ${c.n.toLocaleString()}`}
+        />
+        <Stat
+          label={<span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-muted-foreground" />Queued</span>}
+          value={roll(c.queued)}
+          detail={`${pct(c.queued / c.n)} of ${c.n.toLocaleString()}`}
+        />
+        <Stat
+          label={<span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-destructive" /><span className="sm:hidden">Wrong</span><span className="max-sm:hidden">Would be wrong</span></span>}
+          hint="Auto-acted decisions whose known answer differs from Jev's."
+          value={roll(c.wrong, c.wrong > 0 ? "text-destructive" : undefined)}
+          detail={`of ${labeled.toLocaleString()} with a known answer`}
+        />
+      </StatStrip>
+
+      <p id={reading} className="text-sm text-pretty">
+        {c.acted === 0 ? (
+          <>At {pct(value)} nothing would be auto-acted. All <b className="tabular-nums">{c.n.toLocaleString()}</b> would be queued.</>
+        ) : labeled === 0 ? (
+          <>At {pct(value)}, <b className="tabular-nums">{c.acted.toLocaleString()}</b> would be auto-acted, none with a known answer yet.</>
+        ) : (
+          <>
+            At {pct(value)} it would have been wrong <b className="tabular-nums">{c.wrong.toLocaleString()}</b> of <b className="tabular-nums">{labeled.toLocaleString()}</b> times it acted on a known answer
+            ({pct(1 - c.wrong / labeled, 1)} accurate).
+            {c.wrong > 0 && (
+              <> <Link className="underline underline-offset-4" href={`${repoPath(repoId, "evaluation")}?q=${encodeURIComponent(q.id)}&lo=${value}`}>See them</Link>.</>
+            )}
+            {c.unmeasured > 0 && <> {c.unmeasured.toLocaleString()} more have no known answer.</>}
+          </>
+        )}
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
+        <Button variant="secondary" size="sm" disabled={recommended == null || same(value, recommended)} onClick={() => recommended != null && onChange(snap(recommended))}>
+          Use recommended{recommended != null && ` ${pct(recommended)}`}
+        </Button>
+        <Button variant="ghost" size="sm" disabled={same(value, q.default_threshold)} onClick={() => onChange(snap(q.default_threshold))}>
+          <RotateCcw aria-hidden /> Reset to default
+        </Button>
+        {edited && (
+          <Button variant="ghost" size="sm" onClick={() => onChange(q.threshold)}>
+            Undo
+          </Button>
+        )}
+        <p className="text-xs text-muted-foreground sm:ml-auto">
+          {recommended != null ? `Recommended keeps wrong answers under 5%${evalN ? `, n=${evalN}` : ""}.` : "Not enough labeled history to recommend."}
+        </p>
+      </div>
+    </>
   );
 }

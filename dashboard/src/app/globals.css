@@ -1,54 +1,322 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+/* Class-based dark mode (next-themes puts `dark` / `light` on <html>). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Jev Triage tokens (DESIGN.md). Radix Slate graphite, monochrome: colour only when it carries meaning.
+ * Auto-acted = foreground, queued = muted-foreground, wrong = destructive, threshold tick = warning.
+ * Components use the Tailwind tokens below; never hard-code hex outside src/lib/chart-theme.ts.
+ */
 :root {
-  color-scheme: light dark;
-  --bg: #ffffff; --surface: #f6f8fa; --line: #d1d9e0; --fg: #1f2328; --muted: #59636e; --accent: #0969da;
-  --ok: #1a7f37; --ok-soft: #dafbe1; --warn: #8a5a00; --warn-soft: #fff1c2; --bad: #cf222e; --bad-soft: #ffebe9;
-  --info-soft: #ddf4ff;
+  --radius: 0.5rem; /* 8px */
+
+  --background: #fcfcfd;
+  --foreground: #1c2024;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+  --primary: #1c2024;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f0f3;
+  --secondary-foreground: var(--foreground);
+  --muted: #f0f0f3;
+  --muted-foreground: #60646c;
+  --accent: #e8e8ec;
+  --accent-foreground: var(--foreground);
+  --destructive: #b23a3a;
+  --border: #d9d9e0;
+  --input: #cdced6;
+  --ring: #80838d;
+
+  --success: #1d7a50;
+  --warning: #93641a;
+  --info: #0d74ce;
+
+  --chart-1: #1c2024;
+  --chart-2: #60646c;
+  --chart-3: #8b8d98;
+  --chart-4: #b9bbc6;
+  --chart-5: #d9d9e0;
+
+  --sidebar: #f9f9fb;
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: #e8e8ec;
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  --scrollbar: #cdced6;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0d1117; --surface: #151b23; --line: #30363d; --fg: #e6edf3; --muted: #9198a1; --accent: #4493f8;
-    --ok: #3fb950; --ok-soft: #12261e; --warn: #d29922; --warn-soft: #2d2208; --bad: #f85149; --bad-soft: #3a1618;
-    --info-soft: #0c2d6b;
-  }
+
+.dark {
+  --background: #111113;
+  --foreground: #edeef0;
+  --card: #18191b;
+  --card-foreground: var(--foreground);
+  --popover: #212225;
+  --popover-foreground: var(--foreground);
+  --primary: #edeef0;
+  --primary-foreground: #111113;
+  --secondary: #212225;
+  --secondary-foreground: var(--foreground);
+  --muted: #212225;
+  --muted-foreground: #b0b4ba;
+  --accent: #272a2d;
+  --accent-foreground: var(--foreground);
+  --destructive: #e5736b;
+  --border: #2e3135;
+  --input: #363a3f;
+  --ring: #777b84;
+
+  --success: #3dd68c;
+  --warning: #dcb36c;
+  --info: #70b8ff;
+
+  --chart-1: #edeef0;
+  --chart-2: #b0b4ba;
+  --chart-3: #777b84;
+  --chart-4: #5a6169;
+  --chart-5: #43484e;
+
+  --sidebar: #18191b;
+  --sidebar-accent: #272a2d;
+
+  --scrollbar: #363a3f;
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-line: var(--line);
-  --color-fg: var(--fg);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius); /* cards: 8px */
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
-  --color-ok: var(--ok);
-  --color-ok-soft: var(--ok-soft);
-  --color-warn: var(--warn);
-  --color-warn-soft: var(--warn-soft);
-  --color-bad: var(--bad);
-  --color-bad-soft: var(--bad-soft);
-  --color-info-soft: var(--info-soft);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* The one easing (150ms micro, 250ms indicators, 180/120ms dialogs). */
+  --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Motion verb "settle like a needle": a spring that overshoots ~2% and rests; use with duration-250. */
+  --ease-needle: linear(0, 0.041, 0.138, 0.263, 0.396, 0.524, 0.638, 0.736, 0.816, 0.88, 0.928, 0.963, 0.988, 1.004, 1.013, 1.018, 1.02, 1.019, 1.018, 1.015, 1.013, 1.01, 1.008, 1.006, 1);
 }
 
-body { background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font-sans); }
-a { color: var(--accent); }
-a:hover { text-decoration: underline; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
-table { border-collapse: collapse; width: 100%; }
-th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; }
-th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-kbd { font: 12px var(--font-mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
+/* ------------------------------------------------------------------------- */
+/* Base                                                                      */
+/* ------------------------------------------------------------------------- */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+  html.light {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--foreground) 22%, transparent);
+    color: var(--foreground);
+  }
+
+  /* Plain links and custom controls; shadcn components draw their own ring. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  code, kbd, pre, samp {
+    font-family: var(--font-mono);
+    font-feature-settings: "calt" 0, "liga" 0;
+  }
+  /* Numbers line up everywhere; `tabular-nums` (Tailwind) does the same on any other element. */
+  table, kbd, dl {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Scrollbars: thin, quiet, theme-aware. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  /* Reduced motion: same end states, no movement. */
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Theme switch: the new theme wipes across the old one (shell/theme-toggle) */
+/* ------------------------------------------------------------------------- */
+html[data-theme-wipe]::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html[data-theme-wipe]::view-transition-new(root) {
+  mix-blend-mode: normal;
+}
+html[data-theme-wipe="up"]::view-transition-new(root) {
+  animation: theme-wipe-up 400ms ease-out;
+}
+html[data-theme-wipe="down"]::view-transition-new(root) {
+  animation: theme-wipe-down 400ms ease-out;
+}
+@keyframes theme-wipe-up {
+  from { clip-path: inset(100% 0 0 0); }
+  to { clip-path: inset(0); }
+}
+@keyframes theme-wipe-down {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0); }
+}
+/* The base layer's reduced-motion rule doesn't reach view-transition pseudo-elements. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Sidebar hover pill (shell/nav-main): blurs in, glides on a spring, blurs  */
+/* out. Spring sampled into linear(): stiffness 360, damping 32, mass 0.6.   */
+/* ------------------------------------------------------------------------- */
+@layer components {
+  .nav-hover-pill {
+    --nav-hover-spring: linear(0, 0.021 2%, 0.103 5%, 0.213 8%, 0.364 12%, 0.5 16%, 0.613 20%, 0.724 25%, 0.805 30%, 0.872 36%, 0.923 43%, 0.953 50%, 0.977 60%, 0.991 72%, 0.997 86%, 1);
+    opacity: 0;
+    filter: blur(6px);
+    transition-property: transform, width, height, opacity, filter;
+    transition-duration: 450ms, 450ms, 450ms, 180ms, 180ms;
+    transition-timing-function: var(--nav-hover-spring), var(--nav-hover-spring), var(--nav-hover-spring), ease-in, ease-in;
+  }
+  .nav-hover-pill[data-state="shown"] {
+    opacity: 1;
+    filter: blur(0);
+    transition-duration: 450ms, 450ms, 450ms, 250ms, 250ms;
+    transition-timing-function: var(--nav-hover-spring), var(--nav-hover-spring), var(--nav-hover-spring), ease-out, ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav-hover-pill {
+      transition: none;
+      filter: none;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------- */
+/* LEGACY: the pre-design-system classes and colour names, kept only so      */
+/* unmigrated pages still render. Delete this whole block once no page uses  */
+/* `.btn .card .input .note`, `text-muted`, `bg-surface`, `border-line` etc. */
+/* ------------------------------------------------------------------------- */
+@theme inline {
+  --color-bg: var(--background);
+  --color-fg: var(--foreground);
+  --color-line: var(--border);
+  --color-surface: var(--muted);
+  --color-ok: var(--success);
+  --color-warn: var(--warning);
+  --color-bad: var(--destructive);
+  --color-ok-soft: color-mix(in oklab, var(--success) 14%, var(--background));
+  --color-warn-soft: color-mix(in oklab, var(--warning) 14%, var(--background));
+  --color-bad-soft: color-mix(in oklab, var(--destructive) 14%, var(--background));
+  --color-info-soft: color-mix(in oklab, var(--info) 14%, var(--background));
+}
+/* `text-muted` meant muted text; in the new tokens `muted` is a surface. Unlayered, so it wins. */
+.text-muted { color: var(--muted-foreground); }
+.border-accent { border-color: var(--foreground); }
+a:not([class]) { color: var(--info); }
+a:not([class]):hover { text-decoration: underline; }
+table:not([data-slot]) { border-collapse: collapse; width: 100%; }
+table:not([data-slot]) th { text-align: left; font-weight: 600; color: var(--muted-foreground); font-size: 12px; }
+table:not([data-slot]) :is(th, td) { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+kbd:not([data-slot]) { font-size: 12px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--muted); }
 dialog { color: inherit; }
 dialog::backdrop { background: rgb(0 0 0 / 0.5); }
-
 @layer components {
-  .btn { @apply inline-flex min-h-8 items-center justify-center gap-1 rounded-md border border-line bg-surface px-3 text-sm font-medium text-fg hover:border-muted disabled:cursor-not-allowed disabled:opacity-50 max-sm:min-h-11; }
-  .btn:hover { text-decoration: none; }
-  .btn-primary { @apply border-accent bg-accent text-white hover:border-accent hover:opacity-90; }
-  .btn-danger { @apply text-bad; }
-  .input { @apply min-h-8 rounded-md border border-line bg-bg px-2 text-sm text-fg max-sm:min-h-11; }
-  .card { @apply rounded-lg border border-line bg-bg p-3; }
-  .note { @apply rounded-md border border-line bg-surface px-3 py-2 text-sm; }
+  .btn { @apply inline-flex min-h-8 items-center justify-center gap-1 rounded-md border border-border bg-secondary px-3 text-sm font-medium text-foreground no-underline hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50 max-sm:min-h-11; }
+  .btn-primary { @apply border-primary bg-primary text-primary-foreground hover:bg-primary/90; }
+  .btn-danger { @apply text-destructive; }
+  .input { @apply min-h-8 rounded-md border border-input bg-transparent px-2 text-sm text-foreground max-sm:min-h-11; }
+  .card { @apply rounded-xl border border-border bg-card p-3 text-card-foreground shadow-sm; }
+  .note { @apply rounded-md border border-border bg-muted px-3 py-2 text-sm; }
 }

@@ -1,134 +1,147 @@
 "use client";
+import { CircleDot, CircleCheck, ExternalLink, GitMerge, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useState } from "react";
-import { Badge, Bar, ErrorBox, Load } from "@/components/ui";
-import { api } from "@/lib/api";
-import { pct, repoPath, when } from "@/lib/fmt";
-import type { Decision, ItemDetail, Repo } from "@/lib/types";
-import { useAction, useApi } from "@/lib/use-api";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ActionsTaken, Decisions, OverridesHistory, RunsTable, Section, Seen } from "@/components/review/item-sections";
+import { useCommands } from "@/components/shell/commands";
+import { useShell } from "@/components/shell/shell-context";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
+import { Load } from "@/components/ui/load";
+import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Status, type StatusTone } from "@/components/ui/status";
+import { day, repoPath } from "@/lib/fmt";
+import type { ItemDetail } from "@/lib/types";
+import { useApi } from "@/lib/use-api";
 
-const outcomeTone = { acted: "ok", queued: "warn", shadow: "info", skipped: "neutral", pending: "neutral" } as const;
+const STATE: Record<string, { tone: StatusTone; icon: LucideIcon }> = {
+  open: { tone: "success", icon: CircleDot },
+  closed: { tone: "neutral", icon: CircleCheck },
+  merged: { tone: "neutral", icon: GitMerge },
+};
 
 export default function ItemPage() {
   const { itemId } = useParams<{ itemId: string }>();
   const res = useApi<ItemDetail>(`/api/items/${itemId}`);
-  return <Load res={res}>{(d) => <Detail d={d} reload={res.reload} />}</Load>;
+  return (
+    <Load res={res} fallback={<ItemSkeleton />}>
+      {(d) => <Detail d={d} reload={res.reload} />}
+    </Load>
+  );
 }
 
 function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
   const { item } = d;
-  const repo = useApi<Repo>(`/api/repos/${item.repo_id}`);
-  const canAct = repo.data ? repo.data.role !== "viewer" : false;
-  const qOf = new Map(d.runs.flatMap((r) => r.decisions.map((x) => [x.id, x.question_id] as const)));
-  return (
-    <>
-      <p className="text-xs"><Link href={repoPath(item.repo_id)}>← {repo.data?.full_name ?? "Repository"} queue</Link></p>
-      <h1 className="text-lg font-semibold">{item.title}</h1>
-      <p className="mb-4 text-sm text-muted">
-        {item.kind}{item.number ? ` #${item.number}` : ""} · {item.state} · {item.author ?? "unknown author"} · {when(item.created_at)}
-        {item.html_url && <> · <a href={item.html_url} target="_blank" rel="noreferrer">Open on GitHub ↗</a></>}
-      </p>
+  const runs = [...d.runs].sort((a, b) => b.id - a.id); // latest first
+  const router = useRouter();
+  const { overview } = useShell();
+  const card = overview?.repos.find((r) => r.id === item.repo_id);
+  // The list you came from (the review list remembers its path); any list of this repo, else the queue.
+  const [list] = useState(() => {
+    try {
+      const p = sessionStorage.getItem("jev:list");
+      if (p?.startsWith(`/repos/${item.repo_id}/`)) return p;
+    } catch {}
+    return repoPath(item.repo_id);
+  });
+  const back = () => router.push(list);
+  const s = STATE[item.state] ?? STATE.open;
+  const ref = item.number ? `#${item.number}` : item.kind.replace("_", " ");
+  const github = () => item.html_url && window.open(item.html_url, "_blank", "noopener");
 
-      <h2 className="mb-2 font-semibold">Runs ({d.runs.length})</h2>
-      {d.runs.length === 0 && <p className="note">Jev has not evaluated this item yet. Runs appear after the first webhook or backfill pass.</p>}
-      <div className="space-y-4">
-        {d.runs.map((r) => (
-          <section key={r.id} className="card" aria-label={`Run ${r.id}`}>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <b>Run #{r.id}</b>
-              <Badge>{r.trigger}</Badge>
-              <span className="text-xs text-muted">{when(r.created_at)}</span>
-              {!r.calibrated && <Badge tone="warn" title="Probabilities from this backend are not calibrated">⚠ uncalibrated</Badge>}
-            </div>
-            <p className="mt-1 font-mono text-xs text-muted">
-              {r.backend} · {r.model_version} · {r.latency_ms} ms · {r.tokens_in} input tokens · ${r.cost_usd.toFixed(5)}
-            </p>
-            {r.error && <div role="alert" className="mt-2 rounded-md bg-bad-soft p-2 text-bad">Run failed: {r.error}</div>}
-            <details className="mt-2">
-              <summary className="min-h-8 cursor-pointer">Exact text Jev saw</summary>
-              {r.state_text === null ? (
-                <p className="text-muted">The text was purged after the retention period.</p>
+  useCommands([
+    { id: "item:github", label: "Open on GitHub", group: "Item", icon: ExternalLink, keys: "o", run: github },
+    { id: "item:back", label: `Back to ${list.endsWith("/held") ? "held" : "queue"}`, group: "Item", keys: "Esc", run: back },
+  ]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]')) return; // an open overlay owns Esc
+      router.push(list);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [router, list]);
+
+  return (
+    <div className="flex flex-col gap-10">
+      <div>
+        <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+          <Link href={list} className="rounded-sm outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+            {list.endsWith("/held") ? "Held" : "Queue"}
+          </Link>
+          <span aria-hidden>/</span>
+          <span>{card?.full_name ?? "Repository"}</span>
+          <span aria-hidden>/</span>
+          <span aria-current="page" className="text-foreground tabular-nums">{ref}</span>
+        </nav>
+        <PageHeader
+          className="mb-0"
+          title={item.title}
+          description={
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <Badge variant="outline">{item.kind.replace("_", " ")}</Badge>
+              {item.html_url ? (
+                <a href={item.html_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 tabular-nums hover:text-foreground">
+                  {ref}<ExternalLink aria-hidden className="size-3" /><span className="sr-only">Open on GitHub</span>
+                </a>
               ) : (
-                <pre className="mt-1 max-h-96 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-surface p-2 font-mono text-xs">{r.state_text}</pre>
+                <span className="tabular-nums">{ref}</span>
               )}
-            </details>
-            {r.decisions.map((x) => (
-              <DecisionView key={x.id} x={x} overrides={d.overrides.filter((o) => o.decision_id === x.id)} canAct={canAct} reload={reload} />
-            ))}
-          </section>
-        ))}
+              <span>{item.author ?? "unknown author"}</span>
+              <Status tone={s.tone} icon={s.icon} className="capitalize">{item.state}</Status>
+              <span className="tabular-nums">{day(item.created_at)}</span>
+            </span>
+          }
+          actions={
+            <>
+              {item.html_url && (
+                <Button variant="outline" size="sm" onClick={github}>
+                  Open on GitHub<Kbd className="max-sm:hidden">O</Kbd>
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={back}>
+                Back<Kbd className="max-sm:hidden">Esc</Kbd>
+              </Button>
+            </>
+          }
+        />
       </div>
 
-      <h2 className="mb-2 mt-6 font-semibold">Actions taken</h2>
-      {d.actions.length === 0 ? (
-        <p className="note">Jev has not changed anything on GitHub for this item (shadow mode, queued, or not eligible).</p>
-      ) : (
-        <table>
-          <thead><tr><th>When</th><th>Action</th><th>GitHub reference</th><th /></tr></thead>
-          <tbody>
-            {d.actions.map((a) => (
-              <tr key={a.id}>
-                <td>{when(a.created_at)}</td><td className="font-mono">{a.kind}</td><td className="font-mono">{a.github_ref ?? "—"}</td>
-                <td>{a.dry_run && <Badge tone="warn" title="Dry-run: recorded only, nothing was written to GitHub">dry run</Badge>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      <h2 className="mb-2 mt-6 font-semibold">Override history</h2>
-      {d.overrides.length === 0 ? (
-        <p className="note">No maintainer has overridden Jev on this item.</p>
-      ) : (
-        <table>
-          <thead><tr><th>When</th><th>Who</th><th>Question</th><th>New answer</th></tr></thead>
-          <tbody>
-            {d.overrides.map((o) => (
-              <tr key={o.id}><td>{when(o.created_at)}</td><td>{o.user}</td><td className="font-mono">{qOf.get(o.decision_id) ?? o.decision_id}</td><td>{o.new_answer}</td></tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </>
+      <Section title="Decisions" aside={runs.length ? `${runs.length} ${runs.length === 1 ? "run" : "runs"}` : undefined}>
+        <Decisions runs={runs} overrides={d.overrides} canAct={card?.role !== "viewer"} reload={reload} />
+      </Section>
+      <Seen run={runs[0]} />
+      <Section title="Actions taken"><ActionsTaken actions={d.actions} /></Section>
+      <Section title="Override history"><OverridesHistory overrides={d.overrides} runs={runs} /></Section>
+      <Section title="Runs"><RunsTable runs={runs} /></Section>
+    </div>
   );
 }
 
-function DecisionView({ x, overrides, canAct, reload }: { x: Decision; overrides: ItemDetail["overrides"]; canAct: boolean; reload: () => void }) {
-  const opts = Object.entries(x.probabilities).sort((a, b) => b[1] - a[1]);
-  const [answer, setAnswer] = useState(x.answer);
-  const act = useAction();
-  const last = overrides.at(-1);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (await act.run(() => api(`/api/decisions/${x.id}/override`, { method: "POST", body: { answer } }))) reload();
-  }
+function ItemSkeleton() {
   return (
-    <div className="mt-3 rounded-md border border-line p-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-sm">{x.question_id}</span>
-        <Badge tone={outcomeTone[x.outcome as keyof typeof outcomeTone] ?? "neutral"}>{x.outcome}</Badge>
-        <span className="text-sm">answer <b>{x.answer}</b> · confidence {pct(x.confidence, 1)} · threshold {pct(x.threshold)} · {x.confidence >= x.threshold ? "above" : "below"} threshold</span>
-        {last && <Badge tone="info">overridden to {last.new_answer} by {last.user}</Badge>}
+    <div role="status" aria-busy="true" className="flex flex-col gap-10">
+      <span className="sr-only">Loading</span>
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-4 w-56" />
+        <Skeleton className="h-8 w-2/3" />
+        <Skeleton className="h-4 w-80 max-w-full" />
       </div>
-      <ul className="mt-1 space-y-0.5">
-        {opts.map(([o, p]) => (
-          <li key={o} className="flex items-center gap-2">
-            <span className={`w-32 shrink-0 truncate ${o === x.answer ? "font-semibold" : ""}`}>{o}</span>
-            <span className="flex-1"><Bar p={p} marker={x.threshold} tone={o === x.answer ? "ok" : "info"} /></span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-xs text-muted">The black tick marks the {pct(x.threshold)} threshold the chosen answer needed to reach.</p>
-      <form onSubmit={submit} className="mt-2 flex flex-wrap items-center gap-2">
-        <label className="text-sm" htmlFor={`ov-${x.id}`}>Override answer</label>
-        <select id={`ov-${x.id}`} className="input" value={answer} onChange={(e) => setAnswer(e.target.value)} disabled={!canAct}>
-          {opts.map(([o]) => <option key={o}>{o}</option>)}
-        </select>
-        <button className="btn" disabled={!canAct || act.busy || answer === (last?.new_answer ?? x.answer)}>{act.busy ? "Saving…" : "Override"}</button>
-        {!canAct && <span className="text-xs text-muted">Maintainer access required.</span>}
-      </form>
-      {act.error && <div className="mt-2"><ErrorBox error={act.error} /></div>}
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+      <Skeleton className="h-6 w-48" />
+      {[0, 1].map((i) => (
+        <div key={i} className="flex flex-col gap-3">
+          <Skeleton className="h-6 w-36" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      ))}
     </div>
   );
 }

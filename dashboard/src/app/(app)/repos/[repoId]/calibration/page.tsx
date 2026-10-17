@@ -1,70 +1,113 @@
 "use client";
 import Link from "next/link";
-import { Reliability } from "@/components/charts";
+import { ReliabilityChart } from "@/components/measure/reliability-chart";
 import { useRepo } from "@/components/repo";
-import { Empty, Load } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { CardSection } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Load } from "@/components/ui/load";
+import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Stat, StatStrip } from "@/components/ui/stat-strip";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { pct, repoPath } from "@/lib/fmt";
-import type { Calibration } from "@/lib/types";
+import type { Calibration, QuestionInfo } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
+import { cn } from "@/lib/utils";
 
 export default function CalibrationPage() {
   const { repo } = useRepo();
-  if (repo.questions.length === 0)
-    return <Empty title="No questions yet">Calibration charts appear once Jev has processed items for at least one feature.</Empty>;
   return (
     <>
-      <p className="note mb-3">
-        Does 80% confidence really mean right 8 times in 10? Each dot is a confidence bucket: height is the measured accuracy, size is how many
-        decisions it holds. Dots on the dashed diagonal are calibrated; below it, Jev is overconfident. Click a dot to see its misses.
-      </p>
-      <ul className="grid gap-3 lg:grid-cols-2">
-        {repo.questions.map((q) => (
-          <li key={q.id} className="card">
-            <Card repoId={repo.id} qid={q.id} />
-          </li>
-        ))}
-      </ul>
+      <PageHeader title="Calibration" description="Does stated confidence match reality?" />
+      {repo.questions.length === 0 ? (
+        <EmptyState art="chart" title="No questions yet" description="They appear once a feature has processed an item." />
+      ) : (
+        <ul className="grid gap-6 lg:grid-cols-2">
+          {repo.questions.map((q) => (
+            <li key={q.id} className="min-w-0">
+              <QuestionCard repoId={repo.id} q={q} />
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   );
 }
 
-function Card({ repoId, qid }: { repoId: number; qid: string }) {
-  const res = useApi<Calibration>(`/api/repos/${repoId}/calibration?question_id=${encodeURIComponent(qid)}`);
+const skeleton = (
+  <div role="status" aria-busy="true" className="flex flex-col gap-5">
+    <Skeleton className="h-12 w-2/3" />
+    <Skeleton className="aspect-[4/3] w-full" />
+    <Skeleton className="h-40 w-full" />
+    <span className="sr-only">Loading</span>
+  </div>
+);
+
+const range = (b: { lo: number; hi: number }) => `${Math.round(b.lo * 100)} to ${pct(b.hi)}`;
+
+function QuestionCard({ repoId, q }: { repoId: number; q: QuestionInfo }) {
+  const res = useApi<Calibration>(`/api/repos/${repoId}/calibration?question_id=${encodeURIComponent(q.id)}`);
+  const evaluation = (lo: number, hi: number) => `${repoPath(repoId, "evaluation")}?q=${encodeURIComponent(q.id)}&lo=${lo}&hi=${hi}`;
   return (
-    <>
-      <h2 className="font-mono font-medium">{qid}</h2>
+    <CardSection
+      title={<span className="font-mono">{q.id}</span>}
+      description={q.feature}
+      hint="Each dot is a confidence bucket: height is observed accuracy, size is n. Below the dashed line Jev is overconfident. Faint dots have fewer than 5 decisions. Click a dot for its misses."
+    >
       <Load
         res={res}
+        fallback={skeleton}
         isEmpty={(d) => d.n === 0}
-        empty={<p className="mt-1 text-muted">Not measured yet (n=0). Resolve queue items or run a backfill to create ground truth.</p>}
+        empty={
+          <EmptyState
+            className="py-6"
+            art="chart"
+            title="Not measured yet"
+            description="n=0. Run a backfill to create ground truth."
+            action={<Button asChild variant="outline" size="sm"><Link href={repoPath(repoId, "evaluation")}>Run backfill</Link></Button>}
+          />
+        }
       >
         {(d) => (
-          <>
-            <p className="text-sm text-muted">
-              n={d.n} · ECE {d.ece === null ? "—" : d.ece.toFixed(3)} (average gap between confidence and accuracy; lower is better)
-            </p>
-            <div className="grid items-start gap-3 sm:grid-cols-[auto_1fr]">
-              <Reliability bins={d.bins} href={(b) => `${repoPath(repoId, "evaluation")}?q=${encodeURIComponent(qid)}&lo=${b.lo}&hi=${b.hi}`} />
-              <table className="text-xs">
-                <thead><tr><th>Bucket</th><th>n</th><th>Conf.</th><th>Acc.</th><th>Gap</th></tr></thead>
-                <tbody>
-                  {d.bins.map((b) => (
-                    <tr key={b.lo} className="whitespace-nowrap">
-                      <td>
-                        {b.n > 0 ? <Link href={`${repoPath(repoId, "evaluation")}?q=${encodeURIComponent(qid)}&lo=${b.lo}&hi=${b.hi}`}>{b.lo}–{b.hi}</Link> : `${b.lo}–${b.hi}`}
-                      </td>
-                      <td className="tabular-nums">{b.n}</td>
-                      <td className="tabular-nums">{b.n ? pct(b.mean_confidence) : "—"}</td>
-                      <td className="tabular-nums">{b.n ? pct(b.accuracy) : "—"}</td>
-                      <td className="tabular-nums">{b.n ? `${b.accuracy >= b.mean_confidence ? "+" : "−"}${Math.abs((b.accuracy - b.mean_confidence) * 100).toFixed(0)} pts` : "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <div className="flex flex-col gap-5">
+            <StatStrip className="gap-x-6 border-t-0 pt-0 lg:grid-cols-2">
+              <Stat label="ECE" hint="Expected calibration error: the average gap between confidence and accuracy. Lower is better." value={d.ece === null ? "—" : d.ece.toFixed(3)} detail={`n=${d.n}`} />
+              <Stat label="Accuracy" value={pct(q.accuracy, 1)} detail={`n=${q.n}`} />
+            </StatStrip>
+            <ReliabilityChart bins={d.bins} href={(b) => evaluation(b.lo, b.hi)} />
+            <Table className="text-xs">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-2">Confidence</TableHead>
+                  <TableHead className="px-2 text-right">n</TableHead>
+                  <TableHead className="px-2 text-right">Mean</TableHead>
+                  <TableHead className="px-2 text-right">Accuracy</TableHead>
+                  <TableHead className="px-2 text-right">Gap</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {d.bins.map((b) => {
+                  const gap = b.n ? (b.accuracy - b.mean_confidence) * 100 : 0;
+                  return (
+                    <TableRow key={b.lo} className={cn(!b.n && "text-muted-foreground/50")}>
+                      <TableCell className="px-2 py-2">
+                        {b.n ? <Link className="underline-offset-4 hover:underline" href={evaluation(b.lo, b.hi)}>{range(b)}</Link> : range(b)}
+                      </TableCell>
+                      <TableCell className="px-2 py-2 text-right tabular-nums">{b.n}</TableCell>
+                      <TableCell className="px-2 py-2 text-right tabular-nums">{b.n ? pct(b.mean_confidence) : "—"}</TableCell>
+                      <TableCell className="px-2 py-2 text-right tabular-nums">{b.n ? pct(b.accuracy) : "—"}</TableCell>
+                      <TableCell className={cn("px-2 py-2 text-right tabular-nums", b.n >= 5 && gap <= -5 && "text-destructive")}>
+                        {b.n ? `${gap >= 0 ? "+" : "−"}${Math.abs(gap).toFixed(0)} pts` : "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </Load>
-    </>
+    </CardSection>
   );
 }

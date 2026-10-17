@@ -1,237 +1,324 @@
 "use client";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, Check, ExternalLink, Undo2, X } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Actions, Preview, PreviewSkeleton, optionsOf, type Act } from "@/components/review/preview";
+import { ROW_H, Row, RowSkeleton, featureName } from "@/components/review/row";
+import { useCommands } from "@/components/shell/commands";
+import { useShell } from "@/components/shell/shell-context";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState, LoadMore } from "@/components/ui/load";
+import { NumberTicker } from "@/components/ui/number-ticker";
+import { useReducedMotion } from "@/components/ui/presence";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs } from "@/components/ui/tabs";
+import { toast } from "@/components/ui/toaster";
 import { api, errText } from "@/lib/api";
-import { age, pct } from "@/lib/fmt";
 import type { QueueEntry, Suggestion } from "@/lib/types";
 import { usePaged } from "@/lib/use-api";
-import { useRepo } from "./repo";
-import { Badge, Bar, Empty, ErrorBox, LoadMore } from "./ui";
 
-type Action = "accept" | "dismiss" | "release";
-const verb: Record<Action, string> = { accept: "Accepted", dismiss: "Dismissed", release: "Released" };
+const ALL = "all";
+const UNDO_MS = 5000;
+const VERB: Record<Act, string> = { accept: "Accepted", dismiss: "Dismissed", release: "Released" };
+const wide = () => matchMedia("(min-width: 1024px)").matches;
 
-/** Options of a suggestion, most probable first. */
-const optionsOf = (s: Suggestion) => {
-  const o = s.options.length ? s.options : Object.keys(s.probabilities);
-  return [...o].sort((a, b) => (s.probabilities[b] ?? 0) - (s.probabilities[a] ?? 0));
+type Cursor = { id: number; i: number }; // focused entry; `i` is where it sat, so removing it focuses its neighbour
+
+/** Where you were (filter and focused row) survives opening an item and coming back. */
+const recall = (key: string): { feature?: string; cursor?: Cursor } => {
+  try {
+    return JSON.parse(sessionStorage.getItem(key) ?? "{}");
+  } catch {
+    return {};
+  }
 };
 
-const keys: [string, string][] = [
-  ["j / k", "next / previous item"],
-  ["1 – 9", "pick that option of the focused suggestion"],
-  ["[ / ]  or  Tab / Shift+Tab", "previous / next suggestion (Tab only while the list itself has focus)"],
-  ["a", "accept (picked answers override Jev's)"],
-  ["d", "dismiss (no ground truth recorded)"],
-  ["r", "release (held items only)"],
-  ["e or Enter", "open item detail"],
-  ["?", "toggle this help"],
-];
+/** List left, preview right (one column on phones). Fills the scroll panel below whatever sits above it, so only the list scrolls. */
+function Split({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const root = el?.closest<HTMLElement>("[data-scroll-root]");
+    if (!el || !root?.firstElementChild) return;
+    const fit = () => {
+      el.style.height = "";
+      const top = el.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop;
+      el.style.height = `${Math.max(matchMedia("(min-width: 1024px)").matches ? 360 : 280, root.clientHeight - top - 32)}px`; // 32 = the panel's bottom padding
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(root);
+    ro.observe(root.firstElementChild);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="grid grid-rows-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)]">
+      {children}
+    </div>
+  );
+}
 
+/**
+ * The review queue and the held list: virtualized list left, focused item right (a bottom sheet on phones).
+ * Keys are registered with useCommands (⌘K and `?` list them); digits, brackets, arrows and Enter are handled here.
+ * Dismiss is optimistic and committed after UNDO_MS, so Undo is a local restore (there is no "reopen" endpoint).
+ * Accept and release commit at once; any failure puts the row back.
+ */
 export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
-  const { repo, canAct } = useRepo();
+  const repoId = Number(useParams<{ repoId: string }>().repoId);
   const router = useRouter();
-  const list = usePaged<QueueEntry>(`/api/repos/${repo.id}/queue?bucket=${bucket}&limit=100`);
-  const [gone, setGone] = useState<ReadonlySet<number>>(new Set()); // optimistically resolved entries
-  const [focus, setFocus] = useState(0);
-  const [sug, setSug] = useState<Record<number, number>>({}); // entry id -> focused suggestion
-  const [picks, setPicks] = useState<Record<number, string>>({}); // decision id -> chosen answer
-  const [msg, setMsg] = useState("");
-  const [help, setHelp] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
-  const dlg = useRef<HTMLDialogElement>(null);
+  const { reloadOverview } = useShell();
+  const reduced = useReducedMotion();
+  const held = bucket === "held";
+  const group = held ? "Held" : "Queue";
+  const key = `jev:review:${repoId}:${bucket}`;
+  const list = usePaged<QueueEntry>(`/api/repos/${repoId}/queue?bucket=${bucket}&limit=100`);
 
-  const rows = useMemo(
+  const [gone, setGone] = useState<ReadonlySet<number>>(new Set()); // optimistically resolved
+  const [feature, setFeature] = useState(() => recall(key).feature ?? ALL);
+  const [cursor, setCursor] = useState<Cursor>(() => recall(key).cursor ?? { id: 0, i: 0 });
+  const [sug, setSug] = useState<Record<number, number>>({}); // entry id -> active suggestion
+  const [picks, setPicks] = useState<Record<number, string>>({}); // decision id -> chosen answer
+  const [sheet, setSheet] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const pending = useRef(new Map<number, { timer: number; commit: () => void; toast: string }>());
+  const settled = useRef(false);
+
+  const live = useMemo(
     () => (list.data ?? []).filter((e) => !gone.has(e.id)).sort((a, b) => b.age_hours - a.age_hours),
     [list.data, gone],
   );
-  const f = Math.min(focus, rows.length - 1);
+  const counts = useMemo(() => new Map([...Map.groupBy(live, (e) => e.feature)].sort(([a], [b]) => a.localeCompare(b))), [live]); // stable tab order
+  const active = counts.has(feature) ? feature : ALL;
+  const rows = useMemo(() => (active === ALL ? live : (counts.get(active) ?? [])), [live, counts, active]);
+  const at = rows.findIndex((e) => e.id === cursor.id);
+  const f = rows.length ? (at >= 0 ? at : Math.min(cursor.i, rows.length - 1)) : -1;
+  const cur: QueueEntry | undefined = rows[f];
+  const si = cur ? (sug[cur.id] ?? 0) : 0;
+
   // TanStack Virtual returns un-memoizable functions; fine here because React Compiler is not enabled.
   // eslint-disable-next-line react-hooks/incompatible-library
   const virt = useVirtualizer({
     count: rows.length,
     getScrollElement: () => box.current,
-    estimateSize: () => 170,
-    overscan: 6,
+    estimateSize: () => ROW_H,
+    overscan: 8,
     getItemKey: (i) => rows[i]?.id ?? i,
   });
 
   useEffect(() => {
-    if (f >= 0) virt.scrollToIndex(f, { align: "auto" });
-  }, [f, virt]);
+    if (f >= 0) virt.scrollToIndex(f, { align: "auto", behavior: settled.current && !reduced ? "smooth" : "auto" });
+    settled.current = true;
+  }, [f, virt, reduced]);
   useEffect(() => {
-    const d = dlg.current;
-    if (!d || help === d.open) return;
-    if (help) d.showModal();
-    else d.close();
-  }, [help]);
-
-  async function resolve(e: QueueEntry, action: Action) {
-    if (!canAct) return setMsg("Read-only: resolving needs maintainer access.");
-    if (action === "release" && bucket !== "held") return;
-    const answers = Object.fromEntries(
-      e.suggestions.filter((s) => picks[s.decision_id] !== undefined).map((s) => [s.decision_id, picks[s.decision_id]]),
-    );
-    const label = `${e.item.kind} ${e.item.number ? "#" + e.item.number : e.item.id}`;
-    setGone((g) => new Set(g).add(e.id));
-    setMsg(`${verb[action]} ${label}.`);
     try {
-      await api(`/api/queue/${e.id}/resolve`, { method: "POST", body: { action, answers: action === "accept" ? answers : undefined } });
-    } catch (err) {
-      setGone((g) => {
-        const n = new Set(g);
-        n.delete(e.id);
-        return n;
-      });
-      setMsg(`Could not ${action} ${label} (${errText(err)}). It was put back in the list.`);
-    }
-  }
+      sessionStorage.setItem(key, JSON.stringify({ feature, cursor }));
+      sessionStorage.setItem("jev:list", location.pathname); // where Esc on an item page returns to
+    } catch {}
+  }, [key, feature, cursor]);
+  const { more, loadMore } = list;
+  useEffect(() => {
+    if (more && f >= rows.length - 5) loadMore(); // near the end (or everything loaded is resolved): fetch the next page
+  }, [more, loadMore, f, rows.length]);
+  useEffect(() => {
+    const p = pending.current;
+    return () => p.forEach((x) => (clearTimeout(x.timer), x.commit())); // leaving the page commits dismissals still counting down
+  }, []);
+
+  const go = (i: number) => rows[i] && setCursor({ id: rows[i].id, i });
+  // Functional, so a burst of key repeats before the next render still advances one row each.
+  const move = (d: number) =>
+    setCursor((c) => {
+      const at = rows.findIndex((e) => e.id === c.id);
+      const i = Math.max(0, Math.min((at >= 0 ? at : c.i) + d, rows.length - 1));
+      return rows[i] ? { id: rows[i].id, i } : c;
+    });
+  const restore = (id: number) =>
+    setGone((g) => {
+      const n = new Set(g);
+      n.delete(id);
+      return n;
+    });
   const pick = (s: Suggestion, o: string) => setPicks((p) => ({ ...p, [s.decision_id]: o }));
-  const cycle = (e: QueueEntry, d: number) =>
-    setSug((m) => ({ ...m, [e.id]: ((m[e.id] ?? 0) + d + e.suggestions.length) % e.suggestions.length }));
+  const cycle = (d: number) => cur && setSug((m) => ({ ...m, [cur.id]: (si + d + cur.suggestions.length) % cur.suggestions.length }));
+  const undo = (id = [...pending.current.keys()].at(-1)) => {
+    const p = id === undefined ? undefined : pending.current.get(id);
+    if (id === undefined || !p) return;
+    clearTimeout(p.timer);
+    pending.current.delete(id);
+    restore(id);
+    setCursor((c) => ({ ...c, id }));
+    toast.dismiss(p.toast);
+  };
+
+  function resolve(e: QueueEntry, action: Act) {
+    const label = e.item.number ? `#${e.item.number}` : e.item.kind.replace("_", " ");
+    const answers = Object.fromEntries(e.suggestions.filter((s) => picks[s.decision_id] !== undefined).map((s) => [s.decision_id, picks[s.decision_id]]));
+    const commit = () =>
+      api(`/api/queue/${e.id}/resolve`, { method: "POST", body: { action, answers: action === "accept" ? answers : undefined } }).then(reloadOverview, (err) => {
+        restore(e.id);
+        list.reload();
+        toast.error(`Could not ${action} ${label}`, { description: errText(err) });
+      });
+    setGone((g) => new Set(g).add(e.id));
+    setSheet(false);
+    if (action !== "dismiss") {
+      void commit();
+      return void toast.success(`${VERB[action]} ${label}`, { duration: 2500 });
+    }
+    const timer = window.setTimeout(() => (pending.current.delete(e.id), void commit()), UNDO_MS);
+    const id = toast(`Dismissed ${label}`, { duration: UNDO_MS, action: { label: "Undo", onClick: () => undo(e.id) } });
+    pending.current.set(e.id, { timer, commit, toast: id });
+  }
+  const act = (a: Act) => cur && resolve(cur, a);
+  const openItem = () => cur && router.push(`/items/${cur.item.id}`);
+
+  useCommands([
+    { id: "review:next", label: "Next item", group, icon: ArrowDown, keys: "j", run: () => move(1) },
+    { id: "review:prev", label: "Previous item", group, icon: ArrowUp, keys: "k", run: () => move(-1) },
+    { id: "review:accept", label: "Accept", group, icon: Check, keys: "a", keywords: "confirm", run: () => act("accept") },
+    { id: "review:dismiss", label: "Dismiss", group, icon: X, keys: "d", run: () => act("dismiss") },
+    ...(held ? [{ id: "review:release", label: "Release", group, keys: "r", keywords: "unhold", run: () => act("release") }] : []),
+    { id: "review:open", label: "Open item", group, keys: "e", run: openItem },
+    { id: "review:github", label: "Open on GitHub", group, icon: ExternalLink, keys: "o", run: () => cur?.item.html_url && window.open(cur.item.html_url, "_blank", "noopener") },
+    { id: "review:undo", label: "Undo dismiss", group, icon: Undo2, keys: "u", run: () => undo() },
+    { id: "review:pick", label: "Pick that answer", group, keys: "1–9" },
+    { id: "review:cycle", label: "Next suggestion", group, keys: "]" },
+  ]);
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       const t = ev.target as HTMLElement | null;
-      if (ev.metaKey || ev.ctrlKey || ev.altKey || t?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName ?? "")) return;
-      if (ev.key === "?") {
-        setHelp((h) => !h);
-        return ev.preventDefault();
-      }
-      if (help) return;
-      const e = rows[f];
+      if (ev.defaultPrevented || ev.metaKey || ev.ctrlKey || ev.altKey || t?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName ?? "")) return;
+      if (document.querySelector('[role="dialog"],[role="menu"]')) return;
+      const idle = t === document.body || !!box.current?.contains(t); // nothing else owns Enter and the arrows
       const k = ev.key;
-      const onList = document.activeElement === box.current; // Tab is only hijacked while the list itself has focus
-      let handled = true;
-      if (k === "j") setFocus((x) => Math.min(Math.min(x, rows.length - 1) + 1, rows.length - 1));
-      else if (k === "k") setFocus((x) => Math.max(Math.min(x, rows.length - 1) - 1, 0));
-      else if (!e) handled = false;
-      else if (/^[1-9]$/.test(k)) {
-        const s = e.suggestions[sug[e.id] ?? 0];
+      const s = cur?.suggestions[si];
+      if (/^[1-9]$/.test(k)) {
         const o = s && optionsOf(s)[Number(k) - 1];
         if (o) pick(s, o);
-      } else if (k === "]" || (k === "Tab" && !ev.shiftKey && onList)) cycle(e, 1);
-      else if (k === "[" || (k === "Tab" && ev.shiftKey && onList)) cycle(e, -1);
-      else if (k === "a") void resolve(e, "accept");
-      else if (k === "d") void resolve(e, "dismiss");
-      else if (k === "r") void resolve(e, "release");
-      else if (k === "e" || (k === "Enter" && !t?.closest("button,a,summary"))) router.push(`/items/${e.item.id}`);
-      else handled = false;
-      if (handled) ev.preventDefault();
+      } else if (k === "]" || k === "[") cycle(k === "]" ? 1 : -1);
+      else if (k === "ArrowDown" && idle) move(1);
+      else if (k === "ArrowUp" && idle) move(-1);
+      else if (k === "Enter" && idle && cur) openItem();
+      else return;
+      ev.preventDefault();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  if (list.error) return <ErrorBox error={list.error} retry={list.reload} />;
-  if (list.data === undefined) return <p className="py-8 text-center text-muted" role="status" aria-busy="true">Loading…</p>;
-  if (rows.length === 0 && !list.more)
+  if (list.error) return <ErrorState error={list.error} retry={list.reload} />;
+  const title = held ? "Held" : "Queue";
+  const header = (filter?: ReactNode) => (
+    <div className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {title}
+          {list.data && (
+            <span className="ml-2 font-normal text-muted-foreground tabular-nums">
+              <NumberTicker value={live.length} animateOnMount={false} />
+              {list.more && "+"}
+            </span>
+          )}
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {held ? "Held as possibly sensitive. Nothing was closed." : "Oldest first. Accepting records your answer as truth."}
+        </p>
+      </div>
+      {filter}
+    </div>
+  );
+
+  if (list.data === undefined)
     return (
       <>
-        <p role="status" aria-live="polite" className="mb-2 text-sm">{msg}</p>
-        <Empty title={bucket === "held" ? "Nothing is held" : "Nothing is waiting for review"}>
-          {bucket === "held"
-            ? "Reports from outside your team that look security-sensitive are held here instead of being filed publicly. You will see them as soon as one is detected."
-            : "Items land here when Jev's confidence is below the threshold, when a feature is in shadow mode (suggestions only), or when a question has not been measured yet. Resolved items disappear and become measured accuracy."}
-        </Empty>
+        {header()}
+        <Split>
+          <div role="status" aria-busy="true" className="min-h-0 overflow-hidden rounded-lg border">
+            <span className="sr-only">Loading</span>
+            {Array.from({ length: 7 }, (_, i) => <RowSkeleton key={i} />)}
+          </div>
+          <div className="hidden min-h-0 lg:flex"><PreviewSkeleton /></div>
+        </Split>
       </>
     );
 
+  if (live.length === 0 && !list.more)
+    return (
+      <>
+        {header()}
+        <EmptyState
+          art="done"
+          title={held ? "Nothing is held" : "Queue is clear"}
+          description={held ? "Possible security reports wait here for you." : "Low-confidence and shadow-mode items land here."}
+        />
+      </>
+    );
+
+  const filter = counts.size > 1 && (
+    <Tabs
+      variant="segmented"
+      aria-label="Filter by feature"
+      value={active}
+      onValueChange={setFeature}
+      className="max-w-full overflow-x-auto"
+      items={[
+        { id: ALL, label: <>All <span className="text-muted-foreground tabular-nums">{live.length}</span></> },
+        ...[...counts].map(([id, es]) => ({ id, label: <>{featureName(id)} <span className="text-muted-foreground tabular-nums">{es.length}</span></> })),
+      ]}
+    />
+  );
+  const changed = cur ? cur.suggestions.filter((s) => picks[s.decision_id] !== undefined && picks[s.decision_id] !== s.answer).length : 0;
+  const preview = (className?: string) =>
+    cur && <Preview e={cur} held={held} picks={picks} active={si} onPick={pick} onAct={act} className={className} />;
+
   return (
     <>
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <p className="text-sm text-muted">
-          {rows.length}{list.more ? "+" : ""} {bucket === "held" ? "held" : "to review"}, oldest first
-        </p>
-        <span className="flex-1" />
-        <button className="btn max-sm:hidden" onClick={() => setHelp(true)}>Keyboard shortcuts <kbd>?</kbd></button>
-      </div>
-      <p role="status" aria-live="polite" className="mb-2 min-h-5 text-sm">{msg}</p>
-      <div
-        ref={box}
-        tabIndex={0}
-        aria-label={`${bucket === "held" ? "Held" : "Review"} list. Press ? for keyboard shortcuts.`}
-        className="max-h-[calc(100dvh-17rem)] min-h-64 overflow-auto rounded-lg border border-line"
-      >
-        <ul className="relative" style={{ height: virt.getTotalSize() }}>
-          {virt.getVirtualItems().map((v) => {
-            const e = rows[v.index];
-            return (
-              <li key={v.key} data-index={v.index} ref={virt.measureElement} className="absolute left-0 top-0 w-full" style={{ transform: `translateY(${v.start}px)` }}>
+      {header(filter)}
+      <Split>
+        <div className="flex min-h-0 flex-col">
+          <div
+            ref={box}
+            role="listbox"
+            tabIndex={0}
+            aria-label={`${title}. Press ? for keyboard shortcuts.`}
+            aria-activedescendant={cur && `row-${cur.id}`}
+            className="min-h-0 flex-1 overflow-y-auto rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <div className="relative" style={{ height: virt.getTotalSize() }}>
+              {virt.getVirtualItems().map((v) => (
                 <Row
-                  e={e} focused={v.index === f} si={sug[e.id] ?? 0} picks={picks} bucket={bucket} canAct={canAct}
-                  onFocus={() => setFocus(v.index)} onPick={pick} onAct={(a) => void resolve(e, a)}
+                  key={v.key}
+                  e={rows[v.index]}
+                  start={v.start}
+                  focused={v.index === f}
+                  onSelect={() => {
+                    go(v.index);
+                    if (!wide()) setSheet(true);
+                  }}
                 />
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-      <LoadMore p={list} />
-      <dialog ref={dlg} onClose={() => setHelp(false)} aria-labelledby="kb-title" className="m-auto w-[min(32rem,92vw)] rounded-lg border border-line bg-bg p-4">
-        <h2 id="kb-title" className="mb-2 font-semibold">Keyboard shortcuts</h2>
-        <table>
-          <tbody>
-            {keys.map(([k, d]) => (
-              <tr key={k}><td className="whitespace-nowrap"><kbd>{k}</kbd></td><td>{d}</td></tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="mt-2 text-xs text-muted">On a phone, use the buttons on each item. Picking an option and then accepting records your answer as ground truth.</p>
-        <button className="btn mt-3" onClick={() => setHelp(false)}>Close</button>
-      </dialog>
-    </>
-  );
-}
-
-function Row({ e, focused, si, picks, bucket, canAct, onFocus, onPick, onAct }: {
-  e: QueueEntry; focused: boolean; si: number; picks: Record<number, string>; bucket: string; canAct: boolean;
-  onFocus: () => void; onPick: (s: Suggestion, o: string) => void; onAct: (a: Action) => void;
-}) {
-  const changed = e.suggestions.filter((s) => picks[s.decision_id] !== undefined && picks[s.decision_id] !== s.answer).length;
-  return (
-    <article aria-current={focused || undefined} onClick={onFocus} className={`border-b border-line p-3 ${focused ? "bg-info-soft ring-2 ring-inset ring-accent" : ""}`}>
-      <div className="flex flex-wrap items-baseline gap-x-2">
-        <Link href={`/items/${e.item.id}`} className="font-medium text-fg">{e.item.title}</Link>
-        {e.item.html_url && <a href={e.item.html_url} target="_blank" rel="noreferrer" className="text-xs">GitHub ↗</a>}
-      </div>
-      <p className="text-xs text-muted">
-        {e.item.kind}{e.item.number ? ` #${e.item.number}` : ""} · {e.item.author ?? "unknown author"} · waiting {age(e.age_hours)}
-      </p>
-      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm"><Badge>{e.feature}</Badge>{e.reason}</p>
-      {e.suggestions.map((s, i) => {
-        const cur = focused && i === si;
-        const chosen = picks[s.decision_id] ?? s.answer;
-        return (
-          <div key={s.decision_id} className={`mt-2 rounded-md border p-2 ${cur ? "border-accent" : "border-line"}`}>
-            <div className="flex flex-wrap justify-between gap-x-3 text-xs text-muted">
-              <span className="font-mono">{s.question_id}</span>
-              <span>Jev: <b className="text-fg">{s.answer}</b> at {pct(s.confidence)} (threshold {pct(s.threshold)})</span>
+              ))}
             </div>
-            {optionsOf(s).slice(0, cur ? 9 : 4).map((o, j) => (
-              <button
-                key={o} type="button" aria-pressed={o === chosen} onClick={() => onPick(s, o)}
-                className="flex min-h-9 w-full items-center gap-2 rounded px-1 text-left hover:bg-surface max-sm:min-h-11"
-              >
-                <kbd className="max-sm:hidden">{j + 1}</kbd>
-                <span aria-hidden className="w-3">{o === chosen ? "✓" : ""}</span>
-                <span className={`w-28 shrink-0 truncate ${o === chosen ? "font-semibold" : ""}`}>
-                  {o}{o === chosen && o !== s.answer ? " (your pick)" : ""}
-                </span>
-                <span className="flex-1"><Bar p={s.probabilities[o] ?? 0} tone={o === chosen ? "ok" : "info"} marker={o === s.answer ? s.threshold : undefined} /></span>
-              </button>
-            ))}
           </div>
-        );
-      })}
-      <div className="mt-2 flex flex-wrap gap-2">
-        <button className="btn btn-primary" disabled={!canAct} onClick={() => onAct("accept")}>Accept{changed ? ` (${changed} changed)` : ""}</button>
-        <button className="btn" disabled={!canAct} onClick={() => onAct("dismiss")}>Dismiss</button>
-        {bucket === "held" && <button className="btn" disabled={!canAct} onClick={() => onAct("release")}>Release</button>}
-        <Link href={`/items/${e.item.id}`} className="btn">Details</Link>
-      </div>
-    </article>
+          {(more || list.moreError) && <LoadMore list={list} />}
+          {cur && (
+            <div className="mt-3 shrink-0 lg:hidden">
+              <Actions e={cur} held={held} changed={changed} onAct={act} />
+            </div>
+          )}
+        </div>
+        <div className="hidden min-h-0 lg:flex">{preview()}</div>
+      </Split>
+      <Sheet open={sheet && !!cur} onOpenChange={setSheet}>
+        <SheetContent side="bottom" className="max-h-[88svh] gap-0 p-0 lg:hidden">
+          <SheetHeader className="sr-only">
+            <SheetTitle>{cur?.item.title}</SheetTitle>
+          </SheetHeader>
+          {preview("rounded-b-none border-0 [&_h2]:pr-8")}
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
