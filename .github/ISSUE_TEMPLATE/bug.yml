@@ -1,0 +1,34 @@
+name: Bug report
+description: Something in Jev Triage is broken or behaving unexpectedly
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the relevant part of your `.github/jev-triage.yml`.
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options: [Webhooks / pipeline, Decisions / thresholds, GitHub actions, Dashboard, CI gate, Evaluation / backfill, Self-hosting / Docker, Docs]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit, and decision backend (jev / anthropic)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Output of `docker compose logs api worker`. Remove secrets.
+      render: shell

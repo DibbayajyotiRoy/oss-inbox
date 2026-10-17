@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="t">
+  <title id="t">Jev Triage: triage that proves itself before it acts</title>
+  <rect width="1200" height="630" fill="#0d1117"/>
+  <rect x="0" y="0" width="12" height="630" fill="#2563eb"/>
+  <g transform="translate(80 80)">
+    <rect width="72" height="72" rx="16" fill="#2563eb"/>
+    <path d="M20 37l10 10 22-23" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="176" y="130" fill="#e6edf3" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="44" font-weight="700">Jev Triage</text>
+  <text x="80" y="300" fill="#e6edf3" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="76" font-weight="700">Triage that proves itself</text>
+  <text x="80" y="390" fill="#e6edf3" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="76" font-weight="700">before it acts.</text>
+  <text x="80" y="480" fill="#9aa4af" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="34">Open-source GitHub issue triage bot.</text>
+  <text x="80" y="530" fill="#9aa4af" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="34">Shadow mode first. Never closes anything.</text>
+  <text x="80" y="590" fill="#79b8ff" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="26">Apache-2.0 · self-hosted</text>
+</svg>

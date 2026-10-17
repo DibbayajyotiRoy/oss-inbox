@@ -1,0 +1,21 @@
+{
+  "name": "Jev Triage (my-org)",
+  "url": "https://triage.example.com",
+  "hook_attributes": {
+    "url": "https://triage.example.com/api/github/webhook",
+    "active": true
+  },
+  "redirect_url": "https://triage.example.com/api/setup/callback",
+  "callback_urls": ["https://dashboard.example.com/api/auth/callback"],
+  "setup_url": "https://dashboard.example.com",
+  "request_oauth_on_install": false,
+  "public": false,
+  "default_permissions": {
+    "issues": "write",
+    "pull_requests": "write",
+    "checks": "write",
+    "contents": "read",
+    "metadata": "read"
+  },
+  "default_events": ["issues", "pull_request", "push"]
+}

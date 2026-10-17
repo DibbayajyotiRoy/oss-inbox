@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff; --surface: #f6f8fa; --line: #d1d9e0; --fg: #1f2328; --muted: #59636e; --accent: #0969da;
+  --ok: #1a7f37; --ok-soft: #dafbe1; --warn: #8a5a00; --warn-soft: #fff1c2; --bad: #cf222e; --bad-soft: #ffebe9;
+  --info-soft: #ddf4ff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --surface: #151b23; --line: #30363d; --fg: #e6edf3; --muted: #9198a1; --accent: #4493f8;
+    --ok: #3fb950; --ok-soft: #12261e; --warn: #d29922; --warn-soft: #2d2208; --bad: #f85149; --bad-soft: #3a1618;
+    --info-soft: #0c2d6b;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-info-soft: var(--info-soft);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+body { background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font-sans); }
+a { color: var(--accent); }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+kbd { font: 12px var(--font-mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
+dialog { color: inherit; }
+dialog::backdrop { background: rgb(0 0 0 / 0.5); }
+
+@layer components {
+  .btn { @apply inline-flex min-h-8 items-center justify-center gap-1 rounded-md border border-line bg-surface px-3 text-sm font-medium text-fg hover:border-muted disabled:cursor-not-allowed disabled:opacity-50 max-sm:min-h-11; }
+  .btn:hover { text-decoration: none; }
+  .btn-primary { @apply border-accent bg-accent text-white hover:border-accent hover:opacity-90; }
+  .btn-danger { @apply text-bad; }
+  .input { @apply min-h-8 rounded-md border border-line bg-bg px-2 text-sm text-fg max-sm:min-h-11; }
+  .card { @apply rounded-lg border border-line bg-bg p-3; }
+  .note { @apply rounded-md border border-line bg-surface px-3 py-2 text-sm; }
+}

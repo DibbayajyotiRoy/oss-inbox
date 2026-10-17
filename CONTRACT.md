@@ -52,6 +52,10 @@ Response: `{"model":"jev-1.13.0","answers":{"<id>":A},"usage":{"input_tokens":n,
 Limits: 64k tokens/request, 32k/question. 429 on rate limit. Price $0.042 / 1M input tokens.
 Question ids may contain `.` and `#`; to be safe the adapter sends ids with
 non-alphanumerics replaced by `_` and maps back.
+`instructions` may be a string OR an object (Jev accepts structured instructions). Per-candidate
+questions put the candidate in the question, not the shared state:
+`spec("gate.same_as", suffix=n, instructions={"candidate": "#12 <title>\n<body excerpt ≤1500 chars>", "question": QUESTIONS["gate.same_as"].instructions})`.
+Backends pass objects through (Jev) or JSON-encode them (Anthropic).
 
 ## Layout / Ownership
 
@@ -189,6 +193,11 @@ Feature modules export `FEATURE`, `enabled(ctx)`, `questions(ctx)`, `apply(ctx, 
 `engine.set_outcome` on each of its verdicts. Pipeline: gather questions from enabled features → `engine.run` once
 → apply in order inbound_gate, issue_triage/pr_checks, priority_spam, routing. If gate sets `ctx.held`, later
 features mark their verdicts `skipped`. `actions_enabled=False` (backfill) → features record `shadow`, no queue rows.
+`trigger == "release"` (maintainer released a held item) skips inbound_gate. `payload` for issues/prs needs at least
+`number, title, body, user.login, author_association, html_url, created_at` (PRs also `head.sha`, `draft`).
+Items authored by bots (`user.type == "Bot"` or login ending `[bot]`) are ignored to avoid loops.
+State text is markdown sections: `## Title`, `## Body` (≤6000 chars), and per feature `## Repository facts`,
+`## Contributing rules` (≤4000), `## Changed files`, `## Areas`, `## Repositories`. Never include the item's current labels.
 Shared helper every feature uses (in pipeline): `decide(ctx, verdict) -> "act"|"queue"|"shadow"` per rules 1-2.
 
 ### W3 `app.jobs`

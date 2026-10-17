@@ -1,0 +1,6 @@
+# Used by `make dev`: expose postgres and redis on localhost for a backend running on the host.
+services:
+  postgres:
+    ports: ["127.0.0.1:5432:5432"]
+  redis:
+    ports: ["127.0.0.1:6379:6379"]

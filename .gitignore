@@ -3,3 +3,6 @@ __pycache__/
 .env
 node_modules/
 .next/
+.pytest_cache/
+.DS_Store
+*.pem
