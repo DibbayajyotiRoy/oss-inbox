@@ -3,28 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jev Triage: open-source GitHub issue triage bot</title>
-<meta name="description" content="Open-source GitHub App that labels, routes and screens issues and pull requests. Shadow mode first, shows confidence, never closes anything.">
+<title>Jev Triage: open-source GitHub issue triage that proves itself</title>
+<meta name="description" content="Open-source GitHub App that labels, routes and screens issues and pull requests. Shows its confidence, starts in shadow mode, never closes anything.">
 <link rel="canonical" href="https://YOUR-ORG.github.io/jev-triage/">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#2563eb">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#fcfcfd" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Jev Triage">
-<meta property="og:title" content="Jev Triage: open-source GitHub issue triage bot">
-<meta property="og:description" content="Labels, routes and screens issues and pull requests. Starts in shadow mode, shows its confidence, and never closes anything.">
+<meta property="og:title" content="Jev Triage: GitHub issue triage that proves itself before it acts">
+<meta property="og:description" content="Labels, routes and screens issues and pull requests. Shows its confidence, starts in shadow mode, and never closes anything.">
 <meta property="og:url" content="https://YOUR-ORG.github.io/jev-triage/">
 <meta property="og:image" content="https://YOUR-ORG.github.io/jev-triage/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Jev Triage: triage that proves itself before it acts">
+<meta property="og:image:alt" content="A confidence distribution with an amber threshold tick, and the words: Triage that proves itself before it acts.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Jev Triage: open-source GitHub issue triage bot">
-<meta name="twitter:description" content="Labels, routes and screens issues and pull requests. Starts in shadow mode, shows its confidence, and never closes anything.">
+<meta name="twitter:title" content="Jev Triage: GitHub issue triage that proves itself before it acts">
+<meta name="twitter:description" content="Labels, routes and screens issues and pull requests. Shows its confidence, starts in shadow mode, and never closes anything.">
 <meta name="twitter:image" content="https://YOUR-ORG.github.io/jev-triage/og.png">
 
+<link rel="preload" href="fonts/geist-100_900-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/geist-mono-100_900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
+<script>document.documentElement.classList.add('js')</script>
+<script type="module" src="app.js"></script>
 
 <script type="application/ld+json">
 {
@@ -46,19 +52,21 @@
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="site-header">
+<header class="hd">
   <div class="wrap bar">
-    <a class="brand" href="#top" aria-label="Jev Triage, home">
-      <svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M9 16.5l4.5 4.5L23 11" fill="none" style="stroke:var(--bg)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <a class="brand" href="#top" aria-label="Jev Triage, back to top">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M15.5 5.5v13" stroke="var(--warn)" stroke-width="2.4" stroke-linecap="round"/></svg>
       Jev Triage
     </a>
     <nav aria-label="Primary">
-      <ul>
-        <li><a href="#how">How it works</a></li>
-        <li><a href="#safety">Safety</a></li>
-        <li><a href="#compare">Compare</a></li>
+      <button type="button" class="mbtn" aria-expanded="false" aria-controls="navlist">Menu</button>
+      <ul id="navlist">
+        <li class="opt"><a href="#how">How it works</a></li>
+        <li class="th"><a href="#threshold">Threshold</a></li>
+        <li class="opt"><a href="#safety">Safety</a></li>
+        <li class="opt"><a href="#compare">Compare</a></li>
         <li><a href="#quickstart">Quickstart</a></li>
-        <li><a href="#faq">FAQ</a></li>
+        <li class="opt"><a href="#faq">FAQ</a></li>
         <li><a href="https://github.com/YOUR-ORG/jev-triage">GitHub</a></li>
       </ul>
     </nav>
@@ -68,131 +76,287 @@
 <main id="main">
 
 <section class="hero" id="top">
-  <div class="wrap hero-grid">
-    <div>
-      <p class="eyebrow">Open-source GitHub issue triage bot</p>
-      <h1>GitHub issue triage that proves itself before it acts</h1>
-      <p class="lede">Jev Triage is a self-hosted GitHub App that labels, routes and screens issues and pull requests. It shows its confidence, starts in shadow mode, and never closes anything.</p>
-      <p class="cta">
-        <a class="btn primary" href="#quickstart">Self-host in 5 minutes</a>
-        <a class="btn" href="https://github.com/YOUR-ORG/jev-triage">View on GitHub</a>
-      </p>
-      <p class="fine">Apache-2.0. Free. Runs on your machine with Docker Compose.</p>
+  <div class="wrap hero-g">
+    <div class="hero-h">
+      <p class="status"><span class="shadow" aria-hidden="true"></span>Open source. Apache-2.0. Self-hosted.</p>
+      <h1><span>GitHub issue triage</span> that proves itself before it acts.</h1>
     </div>
-    <figure class="card example">
-      <figcaption>Illustration of one queued decision, not real data</figcaption>
-      <p class="ex-title"><span class="mono">#1234</span> Crash on startup when config has a trailing comma</p>
-      <dl>
-        <div><dt class="mono">issue.type</dt><dd><strong>bug</strong> <span class="conf">0.94</span> <span class="muted">threshold 0.90</span></dd></div>
-        <div><dt class="mono">issue.has_repro</dt><dd><strong>false</strong> <span class="conf">0.88</span> <span class="muted">threshold 0.80</span></dd></div>
-        <div><dt class="mono">issue.has_version</dt><dd><strong>false</strong> <span class="conf">0.91</span> <span class="muted">threshold 0.80</span></dd></div>
-      </dl>
-      <p class="ex-foot">Mode <strong>shadow</strong>: queued with suggested answers. Nothing changed on GitHub.</p>
+    <div>
+      <p class="lede">Jev Triage is a GitHub App that labels, routes and screens issues and pull requests, and never closes anything.<span class="more"> It shows its confidence on every decision and acts only on questions it has measured against your repo's own history.</span></p>
+      <div class="cta">
+        <a class="btn pri" href="#quickstart">Self-host with Docker</a>
+        <a class="btn" href="https://github.com/YOUR-ORG/jev-triage">View on GitHub</a>
+      </div>
+      <p class="fine"><span class="hm">It starts in shadow mode: it records what it would do and changes nothing. </span><a class="try" href="#threshold">Move the threshold yourself.</a></p>
+    </div>
+
+    <figure class="dec">
+      <figcaption><span>One decision, illustrated. Not real data. Bars run from 0.5 to 1.0.</span><button type="button" class="pz fx">Pause</button></figcaption>
+      <p class="dec-t"><span class="mono" id="d-id">#1234</span> <span id="d-t">Crash on startup when config has a trailing comma</span></p>
+      <ul class="qs">
+        <li>
+          <p class="q"><span class="mono k">issue.type</span><span class="a">bug</span><span class="mono v">0.94</span></p>
+          <div class="meter" style="--v:.88;--t:.8" role="img" aria-label="Confidence 0.94 against a threshold of 0.90"><i class="fill"></i><i class="tk"></i></div>
+          <p class="s ok">Threshold 0.90. Clears it.</p>
+        </li>
+        <li>
+          <p class="q"><span class="mono k">issue.has_repro</span><span class="a">no</span><span class="mono v">0.74</span></p>
+          <div class="meter lo" style="--v:.48;--t:.6" role="img" aria-label="Confidence 0.74 against a threshold of 0.80"><i class="fill"></i><i class="tk"></i></div>
+          <p class="s">Threshold 0.80. Waits for you.</p>
+        </li>
+        <li>
+          <p class="q"><span class="mono k">issue.has_version</span><span class="a">no</span><span class="mono v">0.91</span></p>
+          <div class="meter" style="--v:.82;--t:.6" role="img" aria-label="Confidence 0.91 against a threshold of 0.80"><i class="fill"></i><i class="tk"></i></div>
+          <p class="s ok">Threshold 0.80. Clears it.</p>
+        </li>
+      </ul>
+      <p class="dec-f"><span class="shadow" aria-hidden="true"></span>Mode shadow. Nothing was written to GitHub.</p>
     </figure>
   </div>
-</section>
 
-<section id="problem" class="wrap">
-  <h2>AI made reports cheap to write. Reading them is still your job.</h2>
-  <div class="cols">
-    <p>Automated tools now file bug and security reports at scale, and many are invalid or duplicates. curl <a href="https://bleepingcomputer.com/news/security/curl-ending-bug-bounty-program-after-flood-of-ai-slop-reports/">ended its bug bounty</a> in early 2026. Google <a href="https://bleepingcomputer.com/news/google/google-halts-open-source-bug-bounty-program-amid-ai-spam-surge">stopped accepting product reports</a> to its open-source VRP on October 1, 2026. Both pointed to floods of low-quality automated submissions.</p>
-    <p>Most projects cannot shut the door. They label, ask for missing details, check PRs against CONTRIBUTING, route issues to the right team, and now also read reports that cite functions that do not exist. CI agents add to it by filing the same failure again and again.</p>
+  <div class="wrap">
+    <div class="ruler" aria-hidden="true"><span style="left:0">0.5</span><span style="left:20%">0.6</span><span style="left:40%">0.7</span><span style="left:60%">0.8</span><span class="thr">0.90<b> threshold</b></span><span style="left:100%">1.0</span></div>
   </div>
-  <p>Jev Triage takes the repetitive part of that. It does not take your decisions away, and it does not talk.</p>
 </section>
 
-<section id="how" class="wrap">
-  <h2>How it works</h2>
-  <ol class="steps">
-    <li><h3>An event arrives</h3><p>A new issue, a PR, a push, or a CI failure posted to the gate.</p></li>
-    <li><h3>It asks typed questions</h3><p>"What kind of issue is this?" "Are there steps to reproduce?" "Does this PR follow our rules?" One call to the pinned model, many questions.</p></li>
-    <li><h3>Every answer has a confidence</h3><p>The probability of the chosen answer, stored with the decision and shown in the dashboard.</p></li>
-    <li><h3>A threshold decides</h3><p>If the feature is in <code>auto</code>, confidence clears your threshold, and the question has been measured on your history, it acts. Otherwise it queues the item with suggested answers.</p></li>
-  </ol>
-  <h3 class="sub">What it decides</h3>
-  <ul class="grid">
-    <li><strong>Issue triage.</strong> Bug, feature, question or docs. Reproduction steps, version, logs. Applies <code>needs-info</code>.</li>
-    <li><strong>PR checks.</strong> Breaking change, follows your contributing rules, plus exact checks in plain code: tests, docs, diff size, CODEOWNERS.</li>
-    <li><strong>Routing.</strong> Which repo, which area, who owns it. Transfers are suggestions.</li>
-    <li><strong>Inbound report gate.</strong> Reproducible, grounded in this repo, known non-issue, claim supported, security claim, duplicate. Security-looking outside reports are held, never filed publicly.</li>
-    <li><strong>CI gate.</strong> Code bug, flaky test or infrastructure. Same as an open issue? One issue instead of five, with an hourly cap.</li>
-    <li><strong>Priority and spam.</strong> p0 to p3. Spam is off until you turn it on.</li>
-  </ul>
-</section>
-
-<section id="safety" class="wrap">
-  <h2>Safety promises</h2>
-  <ul class="grid promises">
-    <li><h3>Shadow by default</h3><p>It records what it would do and changes nothing until you set a feature to <code>auto</code>.</p></li>
-    <li><h3>Never closes anything</h3><p>No closing, deleting, locking or transferring. Duplicate links and transfers are suggestions you accept.</p></li>
-    <li><h3>Measured before auto</h3><p>It replays your closed issues and merged PRs. A question needs enough measured examples at or above its threshold before it may act.</p></li>
-    <li><h3>Silent and visible</h3><p>Comments are off unless you turn them on. When on, they are plain text with a link to the decision behind them.</p></li>
-    <li><h3>Config you can review</h3><p>One YAML file in your repo, org defaults in <code>.github</code>. The app has no write access to repo contents.</p></li>
-    <li><h3>Untrusted input stays untrusted</h3><p>Report text is data. Each answer maps to a fixed action, so a report cannot instruct the app to do something else.</p></li>
-  </ul>
-  <p class="note">Backfill accuracy is an upper bound: only items your maintainers labeled are counted, and live traffic is messier. The dashboard says so next to the number.</p>
-</section>
-
-<section id="compare" class="wrap">
-  <h2>How it compares</h2>
-  <div class="table-wrap" role="region" aria-label="Comparison table" tabindex="0">
-    <table>
-      <caption class="sr">Jev Triage compared with other approaches to GitHub triage</caption>
-      <thead>
-        <tr><th scope="col"></th><th scope="col">Jev Triage</th><th scope="col">Conversational agents (e.g. Dosu)</th><th scope="col">Prompt-based workflows (GitHub agentic workflows, DIY LLM Actions)</th><th scope="col">Rule-based (actions/labeler, stale bot)</th></tr>
-      </thead>
-      <tbody>
-        <tr><th scope="row">Approach</th><td>Typed questions, fixed actions</td><td>Talks in threads</td><td>Your prompt, run on events</td><td>Path or time rules</td></tr>
-        <tr><th scope="row">Confidence per decision</th><td>Stored and shown</td><td>Not the design</td><td>The model's own claim, or none</td><td>Not applicable</td></tr>
-        <tr><th scope="row">Accuracy on your history before acting</th><td>Yes</td><td>No</td><td>Only if you build it</td><td>Not applicable</td></tr>
-        <tr><th scope="row">Default behaviour</th><td>Shadow, silent</td><td>Posts comments</td><td>Whatever the prompt does</td><td>Applies its rules</td></tr>
-        <tr><th scope="row">Hosting</th><td>Self-hosted</td><td>Hosted service</td><td>GitHub or your runners</td><td>Actions or an app</td></tr>
-      </tbody>
-    </table>
+<section class="problem" id="problem" aria-labelledby="pb-h">
+  <div class="wrap pb">
+    <div>
+      <h2 id="pb-h" class="big">Reports got cheap to write. Reading them is still your job.</h2>
+      <p class="cap">Questions someone answers by hand, every week:</p>
+      <ul class="chips">
+        <li>Bug or question?</li><li>Steps to reproduce?</li><li>Which version?</li><li>Duplicate of what?</li><li>Who owns this?</li><li>Does the PR follow CONTRIBUTING?</li>
+      </ul>
+    </div>
+    <div class="pb-r">
+      <p>Bug and security reports now arrive faster than anyone can read them, and many are invalid or duplicates. curl <a href="https://bleepingcomputer.com/news/security/curl-ending-bug-bounty-program-after-flood-of-ai-slop-reports/">ended its bug bounty</a> in early 2026 after a flood of them. Google <a href="https://bleepingcomputer.com/news/google/google-halts-open-source-bug-bounty-program-amid-ai-spam-surge">stopped accepting product reports</a> to its open-source VRP on October 1, 2026, for the same reason.</p>
+      <p>Most projects cannot close the door like that. They label, chase missing details, check PRs against CONTRIBUTING, route issues to the right team, and read reports that cite functions that do not exist. CI agents add to the pile by filing the same failure again and again.</p>
+      <p class="take">Jev Triage takes the repetitive part of that. It does not take your decisions away, and it does not talk.</p>
+    </div>
   </div>
-  <p>Path-based labels are what <code>actions/labeler</code> is for, and it does that well. If you want answers posted in threads, a conversational agent fits. Jev Triage is for decisions you can measure. Read the <a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/comparison.md">full comparison</a>.</p>
 </section>
 
-<section id="quickstart" class="wrap">
-  <h2>Quickstart</h2>
-  <p>You need Docker with Compose v2, a <a href="https://typesafe.ai">TypeSafe API key</a>, and a GitHub account or org that can own an App.</p>
-<pre><code>git clone https://github.com/YOUR-ORG/jev-triage.git &amp;&amp; cd jev-triage
-cp .env.example .env     # set TYPESAFE_API_KEY and SESSION_SECRET; keep DRY_RUN=true
-docker compose up -d --build</code></pre>
-  <ol>
-    <li>Open <code>http://localhost:8000/api/setup</code> and click <strong>Create GitHub App</strong>. GitHub's manifest flow writes the credentials to <code>.env</code>.</li>
-    <li>Run <code>docker compose restart api worker</code>, then install the app on one repo.</li>
-    <li>Open the dashboard at <code>http://localhost:3000</code>, run the backfill, and read the calibration view.</li>
-    <li>Switch one feature to <code>auto</code> in your config:</li>
-  </ol>
-<pre><code># .github/jev-triage.yml
+<section class="how" id="how" aria-labelledby="how-h">
+  <div class="wrap">
+    <header class="sec-h">
+      <h2 id="how-h">Typed questions in. A threshold decides.</h2>
+      <p class="lead">One call per item asks every enabled question. Each answer maps to a fixed action, so there is nothing for a report to talk its way into.</p>
+    </header>
+
+    <ol class="flow">
+      <li>
+        <span class="idx mono">1</span>
+        <h3>An event arrives</h3>
+        <p>A new issue, a PR, a push, or a CI failure posted to the gate.</p>
+        <code>issues.opened #1234</code>
+      </li>
+      <li>
+        <span class="idx mono">2</span>
+        <h3>It asks typed questions</h3>
+        <p>What kind of issue is this? Are there steps to reproduce? Does this PR follow our rules?</p>
+        <code>issue.type<br>issue.has_repro</code>
+      </li>
+      <li>
+        <span class="idx mono">3</span>
+        <h3>Every answer has a confidence</h3>
+        <p>The probability of the chosen answer, stored with the decision and shown in the dashboard.</p>
+        <code>bug 0.94</code>
+      </li>
+      <li class="fork">
+        <span class="idx mono">4</span>
+        <h3>A threshold decides</h3>
+        <p>In auto mode, an answer at or above your threshold acts, if its question has been measured on your history. Everything else queues.</p>
+        <div class="outs"><code class="out">Act: label, assign, neutral check</code><code class="out q">Queue: suggested answers, confidence shown</code></div>
+      </li>
+    </ol>
+
+    <h3 class="sub">What it decides</h3>
+    <dl class="decides">
+      <div><dt class="mono">issue_triage</dt><dd>Bug, feature, question or docs. Reproduction steps, version, logs. Applies <code>needs-info</code>.</dd></div>
+      <div><dt class="mono">pr_checks</dt><dd>Breaking change, follows your contributing rules. Tests, docs, diff size and CODEOWNERS stay exact checks in plain code.</dd></div>
+      <div><dt class="mono">routing</dt><dd>Which repo, which area, who owns it. Transfers are suggestions you accept.</dd></div>
+      <div><dt class="mono">inbound_gate</dt><dd>Reproducible, grounded in this repo, known non-issue, claim supported, security claim, duplicate. Security-looking outside reports are held, never filed publicly.</dd></div>
+      <div><dt class="mono">ci_gate</dt><dd>Code bug, flaky test or infrastructure. Same as an open issue? One issue instead of five, with an hourly cap.</dd></div>
+      <div><dt class="mono">priority, spam</dt><dd>p0 to p3. Spam is off until you turn it on.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="demo" id="threshold" aria-labelledby="th-h">
+  <div class="wrap">
+    <header class="sec-h">
+      <h2 id="th-h" class="big">Move the threshold.</h2>
+      <p class="lead">Each dot is one sample decision, placed by how confident the model was in its answer. Slide the tick to choose where the bot may act on its own. Everything left of it waits for you.</p>
+    </header>
+
+    <div class="inst" id="inst">
+      <div class="read" aria-hidden="true">
+        <div><p class="lb"><i class="lg a"></i>Auto-acted</p><b class="n" id="nA" style="--n:131"></b><p class="sub" id="sA">55% of 240</p></div>
+        <div><p class="lb"><i class="lg q"></i>Queued</p><b class="n" id="nQ" style="--n:109"></b><p class="sub" id="sQ">45% of 240</p></div>
+        <div><p class="lb"><i class="lg w"></i>Would be wrong</p><b class="n w" id="nW" style="--n:6"></b><p class="sub" id="sW">4.6% of acted</p></div>
+      </div>
+
+      <div class="plot" id="plot" style="--f:.8">
+        <input id="thr" type="range" min="50" max="100" step="1" value="90" aria-label="Confidence threshold" aria-describedby="hint" aria-valuetext="0.90: acts on 131 of 240, 6 would be wrong, 109 queued">
+        <div class="tick" aria-hidden="true"><span class="zl">Queued</span><span class="zr">Acts</span><span class="pill" id="pill">0.90</span></div>
+        <svg class="dots" id="dots" aria-hidden="true" focusable="false"></svg>
+        <div class="axis" aria-hidden="true"><span style="left:0">0.5</span><span style="left:20%">0.6</span><span style="left:40%">0.7</span><span style="left:60%">0.8</span><span style="left:80%">0.9</span><span style="left:100%">1.0</span></div>
+      </div>
+
+      <div class="ctl">
+        <p class="hint" id="hint">Drag the tick, tap the chart, or focus it and use the arrow keys.</p>
+        <div class="pre" role="group" aria-label="Preset thresholds">
+          <button type="button" data-v="50">0.50</button>
+          <button type="button" data-v="80">0.80</button>
+          <button type="button" data-v="90">0.90</button>
+          <button type="button" data-v="95">0.95</button>
+          <button type="button" data-v="99">0.99</button>
+        </div>
+      </div>
+
+      <p class="rd" id="rd">At 0.90 it acts on 131 of 240 decisions and is wrong on 6 of those. The other 109 wait in your queue.</p>
+    </div>
+
+    <p class="note">Sample data, generated for illustration. Its confidences are calibrated by construction, so a 0.90 answer is right about 90% of the time. Jev Triage publishes no accuracy figure, because the only number that matters is the one measured on your repo. Set the real threshold per question in <code>.github/jev-triage.yml</code>.</p>
+  </div>
+</section>
+
+<section class="safety" id="safety" aria-labelledby="sf-h">
+  <div class="wrap sf">
+    <header class="sec-h">
+      <h2 id="sf-h">Six promises, each one checkable.</h2>
+      <p class="lead">Each one points at a setting or a code path you can read.</p>
+      <p class="note">Backfill accuracy is an upper bound: only items your maintainers labeled are counted, and live traffic is messier. The dashboard says so next to the number.</p>
+      <p class="stop"><strong>Stopping it takes one line.</strong> Set a feature to <code>off</code>, or set <code>DRY_RUN=true</code> and restart. Even <code>auto</code> then only records what it would have done.</p>
+    </header>
+    <ul class="promises">
+      <li><div><h3>Shadow by default</h3><p>It records what it would do and changes nothing until you set a feature to <code>auto</code>.</p></div><code>mode: shadow</code></li>
+      <li><div><h3>Never closes anything</h3><p>No closing, deleting, locking or transferring. Those are not code paths in the app. Duplicate links and transfers are suggestions you accept.</p></div><code>no close path</code></li>
+      <li><div><h3>Measured before auto</h3><p>It replays your closed issues and merged PRs. By default a question needs at least 30 measured examples, and accuracy at or above its threshold, before it may act.</p></div><code>min_samples: 30</code></li>
+      <li><div><h3>Visible comments</h3><p>Comments are off unless you turn them on. When on, each one is plain text that ends with a link to the decision behind it.</p></div><code>comments: false</code></li>
+      <li><div><h3>Config in your repo</h3><p>One YAML file in your repo, org defaults in <code>.github</code>. The app has no write access to repo contents, and a typo falls back to defaults that never act.</p></div><code>.github/jev-triage.yml</code></li>
+      <li><div><h3>Untrusted input stays untrusted</h3><p>Report text is data. Each answer maps to a fixed action, so a report cannot instruct the app to do something else.</p></div><code>fixed actions</code></li>
+    </ul>
+  </div>
+</section>
+
+<section class="compare" id="compare" aria-labelledby="cp-h">
+  <div class="wrap">
+    <header class="sec-h">
+      <h2 id="cp-h">How it compares.</h2>
+      <p class="lead">Each of these does something useful, and several run fine beside it. Jev Triage is for decisions you can measure.</p>
+    </header>
+    <div class="tw" role="region" aria-label="Comparison table" tabindex="0">
+      <table>
+        <caption class="sr">Jev Triage compared with other approaches to GitHub triage</caption>
+        <thead>
+          <tr><th scope="col"><span class="sr">Feature</span></th><th scope="col">Jev Triage</th><th scope="col">Conversational agents (e.g. Dosu)</th><th scope="col">Prompt-based workflows (GitHub agentic workflows, DIY LLM Actions)</th><th scope="col">Rule-based (actions/labeler, stale bot)</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Approach</th><td data-l="Jev Triage">Typed questions, fixed actions</td><td data-l="Conversational">Talks in threads</td><td data-l="Prompt-based">Your prompt, run on events</td><td data-l="Rule-based">Path or time rules</td></tr>
+          <tr><th scope="row">Confidence per decision</th><td data-l="Jev Triage">Stored and shown</td><td data-l="Conversational">Not the design</td><td data-l="Prompt-based">The model's own claim, or none</td><td data-l="Rule-based">Not applicable</td></tr>
+          <tr><th scope="row">Accuracy on your history before acting</th><td data-l="Jev Triage">Yes</td><td data-l="Conversational">No</td><td data-l="Prompt-based">Only if you build it</td><td data-l="Rule-based">Not applicable</td></tr>
+          <tr><th scope="row">Default behaviour</th><td data-l="Jev Triage">Shadow, silent</td><td data-l="Conversational">Posts comments</td><td data-l="Prompt-based">Whatever the prompt does</td><td data-l="Rule-based">Applies its rules</td></tr>
+          <tr><th scope="row">Hosting</th><td data-l="Jev Triage">Self-hosted</td><td data-l="Conversational">Hosted service</td><td data-l="Prompt-based">GitHub or your runners</td><td data-l="Rule-based">Actions or an app</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Path-based labels are what <code>actions/labeler</code> is for, and it does that well. If you want answers posted in threads, a conversational agent fits. Read the <a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/comparison.md">full comparison</a>, including what Jev Triage is not good at yet.</p>
+  </div>
+</section>
+
+<section class="qs-sec" id="quickstart" aria-labelledby="qs-h">
+  <div class="wrap">
+    <header class="sec-h">
+      <h2 id="qs-h">Quickstart.</h2>
+      <p class="lead">About five minutes with Docker Compose. You need Docker with Compose v2, a <a href="https://typesafe.ai">TypeSafe API key</a>, and a GitHub account or org that can own an App.</p>
+    </header>
+
+    <ol class="steps">
+      <li>
+        <div><h3>Start the stack</h3><p>Keep <code>DRY_RUN=true</code> at first.</p></div>
+        <div class="code"><div class="code-h"><span class="mono">shell</span><button type="button" class="cp fx" data-cp>Copy</button></div><pre tabindex="0"><code>git clone https://github.com/<wbr>YOUR-ORG/<wbr>jev-triage.git
+cd jev-triage
+cp .env.example .env     # set TYPESAFE_API_KEY and SESSION_SECRET
+docker compose up -d --build</code></pre></div>
+      </li>
+      <li>
+        <div><h3>Create the GitHub App</h3><p>Open <code>http://localhost:8000/api/setup</code> and click <strong>Create GitHub App</strong>. GitHub's manifest flow writes the credentials to <code>.env</code>. Then restart and install the app on one repo. GitHub cannot reach <code>localhost</code>, so forward webhooks with smee or a tunnel.</p></div>
+        <div class="code"><div class="code-h"><span class="mono">shell</span><button type="button" class="cp fx" data-cp>Copy</button></div><pre tabindex="0"><code>docker compose restart api worker</code></pre></div>
+      </li>
+      <li>
+        <div><h3>Measure it on your history</h3><p>Open the dashboard at <code>http://localhost:3000</code>, run the backfill for that repo and read the calibration view. The backfill changes nothing on GitHub. The CLI prints an accuracy table too.</p></div>
+        <div class="code"><div class="code-h"><span class="mono">shell</span><button type="button" class="cp fx" data-cp>Copy</button></div><pre tabindex="0"><code>docker compose exec api python -m app.cli eval OWNER/REPO --limit 200</code></pre></div>
+      </li>
+      <li>
+        <div><h3>Switch one feature to auto</h3><p>Every feature starts in <code>shadow</code>. Set <code>DRY_RUN=false</code> too, then watch the queue.</p></div>
+        <div class="code"><div class="code-h"><span class="mono">.github/jev-triage.yml</span><button type="button" class="cp fx" data-cp>Copy</button></div><pre tabindex="0"><code># .github/jev-triage.yml
 features:
-  issue_triage: { mode: auto }    # off | shadow | auto  (default: shadow)
-comments: false                   # silent unless you opt in
+  issue_triage: { mode: auto }   # off | shadow | auto
+comments: false                  # silent unless you opt in
 evaluation:
-  require_evaluation: true        # act only on questions measured on your history
-  min_samples: 30</code></pre>
-  <p>Full guides: <a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/self-hosting.md">self-hosting</a>, <a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/configuration.md">configuration</a>, <a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/ci-gate.md">CI gate</a>.</p>
+  require_evaluation: true       # only act on measured questions
+  min_samples: 30</code></pre></div>
+      </li>
+    </ol>
+    <p class="note">Full guides: <a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/self-hosting.md">self-hosting</a>, <a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/configuration.md">configuration</a>, <a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/ci-gate.md">CI gate</a>.</p>
+  </div>
 </section>
 
-<section id="faq" class="wrap">
-  <h2>FAQ</h2>
-  <details><summary>Will it close my issues?</summary><p>No. It never closes, deletes, locks or transfers anything. Those are not code paths in the app.</p></details>
-  <details><summary>Is this AI slop detection?</summary><p>No. It asks whether a report is actionable: reproducible, grounded in your repo, backed by evidence. It never says a report was written by an AI, and it does not profile reporters.</p></details>
-  <details><summary>What data goes to the model?</summary><p>The item's title and body (truncated), your contributing rules, and a few repo facts. The item's current labels are not sent. The exact text of every run is visible in the dashboard and purged after your retention window.</p></details>
-  <details><summary>Does it work on private repos?</summary><p>Yes, after an admin acknowledges that private content will be sent to the decision backend. Private repos are off until then.</p></details>
-  <details><summary>What happens when it is wrong?</summary><p>Override it in the dashboard. Your answer becomes ground truth and measured accuracy updates. A question that falls below its threshold stops acting on its own.</p></details>
-  <details><summary>What does it cost?</summary><p>The software is free under Apache-2.0. Model calls are billed by your backend. Jev input is priced at $0.042 per million tokens at the time of writing, so 1,000 items at 3,000 tokens each is about $0.13 of input. Check TypeSafe's pricing for current rates.</p></details>
-  <details><summary>Who makes Jev?</summary><p>Jev is a model by TypeSafe AI. Jev Triage is an independent open-source project, not affiliated with TypeSafe AI. An Anthropic Claude fallback exists and is marked uncalibrated.</p></details>
-  <details><summary>How do I uninstall it?</summary><p>Uninstall the GitHub App. The app deletes the org's stored data on the uninstall event. Labels it applied stay on your issues, and you can delete <code>.github/jev-triage.yml</code>.</p></details>
-  <p>More answers in the <a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/faq.md">full FAQ</a>.</p>
+<section class="faq" id="faq" aria-labelledby="fq-h">
+  <div class="wrap">
+    <h2 id="fq-h">Questions maintainers ask.</h2>
+    <div class="fq-g">
+    <div class="fq">
+      <details><summary>Will it close my issues?</summary><p>No. It never closes, deletes, locks or transfers anything, because the app has no way to do any of those.</p></details>
+      <details><summary>Will it accuse contributors of using AI?</summary><p>No. It never says who or what wrote a report, and it does not profile reporters. It asks whether a report is actionable: reproducible, grounded in your repo, backed by evidence. A careful human report that fails those questions is treated like any other that fails them.</p></details>
+      <details><summary>What data goes to the model?</summary><p>The item's title and body (truncated), your contributing rules, and a few repo facts. The item's current labels are not sent. The exact text of every run is visible in the dashboard and purged after your retention window.</p></details>
+      <details><summary>Does it work on private repos?</summary><p>Yes, after an admin acknowledges that private content will be sent to the decision backend. Private repos are off until then.</p></details>
+      <details><summary>What happens when it is wrong?</summary><p>Override it in the dashboard. Your answer becomes ground truth and measured accuracy updates. A question that falls below its threshold stops acting on its own.</p></details>
+      <details><summary>What does it cost?</summary><p>The software is free under Apache-2.0. Model calls are billed by your backend. Jev input is priced at $0.042 per million tokens at the time of writing, so 1,000 items at 3,000 tokens each is about $0.13 of input. Check TypeSafe's pricing for current rates.</p></details>
+      <details><summary>Who makes Jev?</summary><p>Jev is a model by TypeSafe AI. Jev Triage is an independent open-source project, not affiliated with TypeSafe AI. An Anthropic Claude fallback exists and is marked uncalibrated.</p></details>
+      <details><summary>How do I uninstall it?</summary><p>Uninstall the GitHub App. The app deletes the org's stored data on the uninstall event. Labels it applied stay on your issues, and you can delete <code>.github/jev-triage.yml</code>.</p></details>
+    </div>
+    <aside class="more" aria-label="More documentation">
+      <h3>Not here?</h3>
+      <ul>
+        <li><a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/faq.md">The full FAQ</a></li>
+        <li><a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/self-hosting.md">Self-hosting guide</a></li>
+        <li><a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/configuration.md">Configuration reference</a></li>
+        <li><a href="https://github.com/YOUR-ORG/jev-triage/blob/main/docs/comparison.md">Full comparison</a></li>
+        <li><a href="https://github.com/YOUR-ORG/jev-triage/issues">Ask in an issue</a></li>
+      </ul>
+    </aside>
+    </div>
+  </div>
+</section>
+
+<section class="close" id="start" aria-labelledby="cl-h">
+  <div class="wrap">
+    <h2 id="cl-h" class="big">See what it would do.<br>Then let it.</h2>
+    <p class="lead">Self-host it, install it on one repo, and read its decisions in shadow mode before it changes a single label.</p>
+    <div class="cta">
+      <a class="btn pri" href="#quickstart">Self-host with Docker</a>
+      <a class="btn" href="https://github.com/YOUR-ORG/jev-triage">View on GitHub</a>
+    </div>
+    <div class="ruler late" aria-hidden="true"><span style="left:0">0.5</span><span style="left:20%">0.6</span><span style="left:40%">0.7</span><span style="left:60%">0.8</span><span class="thr">0.90<b> threshold</b></span><span style="left:100%">1.0</span></div>
+  </div>
 </section>
 
 </main>
 
-<footer class="site-footer">
+<footer class="ft">
   <div class="wrap">
-    <p>Jev Triage is licensed under <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache-2.0</a>. <a href="https://github.com/YOUR-ORG/jev-triage">Source on GitHub</a>.</p>
+    <div class="ft-r">
+      <p class="brand-l"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M15.5 5.5v13" stroke="var(--warn)" stroke-width="2.4" stroke-linecap="round"/></svg>Jev Triage</p>
+      <ul>
+        <li><a href="https://github.com/YOUR-ORG/jev-triage">Source on GitHub</a></li>
+        <li><a href="https://github.com/YOUR-ORG/jev-triage/tree/main/docs">Docs</a></li>
+        <li><a href="https://github.com/YOUR-ORG/jev-triage/blob/main/SECURITY.md">Security</a></li>
+        <li><a href="https://www.apache.org/licenses/LICENSE-2.0">Apache-2.0</a></li>
+        <li><a href="#top">Back to top</a></li>
+      </ul>
+    </div>
     <p class="muted">Jev is a model made by TypeSafe AI. This project is independent and is not affiliated with, endorsed by, or sponsored by TypeSafe AI. Claude is a trademark of Anthropic. Dosu, GitHub and other names belong to their owners.</p>
   </div>
 </footer>
