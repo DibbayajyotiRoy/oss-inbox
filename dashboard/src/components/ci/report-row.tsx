@@ -3,11 +3,10 @@ import Link from "next/link";
 import { useId, useState } from "react";
 import { ArrowUpRight, ChevronRight } from "lucide-react";
 import { Meter } from "@/components/ui/meter";
-import { issueUrl, repoPath } from "@/lib/fmt";
+import { ago, issueUrl, repoPath, when } from "@/lib/fmt";
 import type { CiReport } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { OutcomeStatus } from "./outcome";
-import { RelTime } from "./rel-time";
 
 const link = "inline-flex items-center gap-0.5 rounded-sm text-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 const Ext = ({ href, children }: { href: string; children: React.ReactNode }) => (
@@ -29,7 +28,7 @@ export function ReportRow({ r, repoId, fullName }: { r: CiReport; repoId: number
         <OutcomeStatus outcome={r.outcome} className="self-start" />
         <p className="min-w-0 text-sm font-medium break-words">{r.title}</p>
         <p className="text-xs text-muted-foreground sm:text-right">
-          {r.source} · <RelTime iso={r.created_at} />
+          {r.source} · <time dateTime={r.created_at} title={when(r.created_at)}>{ago(r.created_at)}</time>
         </p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground sm:col-start-2 sm:col-span-2">
           {r.issue_number !== null && <Ext href={issueUrl(fullName, r.issue_number)}>Filed as #{r.issue_number}</Ext>}

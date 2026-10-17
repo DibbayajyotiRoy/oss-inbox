@@ -71,10 +71,10 @@ export function useRegisteredCommands() {
   )
 }
 
-const FIRST = ["General", "Go to", "Repositories"]
+const GLOBAL = ["General", "Go to", "Repositories", "Preferences"];
 
-/** Sort key for group headings: General, Go to, Repositories, then screens' groups, then Preferences. */
-export const groupRank = (group: string) => (FIRST.includes(group) ? FIRST.indexOf(group) - 99 : group === "Preferences" ? 99 : 0)
+/** Sort key for group headings: the current screen's groups first, then the shell's (General, Go to, Repositories, Preferences). */
+export const groupRank = (group: string) => GLOBAL.indexOf(group) + 1
 
 const noop = () => () => {}
 

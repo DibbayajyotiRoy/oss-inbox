@@ -54,8 +54,8 @@ export function usePaged<T>(path: string): Paged<T> {
   };
 }
 
-/** Tracks one mutation's busy/error state. `run(fn)` resolves to fn's result, or undefined if it threw (error is kept in state). */
-export function useAction() {
+/** Tracks one mutation's busy/error state. `run(fn)` resolves to fn's result, or undefined if it threw (error is kept in state, and passed to `onError`). */
+export function useAction(onError?: (e: Error) => void) {
   const [s, setS] = useState<{ busy: boolean; error?: Error }>({ busy: false });
   const run = async <T>(fn: () => Promise<T>): Promise<T | undefined> => {
     setS({ busy: true });
@@ -64,7 +64,9 @@ export function useAction() {
       setS({ busy: false });
       return r;
     } catch (e) {
-      setS({ busy: false, error: e instanceof Error ? e : new Error(String(e)) });
+      const error = e instanceof Error ? e : new Error(String(e));
+      setS({ busy: false, error });
+      onError?.(error);
     }
   };
   return { ...s, run };

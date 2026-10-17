@@ -1,5 +1,5 @@
 "use client";
-import { ExternalLink, Play, TriangleAlert } from "lucide-react";
+import { ExternalLink, Play } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BackfillCard, useBackfill } from "@/components/measure/backfill-card";
@@ -12,20 +12,20 @@ import { CardSection } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Load } from "@/components/ui/load";
 import { Meter } from "@/components/ui/meter";
+import { Notice } from "@/components/ui/notice";
 import { PageHeader } from "@/components/ui/page-header";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { pct, repoPath } from "@/lib/fmt";
+import { fixed, pct, repoPath } from "@/lib/fmt";
 import type { EvalQuestion, Evaluation } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 
 const skeleton = (
-  <div role="status" aria-busy="true" className="flex flex-col gap-6">
+  <Busy className="flex flex-col gap-6">
     <Skeleton className="h-20 w-full" />
     <Skeleton className="h-64 w-full" />
     <Skeleton className="h-72 w-full" />
-    <span className="sr-only">Loading</span>
-  </div>
+  </Busy>
 );
 
 export default function EvaluationPage() {
@@ -66,12 +66,9 @@ function Results({ d, repoId, thresholds }: { d: Evaluation; repoId: number; thr
   const here = (qs: string) => `${repoPath(repoId, "evaluation")}?${qs}`;
   return (
     <>
-      <div role="note" className="flex gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4 text-sm">
-        <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-warning" />
-        <p className="text-pretty text-muted-foreground">
-          <b className="font-medium text-foreground">Upper bound, not a guarantee.</b> {d.upper_bound_note}
-        </p>
-      </div>
+      <Notice tone="warning" title="Upper bound, not a guarantee.">
+        <p className="text-pretty">{d.upper_bound_note}</p>
+      </Notice>
 
       <CardSection title="Accuracy by question" hint="Accuracy of Jev's answers against what maintainers decided. The tick marks the current threshold.">
         <Table>
@@ -87,20 +84,19 @@ function Results({ d, repoId, thresholds }: { d: Evaluation; repoId: number; thr
             {d.questions.map((x) => (
               <TableRow key={x.id} data-state={x.id === sel.id ? "selected" : undefined}>
                 <TableCell className="py-3 align-middle">
-                  <Link href={here(`q=${encodeURIComponent(x.id)}`)} scroll={false} aria-current={x.id === sel.id || undefined} className="font-mono text-[13px] font-medium underline-offset-4 hover:underline">
+                  <Link href={here(`q=${encodeURIComponent(x.id)}`)} scroll={false} aria-current={x.id === sel.id || undefined} className="font-mono text-[13px] font-medium underline-offset-4 hover:underline max-sm:text-xs">
                     {x.id}
                   </Link>
-                  <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums sm:hidden">ECE {x.ece === null ? "—" : x.ece.toFixed(3)} · rec. {pct(x.recommended_threshold)}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums sm:hidden">ECE {fixed(x.ece)} · rec. {pct(x.recommended_threshold)}</span>
                 </TableCell>
                 <TableCell className="py-3 align-middle">
                   <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-3">
-                    {/* ponytail: Meter prints its label in rows; hide it (the column header says it) and keep it as the accessible name. */}
-                    <Meter value={x.accuracy} threshold={thresholds.get(x.id)} label="Accuracy" className="w-44 max-sm:w-28 [&>span:first-child]:hidden" />
+                    <Meter value={x.accuracy} threshold={thresholds.get(x.id)} label="Accuracy" hideLabel className="w-44 max-sm:w-28" />
                     <span className="text-xs text-muted-foreground tabular-nums">n={x.n.toLocaleString()}</span>
                   </div>
                 </TableCell>
                 <TableCell className="py-3 align-middle tabular-nums max-sm:hidden">
-                  {x.ece === null ? "—" : x.ece.toFixed(3)} <span className="text-xs text-muted-foreground">n={x.n.toLocaleString()}</span>
+                  {fixed(x.ece)} <span className="text-xs text-muted-foreground">n={x.n.toLocaleString()}</span>
                 </TableCell>
                 <TableCell className="py-3 align-middle tabular-nums max-sm:hidden">
                   {x.recommended_threshold === null ? (

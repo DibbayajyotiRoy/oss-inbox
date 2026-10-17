@@ -4,10 +4,10 @@ import { CardSection } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Load, LoadMore } from "@/components/ui/load";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { AuditRow } from "@/lib/types";
-import { NEED } from "@/lib/types-settings";
+import { when } from "@/lib/fmt";
+import { type AuditRow, NEED } from "@/lib/types";
 import { usePaged } from "@/lib/use-api";
-import { RowsSkeleton, stampParts } from "./parts";
+import { RowsSkeleton } from "./parts";
 
 const detail = (d: unknown) =>
   d && typeof d === "object" ? Object.entries(d).map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`).join(", ") : "";
@@ -54,11 +54,9 @@ function Rows() {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="max-w-32 truncate text-muted-foreground max-sm:hidden">{r.target ?? "—"}</TableCell>
+                  <TableCell className="max-w-32 truncate text-muted-foreground max-sm:hidden">{r.target ?? "–"}</TableCell>
                   <TableCell className="text-right text-muted-foreground tabular-nums">
-                    {stampParts(r.created_at)[0]}
-                    <span className="max-sm:hidden">, </span>
-                    <span className="max-sm:block">{stampParts(r.created_at)[1]}</span>
+                    <time dateTime={r.created_at}>{when(r.created_at)}</time>
                   </TableCell>
                 </TableRow>
               ))}

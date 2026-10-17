@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Status } from "@/components/ui/status";
 import { toast } from "@/components/ui/toaster";
 import { api } from "@/lib/api";
-import { NEED, type RepoFull } from "@/lib/types-settings";
+import { NEED, type Repo } from "@/lib/types";
 import { Confirm, Gate, useRun } from "./parts";
 
 const SOURCE = { repo: "Repo file", org: "Org defaults", default: "Defaults" };
@@ -22,7 +22,7 @@ export function Repository() {
 
   async function set(enabled: boolean) {
     const r = await run(() =>
-      api<RepoFull>(`/api/repos/${repo.id}`, { method: "PATCH", body: { enabled, acknowledge_private: enabled && repo.private ? ack : undefined } }),
+      api<Repo>(`/api/repos/${repo.id}`, { method: "PATCH", body: { enabled, acknowledge_private: enabled && repo.private ? ack : undefined } }),
     );
     if (!r) return;
     toast.success(enabled ? "Jev enabled" : "Jev disabled", { description: repo.full_name });

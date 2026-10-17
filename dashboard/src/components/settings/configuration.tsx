@@ -12,8 +12,7 @@ import { Status } from "@/components/ui/status";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMod } from "@/components/shell/commands";
 import { api } from "@/lib/api";
-import type { ConfigDoc } from "@/lib/types";
-import { CONFIG_PATH, type ConfigCheck } from "@/lib/types-settings";
+import { CONFIG_PATH, type ConfigDoc, type RenderedConfig } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 import { GithubLink, RowsSkeleton, useRun } from "./parts";
 import { YamlEditor } from "./yaml-editor";
@@ -42,7 +41,7 @@ function Editor({ doc }: { doc: ConfigDoc }) {
   const { repo } = useRepo();
   const mod = useMod();
   const [text, setText] = useState(doc.yaml);
-  const [check, setCheck] = useState<{ text: string; res: ConfigCheck }>();
+  const [check, setCheck] = useState<{ text: string; res: RenderedConfig }>();
   const { busy, run } = useRun();
   const dirty = text !== doc.yaml;
   const fresh = check?.text === text ? check.res : undefined;
@@ -51,7 +50,7 @@ function Editor({ doc }: { doc: ConfigDoc }) {
 
   async function validate() {
     if (busy) return;
-    const res = await run(() => api<ConfigCheck>(`/api/repos/${repo.id}/config/render`, { method: "POST", body: { yaml: text } }));
+    const res = await run(() => api<RenderedConfig>(`/api/repos/${repo.id}/config/render`, { method: "POST", body: { yaml: text } }));
     if (res) setCheck({ text, res });
   }
 

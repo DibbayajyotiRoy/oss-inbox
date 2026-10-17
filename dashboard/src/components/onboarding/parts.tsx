@@ -1,33 +1,8 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { Info, type LucideIcon } from "lucide-react";
+import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import { Meter } from "@/components/ui/meter";
 import { cn } from "@/lib/utils";
-
-/** A quiet callout. `warning` for things that change what the numbers mean; `info` for everything else. */
-export function Notice({
-  tone = "info",
-  icon: Icon = Info,
-  title,
-  children,
-}: {
-  tone?: "info" | "warning";
-  icon?: LucideIcon;
-  title: ReactNode;
-  children?: ReactNode;
-}) {
-  const warn = tone === "warning";
-  return (
-    <div role="note" className={cn("flex gap-3 rounded-lg border p-4", warn ? "border-warning/40 bg-warning/5" : "bg-muted/30")}>
-      <Icon aria-hidden className={cn("mt-0.5 size-4 shrink-0", warn ? "text-warning" : "text-muted-foreground")} />
-      <div className="min-w-0 text-sm">
-        <p className="font-medium">{title}</p>
-        {children ? <div className="mt-0.5 text-muted-foreground">{children}</div> : null}
-      </div>
-    </div>
-  );
-}
 
 /** A bordered, divided list: the one container for rows in the flows (no nested cards). */
 export function Rows({ label, children, className }: { label?: string; children: ReactNode; className?: string }) {
@@ -47,7 +22,7 @@ export function GitHubMark({ className }: { className?: string }) {
 }
 
 /** A Meter that mounts empty and settles to its value like a needle; rows arrive staggered by `i`. */
-export function SettleMeter({ value, threshold, label, i = 0 }: { value: number | null; threshold?: number; label: string; i?: number }) {
+export function SettleMeter({ value, i = 0, ...props }: ComponentProps<typeof Meter> & { i?: number }) {
   const [v, setV] = useState<number | null>(null);
   useEffect(() => {
     const f = requestAnimationFrame(() => setV(value));
@@ -58,7 +33,7 @@ export function SettleMeter({ value, threshold, label, i = 0 }: { value: number 
       className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-250 motion-safe:ease-settle motion-safe:fill-mode-backwards"
       style={{ animationDelay: `${Math.min(i, 8) * 60}ms` }}
     >
-      <Meter size="md" value={v} threshold={threshold} label={label} />
+      <Meter size="md" value={v} {...props} />
     </div>
   );
 }

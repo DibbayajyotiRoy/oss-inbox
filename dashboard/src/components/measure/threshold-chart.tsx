@@ -79,7 +79,7 @@ export const ThresholdChart = memo(function ThresholdChart({
   return (
     <div className="relative h-64">
       <EvilAreaChart
-        data={bins as Record<string, number>[]} // chartTheme() returns a loose ChartConfig, so rows are typed loosely too
+        data={bins}
         config={config}
         stackType="stacked"
         curveType="monotone"

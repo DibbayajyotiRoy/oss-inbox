@@ -3,23 +3,23 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ExternalLink, FlaskConical, TriangleAlert } from "lucide-react";
+import { ExternalLink, FlaskConical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { CodeBlock } from "@/components/ui/code-block";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { ErrorState } from "@/components/ui/load";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
 import { api, errText } from "@/lib/api";
-import type { Me, Overview } from "@/lib/types";
-import type { SetupStatus } from "@/lib/types-onboarding";
+import type { Me, Overview, SetupStatus } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 import { Continue, Flow, FlowError, FlowSkeleton, Primary, useInterval } from "./flow";
-import { Notice, Rows } from "./parts";
+import { Rows } from "./parts";
 
 const RESTART = "docker compose restart api worker";
 const PERMISSIONS = [
@@ -101,7 +101,7 @@ function KeyStep({ s }: { s: SetupStatus }) {
           Calibrated: confidences are measured probabilities
         </Status>
       ) : (
-        <Notice tone="warning" icon={TriangleAlert} title="Uncalibrated">
+        <Notice tone="warning" title="Uncalibrated">
           Claude reports its own confidence, not a measured one. A 90% answer can be right far less often. Everything starts in shadow mode, and
           the backfill measures the real accuracy.
         </Notice>
@@ -152,7 +152,7 @@ function AppStep({ s }: { s: SetupStatus }) {
         <Primary disabled>Create GitHub App</Primary>
       ) : (
         <Primary asChild>
-          <a href={`${s.setup_url ?? "/api/setup"}${org ? `?org=${encodeURIComponent(org)}` : ""}`}>
+          <a href={`${s.setup_url ?? "/api/setup?auto=1"}${org ? `&org=${encodeURIComponent(org)}` : ""}`}>
             Create GitHub App
             <ExternalLink />
           </a>
@@ -240,11 +240,10 @@ function PickStep({ demo }: { demo: boolean }) {
     );
   if (!state.all)
     return (
-      <div role="status" aria-busy="true" className="flex flex-col gap-2">
+      <Busy label="Loading repositories" className="flex flex-col gap-2">
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-12 w-full" />
-        <span className="sr-only">Loading repositories</span>
-      </div>
+      </Busy>
     );
 
   const repos = state.all.flatMap((o) => o.repos);

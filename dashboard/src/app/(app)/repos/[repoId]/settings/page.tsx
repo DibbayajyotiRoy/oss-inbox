@@ -12,8 +12,7 @@ import { Labels } from "@/components/settings/labels";
 import { Repository } from "@/components/settings/repository";
 import { Tokens } from "@/components/settings/tokens";
 import { repoPath } from "@/lib/fmt";
-import type { Role } from "@/lib/types";
-import { atLeast } from "@/lib/types-settings";
+import { atLeast, type Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 // `?s=<id>` picks the section, so every section is linkable (the repo header links to automation and config).

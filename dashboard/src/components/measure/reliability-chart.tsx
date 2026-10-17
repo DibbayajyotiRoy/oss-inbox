@@ -9,6 +9,7 @@ import type { Calibration } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Bin = Calibration["bins"][number];
+type Seen = Bin & { mean_confidence: number; accuracy: number }; // buckets with decisions (null otherwise)
 type Row = { x: number; observed: number | null; perfect: number; n: number; lo: number; hi: number };
 
 const config = chartTheme({ observed: { role: "series1", label: "Observed accuracy" }, perfect: { role: "shadow", label: "Perfect calibration" } });
@@ -21,7 +22,7 @@ const LOW_N = 5; // below this a bucket is drawn faint: too few decisions to tru
  * Dot size follows n, faint dots have fewer than 5 decisions, and every dot links to the misses behind it.
  */
 export function ReliabilityChart({ bins, href, className }: { bins: Bin[]; href: (b: Bin) => string; className?: string }) {
-  const pts = bins.filter((b) => b.n > 0);
+  const pts = bins.filter((b): b is Seen => b.n > 0 && b.mean_confidence !== null && b.accuracy !== null);
   const nmax = Math.max(1, ...pts.map((b) => b.n));
   const rows: Row[] = [
     { x: 0, observed: null, perfect: 0, n: 0, lo: 0, hi: 0 },
@@ -32,7 +33,7 @@ export function ReliabilityChart({ bins, href, className }: { bins: Bin[]; href:
 
   return (
     <EvilComposedChart
-      data={rows as Record<string, number | null>[]} // chartTheme() returns a loose ChartConfig, so rows are typed loosely too
+      data={rows}
       config={config}
       className={cn("aspect-[4/3]", className)}
       chartProps={{ margin: MARGIN }}

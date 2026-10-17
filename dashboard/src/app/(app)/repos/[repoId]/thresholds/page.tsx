@@ -14,7 +14,7 @@ import { NumberTicker } from "@/components/ui/number-ticker";
 import { PageHeader } from "@/components/ui/page-header";
 import { FadePresence } from "@/components/ui/presence";
 import { Select } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Stat, StatStrip } from "@/components/ui/stat-strip";
 import { Status } from "@/components/ui/status";
 import { pct, repoPath } from "@/lib/fmt";
@@ -170,7 +170,7 @@ function Panel({ repo, q, value, edited, recommended, evalN, set }: {
             action={<Button asChild variant="outline"><Link href={repoPath(repo.id, "evaluation")}>Run backfill</Link></Button>}
           />
         ) : !bins || !counts ? (
-          <Skeleton className="h-[26rem] w-full" />
+          <Busy><Skeleton className="h-[26rem] w-full" /></Busy>
         ) : (
           <Body repoId={repo.id} q={q} value={value} edited={edited} recommended={recommended} evalN={evalN} bins={bins} counts={counts} onChange={onChange} reading={reading} />
         )}

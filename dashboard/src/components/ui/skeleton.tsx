@@ -10,4 +10,14 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-export { Skeleton }
+/** Wraps a loading layout so assistive tech hears it once, as `label`, instead of skeleton by skeleton. */
+function Busy({ label = "Loading", className, children }: { label?: string; className?: string; children: React.ReactNode }) {
+  return (
+    <div role="status" aria-busy="true" className={className}>
+      {children}
+      <span className="sr-only">{label}</span>
+    </div>
+  )
+}
+
+export { Busy, Skeleton }

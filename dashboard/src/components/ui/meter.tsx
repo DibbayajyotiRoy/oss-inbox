@@ -19,7 +19,9 @@ const pct = (n: number) => `${Math.round(clamp(n) * 100)}%`
  * The signature atom: a confidence reading (0..1) against its threshold tick (--warning).
  * Fill and tick settle like a needle (250ms spring, ~2% overshoot) when `value` or `threshold` change.
  * `state` defaults to acted when value >= threshold, else queued; pass `shadow` for a would-have-acted reading.
- * `value: null` is an unmeasured reading: empty track, "—".
+ * `value: null` is an unmeasured reading: empty track, "–".
+ * `hideLabel` keeps `label` as the accessible name but does not print it (the column header already says it).
+ * `valueText` replaces the printed reading and what is announced, e.g. "94% · n=212".
  * `sm` is one line for list rows; `md` adds a header row for detail views.
  */
 export function Meter({
@@ -27,6 +29,8 @@ export function Meter({
   threshold,
   state,
   label,
+  hideLabel,
+  valueText,
   size = "sm",
   className,
 }: {
@@ -34,12 +38,14 @@ export function Meter({
   threshold?: number
   state?: MeterState
   label?: string
+  hideLabel?: boolean
+  valueText?: string
   size?: "sm" | "md"
   className?: string
 }) {
   const s = state ?? (threshold !== undefined && value !== null && value >= threshold ? "acted" : "queued")
   const md = size === "md"
-  const text = value === null ? "—" : pct(value)
+  const text = valueText ?? (value === null ? "–" : pct(value))
 
   const track = (
     <div
@@ -76,17 +82,17 @@ export function Meter({
   if (!md)
     return (
       <div className={cn("flex items-center gap-2", className)}>
-        {label ? <span className="max-w-28 truncate text-xs text-muted-foreground">{label}</span> : null}
+        {label && !hideLabel ? <span className="max-w-28 truncate text-xs text-muted-foreground">{label}</span> : null}
         {track}
-        <span className="w-9 text-right text-xs font-medium tabular-nums">{text}</span>
+        <span className="min-w-9 text-right text-xs font-medium tabular-nums">{text}</span>
       </div>
     )
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <div className="flex items-baseline justify-between gap-3 text-[13px]">
-        <span className="truncate text-muted-foreground">{label ?? "Confidence"}</span>
-        <span className="shrink-0 tabular-nums">
+        {hideLabel ? null : <span className="truncate text-muted-foreground">{label ?? "Confidence"}</span>}
+        <span className="ml-auto shrink-0 tabular-nums">
           <span className="text-sm font-medium">{text}</span>
           {threshold !== undefined ? <span className="text-muted-foreground"> · threshold {pct(threshold)}</span> : null}
         </span>

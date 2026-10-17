@@ -9,12 +9,11 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Load } from "@/components/ui/load";
 import { PageHeader } from "@/components/ui/page-header";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
 import { Rows } from "@/components/onboarding/parts";
 import { useShell } from "@/components/shell/shell-context";
-import type { Me, Overview, RepoCard } from "@/lib/types";
-import type { SetupStatus } from "@/lib/types-onboarding";
+import type { Me, Overview, RepoCard, SetupStatus } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 
 type Org = Me["orgs"][number];
@@ -41,23 +40,26 @@ function NoOrgs() {
   const status = useApi<SetupStatus>("/api/setup/status");
   const s = status.data;
   return (
-    <EmptyState
-      title="No organizations yet"
-      description="Install the GitHub App to see repositories here."
-      action={
-        s || status.error ? (
-          <Button asChild>
-            {s?.install_url ? (
-              <a href={s.install_url} target="_blank" rel="noreferrer">
-                Install the GitHub App
-              </a>
-            ) : (
-              <Link href="/welcome">Set up Jev Triage</Link>
-            )}
-          </Button>
-        ) : undefined
-      }
-    />
+    <>
+      <PageHeader title="Organizations" />
+      <EmptyState
+        title="No organizations yet"
+        description="Install the GitHub App to see repositories here."
+        action={
+          s || status.error ? (
+            <Button asChild>
+              {s?.install_url ? (
+                <a href={s.install_url} target="_blank" rel="noreferrer">
+                  Install the GitHub App
+                </a>
+              ) : (
+                <Link href="/welcome">Set up Jev Triage</Link>
+              )}
+            </Button>
+          ) : undefined
+        }
+      />
+    </>
   );
 }
 
@@ -72,11 +74,10 @@ function Solo({ org }: { org: Org }) {
 
   if (!overview || live)
     return (
-      <div role="status" aria-busy="true" className="flex flex-col gap-3">
+      <Busy label={`Opening ${org.login}`} className="flex flex-col gap-3">
         <Skeleton className="h-8 w-56" />
         <Skeleton className="h-16 w-full" />
-        <span className="sr-only">Opening {org.login}</span>
-      </div>
+      </Busy>
     );
   return (
     <>

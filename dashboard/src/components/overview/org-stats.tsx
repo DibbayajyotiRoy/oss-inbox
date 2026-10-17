@@ -28,7 +28,7 @@ export function OrgStats({ repos, details }: { repos: RepoCard[]; details?: Reco
       <Stat label="Items" value={count(sum((r) => r.items_30d))} detail={`last 30 days, ${repos.length} ${repos.length === 1 ? "repo" : "repos"}`} />
       <Stat
         label="Auto-acted"
-        value={decided ? pct(acted / decided) : "—"}
+        value={decided ? pct(acted / decided) : "–"}
         detail={decided ? `${acted.toLocaleString()} of ${decided.toLocaleString()} decisions` : "no decisions yet"}
         hint="Decisions Jev acted on without a human, out of those acted on or queued. Shadow decisions are excluded."
       />
@@ -36,8 +36,8 @@ export function OrgStats({ repos, details }: { repos: RepoCard[]; details?: Reco
       <Stat label="Held" value={count(held)} detail={held ? `most in ${top("held_open").full_name}` : "nothing held"} href={held ? repoPath(top("held_open").id, "held") : undefined} />
       <Stat
         label="Measured accuracy"
-        value={measured.length === 0 ? "—" : details ? pct(accuracy) : <Skeleton className="mt-1 h-7 w-14" />}
-        detail={measured.length === 0 ? "not measured yet" : details ? (n > 0 ? `n = ${n.toLocaleString()}, ${measured.length} of ${repos.length} repos` : `mean of ${measured.length} repos, n unknown`) : "…"}
+        value={measured.length === 0 ? "–" : details ? pct(accuracy) : <Skeleton className="mt-1 h-7 w-14" />}
+        detail={measured.length === 0 ? "not measured yet" : details ? (n > 0 ? `n=${n.toLocaleString()}, ${measured.length} of ${repos.length} repos` : `mean of ${measured.length} repos, n unknown`) : "…"}
         hint="Agreement with maintainers' own decisions and backfilled history. Backfilled accuracy is an upper bound."
       />
     </StatStrip>

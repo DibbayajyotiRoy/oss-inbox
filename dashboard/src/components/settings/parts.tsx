@@ -1,28 +1,15 @@
 "use client";
-import { cloneElement, useState, type ReactElement } from "react";
+import { cloneElement, type ReactElement } from "react";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { errText } from "@/lib/api";
+import { useAction } from "@/lib/use-api";
 
-/** Runs a mutation with a busy flag; a failure becomes an error toast and resolves to undefined. */
-export function useRun() {
-  const [busy, setBusy] = useState(false);
-  const run = async <T,>(fn: () => Promise<T>): Promise<T | undefined> => {
-    setBusy(true);
-    try {
-      return await fn();
-    } catch (e) {
-      toast.error(errText(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return { busy, run };
-}
+/** A mutation with a busy flag; a failure becomes an error toast and `run` resolves to undefined. */
+export const useRun = () => useAction((e) => toast.error(e.message));
 
 /** Disables its child and explains why in a tooltip. A falsy `reason` renders the child untouched. */
 export function Gate({ reason, children }: { reason: string | false | undefined; children: ReactElement<{ disabled?: boolean }> }) {
@@ -91,16 +78,7 @@ export function Confirm({ open, onOpenChange, title, description, label, busy, o
 }
 
 export const RowsSkeleton = ({ rows = 4 }: { rows?: number }) => (
-  <div role="status" aria-busy="true" className="flex flex-col gap-3">
+  <Busy className="flex flex-col gap-3">
     {Array.from({ length: rows }, (_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-    <span className="sr-only">Loading</span>
-  </div>
+  </Busy>
 );
-
-/** ["Oct 17", "11:42 AM"]; the year joins the date only when it is not this one. */
-export const stampParts = (iso: string) => {
-  const d = new Date(iso);
-  const year = d.getFullYear() === new Date().getFullYear() ? undefined : "numeric";
-  return [d.toLocaleDateString(undefined, { month: "short", day: "numeric", year }), d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })];
-};
-export const stamp = (iso: string) => stampParts(iso).join(", ");

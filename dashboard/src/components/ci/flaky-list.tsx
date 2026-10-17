@@ -2,13 +2,12 @@
 import { useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { EvilBarChart } from "@/components/evilcharts/charts/recharts-bar-chart";
-import type { ChartConfig } from "@/components/evilcharts/ui/recharts-chart";
 import { Button } from "@/components/ui/button";
 import { chartTheme } from "@/lib/chart-theme";
+import { ago, when } from "@/lib/fmt";
 import type { FlakyTest } from "@/lib/types";
-import { RelTime } from "./rel-time";
 
-const config = chartTheme({ occurrences: { role: "series1", label: "Occurrences" } }) as Record<"occurrences", ChartConfig[string]>;
+const config = chartTheme({ occurrences: { role: "series1", label: "Occurrences" } });
 const FIRST = 25; // one chart per row, so show the worst first and the rest on request
 const COLS = "md:grid-cols-[2rem_minmax(0,1fr)_11rem_6rem_6rem_5rem]";
 
@@ -52,11 +51,11 @@ export function FlakyList({ tests }: { tests: FlakyTest[] }) {
             <div className="col-start-2 flex flex-wrap items-center gap-x-4 gap-y-1 md:contents">
               <span role="cell" className="text-[13px] text-muted-foreground">
                 <span className="md:hidden">First seen </span>
-                <RelTime iso={t.first_seen} />
+                <time dateTime={t.first_seen} title={when(t.first_seen)}>{ago(t.first_seen)}</time>
               </span>
               <span role="cell" className="text-[13px] text-muted-foreground">
                 <span className="md:hidden">Last seen </span>
-                <RelTime iso={t.last_seen} />
+                <time dateTime={t.last_seen} title={when(t.last_seen)}>{ago(t.last_seen)}</time>
               </span>
               <span role="cell" className="text-[13px]">
                 {t.last_run_url ? (

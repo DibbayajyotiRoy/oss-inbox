@@ -16,16 +16,24 @@ export async function api<T>(path: string, init: Init = {}): Promise<T> {
     body: hasBody ? JSON.stringify(init.body) : undefined,
   });
   if (res.status === 401 && !location.pathname.startsWith("/login")) location.replace("/login");
-  if (!res.ok) {
-    let detail = res.statusText || `HTTP ${res.status}`;
-    try {
-      const j = await res.json();
-      const d = j?.detail ?? j;
-      detail = typeof d === "string" ? d : Array.isArray(d) ? d.map((e) => e?.msg ?? JSON.stringify(e)).join("; ") : JSON.stringify(d);
-    } catch {}
-    throw new ApiError(res.status, detail);
-  }
-  return res.json() as Promise<T>;
+  // Errors are `{detail}` JSON, but a proxy or a crashed server answers with HTML or plain text: never feed that to res.json().
+  const text = await res.text();
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {}
+  if (!res.ok) throw new ApiError(res.status, detailOf(res, json, text));
+  if (json === undefined && text) throw new ApiError(res.status, "Unexpected response from the server");
+  return json as T;
+}
+
+function detailOf(res: Response, json: unknown, text: string) {
+  const d = (json as { detail?: unknown } | null | undefined)?.detail ?? json;
+  if (typeof d === "string") return d;
+  if (Array.isArray(d)) return d.map((e) => e?.msg ?? JSON.stringify(e)).join("; ");
+  if (d != null) return JSON.stringify(d);
+  const plain = text.trim();
+  return plain && plain.length <= 200 && !plain.startsWith("<") ? plain : res.statusText || `Request failed (HTTP ${res.status})`;
 }
 
 export const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));

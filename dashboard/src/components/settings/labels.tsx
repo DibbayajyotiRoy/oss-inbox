@@ -8,13 +8,9 @@ import { Status } from "@/components/ui/status";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
 import { api } from "@/lib/api";
-import { NEED, type LabelPlan } from "@/lib/types-settings";
+import { type LabelPlan, NEED, labelRows } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 import { Gate, RowsSkeleton, useRun } from "./parts";
-
-/** mapping is {purpose: label} or {purpose: {variant: label}}: flatten to one row per configured label. */
-const flatten = (m: LabelPlan["mapping"]) =>
-  Object.entries(m).flatMap(([k, v]) => (typeof v === "string" ? [{ purpose: k, label: v }] : Object.entries(v).map(([s, label]) => ({ purpose: `${k}.${s}`, label }))));
 
 export function Labels() {
   const { repo, canAct } = useRepo();
@@ -45,12 +41,12 @@ export function Labels() {
       <Load
         res={res}
         fallback={<RowsSkeleton rows={5} />}
-        isEmpty={(d) => flatten(d.mapping).length === 0}
+        isEmpty={(d) => labelRows(d.mapping).length === 0}
         empty={<EmptyState art="done" title="No labels configured" description="Add a labels section to your config." />}
       >
         {(plan) => {
           const gone = new Set(plan.missing.map((l) => l.toLowerCase()));
-          const rows = flatten(plan.mapping)
+          const rows = labelRows(plan.mapping)
             .map((r) => ({ ...r, missing: gone.has(r.label.toLowerCase()) }))
             .sort((a, b) => Number(b.missing) - Number(a.missing));
           return (

@@ -1,12 +1,11 @@
 import { CardSection } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { StatStrip } from "@/components/ui/stat-strip";
 
 /** Mirrors the org overview: header, five readings, trend card, two repo cards. */
 export function OverviewSkeleton() {
   return (
-    <div role="status" aria-busy="true" className="flex flex-col gap-10">
-      <span className="sr-only">Loading</span>
+    <Busy className="flex flex-col gap-10">
       <div>
         <Skeleton className="h-8 w-48" />
         <Skeleton className="mt-2.5 h-4 w-64" />
@@ -37,6 +36,6 @@ export function OverviewSkeleton() {
           </div>
         ))}
       </div>
-    </div>
+    </Busy>
   );
 }

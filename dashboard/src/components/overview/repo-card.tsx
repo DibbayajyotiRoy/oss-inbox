@@ -2,24 +2,20 @@
 import Link from "next/link";
 import { ArrowUpRight, CirclePause, Inbox, Lock } from "lucide-react";
 import { EvilAreaChart } from "@/components/evilcharts/charts/recharts-area-chart";
-import type { ChartConfig } from "@/components/evilcharts/ui/recharts-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { InfoHint } from "@/components/ui/info-hint";
+import { MODE_VARIANT } from "@/components/ui/mode-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
 import { pct, repoPath } from "@/lib/fmt";
 import { chartTheme } from "@/lib/chart-theme";
-import type { Mode, Repo, RepoCard } from "@/lib/types";
+import type { Repo, RepoCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { labelled } from "./use-repo-details";
 
-// chartTheme returns an open ChartConfig; the narrow key type lets Evil Charts check keys against the data rows.
-export const trendConfig = chartTheme({ acted: "Auto-acted", queued: "Queued", shadow: "Shadow" }) as Record<"acted" | "queued" | "shadow", ChartConfig[string]>;
-
-// Colour only where Jev acts on its own; shadow is quiet, off is quieter.
-const MODE: Record<Mode, "success" | "secondary" | "outline"> = { auto: "success", shadow: "secondary", off: "outline" };
+export const trendConfig = chartTheme({ acted: "Auto-acted", queued: "Queued", shadow: "Shadow" });
 
 /** Where a card leads: the queue, or setup while the repo is off (admins only; others cannot enable it). */
 export const cardHref = (r: RepoCard) => (r.enabled ? repoPath(r.id) : r.role === "admin" ? `/onboarding/${r.id}` : repoPath(r.id));
@@ -83,14 +79,14 @@ export function OrgRepoCard({ r, detail, detailsLoading }: { r: RepoCard; detail
         </p>
       </div>
       <dl className="grid grid-cols-3 gap-3 px-5">
-        <Metric label="Accuracy" value={pct(r.accuracy)} detail={r.accuracy === null ? "not measured" : n ? `n = ${n.toLocaleString()}` : "n …"} />
+        <Metric label="Accuracy" value={pct(r.accuracy)} detail={r.accuracy === null ? "not measured" : n ? `n=${n.toLocaleString()}` : "n …"} />
         <Metric label="Overrides" value={pct(r.override_rate)} detail={r.override_rate === null ? "no decisions" : "of decisions"} />
         <Metric label="Auto-acted" value={pct(r.acted_share)} detail={r.acted_share === null ? "no decisions" : "of items"} />
       </dl>
       <div className="flex min-h-5 flex-wrap gap-1.5 px-5" aria-label="Feature modes">
         {detailsLoading && <Skeleton className="h-5 w-40" />}
         {detail && Object.entries(detail.features).map(([f, m]) => (
-          <Badge key={f} variant={MODE[m]} title={`${f} is ${m}`}>
+          <Badge key={f} variant={MODE_VARIANT[m]} title={`${f} is ${m}`}>
             {f.replace(/_/g, " ")} <span className="opacity-70">{m}</span>
           </Badge>
         ))}

@@ -25,18 +25,19 @@ export type ChartRole = keyof typeof ROLES;
 type Spec = string | { role: ChartRole; label: string };
 
 /**
- * ChartConfig for Evil Charts from a `{ dataKey: label }` map. A key that is a role name gets that role's
+ * ChartConfig for Evil Charts from a `{ dataKey: label }` map. The result keeps the keys you pass, so Evil Charts can
+ * check them against the data rows. A key that is a role name gets that role's
  * colour; any other key takes the next graphite series colour, or pass `{ role, label }` to choose.
  *
  *   chartTheme({ acted: "Auto-acted", queued: "Queued", wrong: "Wrong" })
  *   chartTheme({ score: "Score", baseline: { role: "series3", label: "Baseline" } })
  */
-export function chartTheme(series: Record<string, Spec>): ChartConfig {
+export function chartTheme<K extends string>(series: Record<K, Spec>): Record<K, ChartConfig[string]> {
   let next = 0;
   return Object.fromEntries(
-    Object.entries(series).map(([key, spec]) => {
+    Object.entries<Spec>(series).map(([key, spec]) => {
       const { role, label } = typeof spec === "string" ? { role: key in ROLES ? (key as ChartRole) : (`series${++next}` as ChartRole), label: spec } : spec;
       return [key, { label, colors: { light: [ROLES[role].light], dark: [ROLES[role].dark] } }];
     }),
-  );
+  ) as Record<K, ChartConfig[string]>;
 }

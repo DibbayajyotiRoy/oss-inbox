@@ -3,14 +3,15 @@ import Link from "next/link";
 import { createContext, useContext, type ReactElement, type ReactNode } from "react";
 import { ArrowRight, Lock, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { MODE_VARIANT } from "@/components/ui/mode-control";
+import { Notice } from "@/components/ui/notice";
+import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { repoPath } from "@/lib/fmt";
-import type { Mode } from "@/lib/types";
-import { CONFIG_PATH, featureModes, type RepoFull } from "@/lib/types-settings";
+import { CONFIG_PATH, featureModes, type Mode, type Repo } from "@/lib/types";
 
-const Ctx = createContext<{ repo: RepoFull; reload: () => void } | null>(null);
+const Ctx = createContext<{ repo: Repo; reload: () => void } | null>(null);
 export const RepoProvider = Ctx.Provider;
 export function useRepo() {
   const c = useContext(Ctx);
@@ -18,7 +19,6 @@ export function useRepo() {
   return { ...c, canAct: c.repo.role !== "viewer", isAdmin: c.repo.role === "admin" };
 }
 
-const MODE_VARIANT = { off: "outline", shadow: "secondary", auto: "default" } as const;
 const MODE_TIP: Record<Mode, string> = {
   off: "Does nothing.",
   shadow: "Records decisions and queues suggestions. Never acts.",
@@ -35,27 +35,8 @@ const Tip = ({ tip, children }: { tip: ReactNode; children: ReactElement }) => (
   </Tooltip>
 );
 
-function Banner({ tone, title, children, action }: { tone: "destructive" | "muted"; title: ReactNode; children?: ReactNode; action?: ReactNode }) {
-  const bad = tone === "destructive";
-  return (
-    <div
-      role={bad ? "alert" : "status"}
-      className={`mt-4 flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center ${bad ? "border-destructive/40 bg-destructive/5" : "bg-muted/40"}`}
-    >
-      <div className="flex min-w-0 flex-1 items-start gap-2.5">
-        {bad && <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-destructive" />}
-        <div className="min-w-0">
-          <p className={`text-sm font-medium ${bad ? "text-destructive" : ""}`}>{title}</p>
-          {children}
-        </div>
-      </div>
-      {action}
-    </div>
-  );
-}
-
 /** A compact identity strip, not a page heading (each page renders its own h1): name, backend and mode chips, then the two states worth interrupting for, a config that failed to parse and setup not finished. */
-export function RepoHeader({ repo }: { repo: RepoFull }) {
+export function RepoHeader({ repo }: { repo: Repo }) {
   const settings = repoPath(repo.id, "settings");
   return (
     <header className="mb-6" aria-label="Repository">
@@ -113,8 +94,9 @@ export function RepoHeader({ repo }: { repo: RepoFull }) {
         ))}
       </ul>
       {repo.config_error && (
-        <Banner
+        <Notice
           tone="destructive"
+          className="mt-4"
           title={`Your ${CONFIG_PATH} failed to parse; defaults in use`}
           action={
             <Link href={`${settings}?s=config`} className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-destructive hover:underline">
@@ -122,12 +104,12 @@ export function RepoHeader({ repo }: { repo: RepoFull }) {
             </Link>
           }
         >
-          <p className="mt-1 font-mono text-xs break-words text-muted-foreground">{repo.config_error.replace(/^invalid config: /, "")}</p>
-        </Banner>
+          <p className="font-mono text-xs break-words">{repo.config_error.replace(/^invalid config: /, "")}</p>
+        </Notice>
       )}
       {!repo.enabled && (
-        <Banner
-          tone="muted"
+        <Notice
+          className="mt-4"
           title="Jev is not reading this repository yet"
           action={
             repo.role === "admin" ? (
@@ -146,11 +128,10 @@ export function RepoHeader({ repo }: { repo: RepoFull }) {
 
 export function RepoHeaderSkeleton() {
   return (
-    <div role="status" aria-busy="true" className="mb-6 flex gap-1.5 overflow-hidden">
+    <Busy label="Loading repository" className="mb-6 flex gap-1.5 overflow-hidden">
       {[36, 28, 20, 16, 24, 24, 24, 24].map((w, i) => (
         <Skeleton key={i} className="h-5 shrink-0" style={{ width: `${w * 4}px` }} />
       ))}
-      <span className="sr-only">Loading repository</span>
-    </div>
+    </Busy>
   );
 }

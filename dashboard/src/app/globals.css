@@ -149,6 +149,13 @@
     @apply border-border outline-ring/50;
   }
 
+  /* Enter and exit run as keyframes. Tailwind's `duration-*` also sets transition-duration, which with the default
+     property (`all`) would animate every later style change: switch transitions off unless an element opts in. */
+  [class*="animate-in"],
+  [class*="animate-out"] {
+    transition-property: none;
+  }
+
   html {
     color-scheme: dark;
     -webkit-text-size-adjust: 100%;
@@ -281,42 +288,4 @@ html[data-theme-wipe="down"]::view-transition-new(root) {
       filter: none;
     }
   }
-}
-
-/* ------------------------------------------------------------------------- */
-/* LEGACY: the pre-design-system classes and colour names, kept only so      */
-/* unmigrated pages still render. Delete this whole block once no page uses  */
-/* `.btn .card .input .note`, `text-muted`, `bg-surface`, `border-line` etc. */
-/* ------------------------------------------------------------------------- */
-@theme inline {
-  --color-bg: var(--background);
-  --color-fg: var(--foreground);
-  --color-line: var(--border);
-  --color-surface: var(--muted);
-  --color-ok: var(--success);
-  --color-warn: var(--warning);
-  --color-bad: var(--destructive);
-  --color-ok-soft: color-mix(in oklab, var(--success) 14%, var(--background));
-  --color-warn-soft: color-mix(in oklab, var(--warning) 14%, var(--background));
-  --color-bad-soft: color-mix(in oklab, var(--destructive) 14%, var(--background));
-  --color-info-soft: color-mix(in oklab, var(--info) 14%, var(--background));
-}
-/* `text-muted` meant muted text; in the new tokens `muted` is a surface. Unlayered, so it wins. */
-.text-muted { color: var(--muted-foreground); }
-.border-accent { border-color: var(--foreground); }
-a:not([class]) { color: var(--info); }
-a:not([class]):hover { text-decoration: underline; }
-table:not([data-slot]) { border-collapse: collapse; width: 100%; }
-table:not([data-slot]) th { text-align: left; font-weight: 600; color: var(--muted-foreground); font-size: 12px; }
-table:not([data-slot]) :is(th, td) { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-kbd:not([data-slot]) { font-size: 12px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--muted); }
-dialog { color: inherit; }
-dialog::backdrop { background: rgb(0 0 0 / 0.5); }
-@layer components {
-  .btn { @apply inline-flex min-h-8 items-center justify-center gap-1 rounded-md border border-border bg-secondary px-3 text-sm font-medium text-foreground no-underline hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50 max-sm:min-h-11; }
-  .btn-primary { @apply border-primary bg-primary text-primary-foreground hover:bg-primary/90; }
-  .btn-danger { @apply text-destructive; }
-  .input { @apply min-h-8 rounded-md border border-input bg-transparent px-2 text-sm text-foreground max-sm:min-h-11; }
-  .card { @apply rounded-xl border border-border bg-card p-3 text-card-foreground shadow-sm; }
-  .note { @apply rounded-md border border-border bg-muted px-3 py-2 text-sm; }
 }

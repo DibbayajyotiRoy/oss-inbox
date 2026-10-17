@@ -16,7 +16,7 @@ export default function OrgOverview() {
   const { orgId } = useParams<{ orgId: string }>();
   const res = useApi<Overview>(`/api/orgs/${orgId}/overview`);
   return (
-    <Load res={res} fallback={<OverviewSkeleton />}>
+    <Load res={res} fallback={<OverviewSkeleton />} errorTitle="Repositories">
       {(d) => <Repos d={d} />}
     </Load>
   );

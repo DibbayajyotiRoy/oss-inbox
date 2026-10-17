@@ -1,11 +1,10 @@
 import { CardSection } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Busy, Skeleton } from "@/components/ui/skeleton";
 
 /** Mirrors the CI gate: outcome card, then report rows. */
 export function CiSkeleton() {
   return (
-    <div role="status" aria-busy="true" className="flex flex-col gap-6">
-      <span className="sr-only">Loading</span>
+    <Busy className="flex flex-col gap-6">
       <CardSection title="Outcomes">
         <Skeleton className="h-24 w-full" />
       </CardSection>
@@ -19,6 +18,6 @@ export function CiSkeleton() {
           </li>
         ))}
       </ul>
-    </div>
+    </Busy>
   );
 }

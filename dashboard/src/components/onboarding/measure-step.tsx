@@ -11,7 +11,8 @@ import { Status } from "@/components/ui/status";
 import { ErrorState } from "@/components/ui/load";
 import { toast } from "@/components/ui/toaster";
 import { api } from "@/lib/api";
-import type { Backfill, RepoDetail } from "@/lib/types-onboarding";
+import { pct } from "@/lib/fmt";
+import type { Backfill, Repo } from "@/lib/types";
 import { useAction } from "@/lib/use-api";
 import { Continue, Primary, useFlow, useInterval } from "./flow";
 import { SettleMeter } from "./parts";
@@ -22,7 +23,7 @@ const PREVIEW = ["issue.type", "priority", "route.area", "spam"]; // what a back
  * The onboarding signature. Run the backfill, watch the processed count roll, and see each question's accuracy
  * settle in against its threshold as the comparison completes. Always labelled an upper bound, always with n.
  */
-export function MeasureStep({ repo, reload }: { repo: RepoDetail; reload: () => void }) {
+export function MeasureStep({ repo, reload }: { repo: Repo; reload: () => void }) {
   const [b, setB] = useState<Backfill>();
   const [error, setError] = useState<Error>();
   const act = useAction();
@@ -97,7 +98,7 @@ export function MeasureStep({ repo, reload }: { repo: RepoDetail; reload: () => 
           {rows.length > 0 ? (
             <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
               {rows.map((q, i) => (
-                <SettleMeter key={q.id} i={i} value={q.accuracy} threshold={q.threshold} label={`${q.id} · n = ${q.n}${q.measured ? "" : ", low"}`} />
+                <SettleMeter key={q.id} i={i} value={q.accuracy} threshold={q.threshold} label={q.id} valueText={`${pct(q.accuracy)} · n=${q.n.toLocaleString()}${q.measured ? "" : " (low)"}`} />
               ))}
             </div>
           ) : b.status === "done" ? (

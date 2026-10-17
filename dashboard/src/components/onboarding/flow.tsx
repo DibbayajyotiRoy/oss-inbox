@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/load";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { StepDots } from "@/components/ui/step-dots";
 
 /** Calls `fn` every `ms` while `ms` is a number (null pauses). `fn` may change every render. */
@@ -53,13 +53,12 @@ export function Frame({ right, footer, children }: { right?: ReactNode; footer?:
 export function FlowSkeleton() {
   return (
     <Frame>
-      <div role="status" aria-busy="true" className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 pt-10 sm:px-6">
+      <Busy className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 pt-10 sm:px-6">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-4 w-1/2" />
         <Skeleton className="mt-6 h-40 w-full" />
-        <span className="sr-only">Loading</span>
-      </div>
+      </Busy>
     </Frame>
   );
 }

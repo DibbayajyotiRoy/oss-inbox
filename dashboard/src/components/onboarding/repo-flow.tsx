@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ExternalLink, Eye, ListChecks, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ExternalLink, Eye, ListChecks, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CodeBlock } from "@/components/ui/code-block";
 import { ErrorState } from "@/components/ui/load";
@@ -12,18 +13,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
 import { toast } from "@/components/ui/toaster";
 import { api } from "@/lib/api";
-import type { ConfigDoc } from "@/lib/types";
-import type { LabelPlan, Onboarding, RepoDetail } from "@/lib/types-onboarding";
+import { labelRows, type ConfigDoc, type LabelPlan, type Onboarding, type Repo } from "@/lib/types";
 import { useAction, useApi } from "@/lib/use-api";
 import { Continue, Flow, FlowError, FlowSkeleton, Primary, useInterval } from "./flow";
 import { MeasureStep } from "./measure-step";
 import { ModesStep } from "./modes-step";
-import { Notice, Rows } from "./parts";
+import { Rows } from "./parts";
 
 /** Per-repo setup at /onboarding/[repoId]. Resumes at the first required step the server reports as not done. */
 export function RepoFlow({ repoId }: { repoId: number }) {
   const ob = useApi<Onboarding>(`/api/repos/${repoId}/onboarding`);
-  const res = useApi<RepoDetail>(`/api/repos/${repoId}`);
+  const res = useApi<Repo>(`/api/repos/${repoId}`);
   const error = ob.error ?? res.error;
   const repo = res.data;
   if (!repo || !ob.data) return error ? <FlowError error={error} retry={() => {
@@ -56,7 +56,7 @@ export function RepoFlow({ repoId }: { repoId: number }) {
   );
 }
 
-function EnableStep({ repo, reload }: { repo: RepoDetail; reload: () => void }) {
+function EnableStep({ repo, reload }: { repo: Repo; reload: () => void }) {
   const [ack, setAck] = useState(false);
   const act = useAction();
   const admin = repo.role === "admin";
@@ -97,7 +97,7 @@ function EnableStep({ repo, reload }: { repo: RepoDetail; reload: () => void }) 
               </span>
             </label>
           ) : null}
-          {admin ? null : <Notice tone="warning" icon={TriangleAlert} title="Only admins can turn this on">Ask an admin of {repo.full_name}, or continue and come back.</Notice>}
+          {admin ? null : <Notice tone="warning" title="Only admins can turn this on">Ask an admin of {repo.full_name}, or continue and come back.</Notice>}
           {act.error ? (
             <p role="alert" className="text-sm text-destructive">
               {act.error.message}
@@ -109,13 +109,6 @@ function EnableStep({ repo, reload }: { repo: RepoDetail; reload: () => void }) 
         </>
       )}
     </div>
-  );
-}
-
-/** Flattens `mapping` ({question: {answer: label}} or {key: label}) into rows. */
-function mappingRows(mapping: LabelPlan["mapping"]) {
-  return Object.entries(mapping).flatMap(([key, v]) =>
-    typeof v === "string" ? [{ what: key.replace(/_/g, " "), label: v }] : Object.entries(v).map(([answer, label]) => ({ what: `${key} · ${answer}`, label })),
   );
 }
 
@@ -133,7 +126,7 @@ function LabelsStep({ repoId }: { repoId: number }) {
   if (!plan.data) return <Skeleton className="h-48 w-full" />;
 
   const have = new Set([...plan.data.existing, ...created].map((l) => l.toLowerCase()));
-  const rows = mappingRows(plan.data.mapping).map((r) => ({ ...r, ok: have.has(r.label.toLowerCase()) }));
+  const rows = labelRows(plan.data.mapping).map((r) => ({ ...r, ok: have.has(r.label.toLowerCase()) }));
   const missing = plan.data.missing.filter((l) => !have.has(l.toLowerCase()));
   const sync = () =>
     act.run(async () => {
@@ -145,8 +138,8 @@ function LabelsStep({ repoId }: { repoId: number }) {
   const list = (items: typeof rows, label: string) => (
     <Rows label={label}>
       {items.map((r) => (
-        <li key={r.what} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-          <span className="min-w-0 flex-1 truncate text-muted-foreground">{r.what}</span>
+        <li key={r.purpose} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+          <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">{r.purpose}</span>
           <span className="shrink-0 rounded-md border bg-muted/40 px-1.5 py-0.5 font-mono text-xs">{r.label}</span>
           <Status tone={r.ok ? "success" : "waiting"} className="w-20 shrink-0 justify-end">
             {r.ok ? "Exists" : "Missing"}
@@ -186,13 +179,13 @@ function LabelsStep({ repoId }: { repoId: number }) {
   );
 }
 
-function ConfigStep({ repo }: { repo: RepoDetail }) {
+function ConfigStep({ repo }: { repo: Repo }) {
   const cfg = useApi<ConfigDoc>(`/api/repos/${repo.id}/config`);
   const d = cfg.data;
   return (
     <div className="flex flex-col gap-6">
       {repo.config_error ? (
-        <Notice tone="warning" icon={TriangleAlert} title="Your config could not be read, so defaults are in use">
+        <Notice tone="warning" title="Your config could not be read, so defaults are in use">
           <span className="font-mono text-xs break-words">{repo.config_error}</span>
         </Notice>
       ) : (
@@ -223,7 +216,7 @@ function ConfigStep({ repo }: { repo: RepoDetail }) {
   );
 }
 
-function DoneStep({ repo }: { repo: RepoDetail }) {
+function DoneStep({ repo }: { repo: Repo }) {
   const router = useRouter();
   const ob = useApi<Onboarding>(`/api/repos/${repo.id}/onboarding`);
   const first = ob.data?.steps.find((s) => s.id === "first_event");

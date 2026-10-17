@@ -21,6 +21,7 @@ export type Repo = {
   id: number; full_name: string; private: boolean; enabled: boolean; role: Role; default_branch: string;
   backend: string; model: string; calibrated: boolean; features: Record<string, Mode>;
   backfill_status: string | null; config_source: "repo" | "org" | "default"; questions: QuestionInfo[];
+  config_error: string | null; // the YAML in the repo failed to parse; defaults are in use
 };
 
 export type ItemSummary = {
@@ -55,7 +56,7 @@ export type ItemDetail = {
 export type Preview = { question_id: string; threshold: number; points: { confidence: number; correct: boolean | null }[] };
 export type Calibration = {
   question_id: string; n: number; ece: number | null;
-  bins: { lo: number; hi: number; n: number; mean_confidence: number; accuracy: number }[];
+  bins: { lo: number; hi: number; n: number; mean_confidence: number | null; accuracy: number | null }[]; // null when n = 0
 };
 export type EvalQuestion = {
   id: string; n: number; accuracy: number | null; ece: number | null; recommended_threshold: number | null;
@@ -74,6 +75,59 @@ export type FlakyTest = { test_id: string; occurrences: number; first_seen: stri
 
 export type Parsed = Record<string, unknown> & { thresholds?: Record<string, number> };
 export type ConfigDoc = { yaml: string; source: string; parsed: Parsed; edit_url: string; labels: string[] };
+/** POST /features and /config/render: `yaml` is the text to commit, `errors` its parse failures (yaml is still returned). */
 export type Rendered = { yaml: string; edit_url: string; errors: string[] };
+/** POST /config/render {yaml} also returns the normalized config. */
+export type RenderedConfig = Rendered & { parsed: Parsed };
+export type NewToken = { id: number; name: string; token: string };
 export type CiToken = { id: number; name: string; created_by: string; created_at: string; revoked_at: string | null };
 export type AuditRow = { id: number; actor: string; action: string; target: string | null; details: unknown; created_at: string };
+
+// v0.2: onboarding, demo mode (CONTRACT.md "v0.2 additions").
+export type SetupStatus = {
+  app_configured: boolean; app_slug: string | null; install_url: string | null;
+  setup_url: string | null; // "/api/setup?auto=1" while the app is not configured
+  decision_backend: "jev" | "anthropic"; decision_key_present: boolean; calibrated: boolean; model: string;
+  public_url: string; dashboard_url: string; demo_mode: boolean; installations: number;
+};
+export type OnboardingStep = {
+  id: "enabled" | "labels" | "config" | "backfill" | "first_event" | "mode";
+  title: string; done: boolean; optional: boolean; detail: string | null;
+};
+export type Onboarding = { complete: boolean; steps: OnboardingStep[] };
+/** `mapping` values are a label name or {variant: label name}. */
+export type LabelPlan = { existing: string[]; missing: string[]; mapping: Record<string, Record<string, string> | string> };
+/** One `{purpose, label}` row per configured label (mapping values are a label or {variant: label}). */
+export const labelRows = (m: LabelPlan["mapping"]) =>
+  Object.entries(m).flatMap(([k, v]) => (typeof v === "string" ? [{ purpose: k, label: v }] : Object.entries(v).map(([s, label]) => ({ purpose: `${k}.${s}`, label }))));
+export type Backfill = {
+  status: "idle" | "queued" | "running" | "done" | "error";
+  processed: number; total: number | null; with_truth: number; errors: number;
+  error: string | null; started_at: string | null; finished_at: string | null;
+};
+
+// Roles, features and the config file.
+const RANK: Record<Role, number> = { viewer: 0, maintainer: 1, admin: 2 };
+export const atLeast = (role: Role, need: Role) => RANK[role] >= RANK[need];
+/** Tooltip text for a control that is not available. */
+export const NEED = {
+  maintainer: "Maintainer role needed",
+  admin: "Admin role needed",
+  measured: "Auto needs a measured question. Run a backfill first.",
+} as const;
+
+export const CONFIG_PATH = ".github/jev-triage.yml";
+
+/** The features in the docs' order (the API returns them in storage order). */
+export const FEATURES: Record<string, { name: string; about: string }> = {
+  inbound_gate: { name: "Inbound gate", about: "Holds risky outside issues, suggests duplicates" },
+  issue_triage: { name: "Issue triage", about: "Labels the type and what is missing" },
+  pr_checks: { name: "PR checks", about: "Flags breaking changes and rule gaps" },
+  routing: { name: "Routing", about: "Suggests the area or repository" },
+  priority: { name: "Priority", about: "Suggests p0 to p3" },
+  spam: { name: "Spam", about: "Flags empty and promotional items" },
+  ci_gate: { name: "CI gate", about: "Files, merges or ignores CI failures" },
+};
+const ORDER = Object.keys(FEATURES);
+export const featureModes = (r: Pick<Repo, "features">) =>
+  Object.entries(r.features).sort(([a], [b]) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99));

@@ -7,15 +7,15 @@ import { FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
-import type { SetupStatus } from "@/lib/types-onboarding";
+import type { SetupStatus } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 import { Brand } from "./flow";
 import { GitHubMark, SettleMeter } from "./parts";
 
 const READINGS = [
-  { label: "issue.type · n = 212", value: 0.94, threshold: 0.85 },
-  { label: "priority · n = 148", value: 0.88, threshold: 0.9 },
-  { label: "spam · n = 301", value: 0.97, threshold: 0.95 },
+  { label: "issue.type", valueText: "94% · n=212", value: 0.94, threshold: 0.85 },
+  { label: "priority", valueText: "88% · n=148", value: 0.88, threshold: 0.9 },
+  { label: "spam", valueText: "97% · n=301", value: 0.97, threshold: 0.95 },
 ];
 
 /** Sign in. Sends a fresh instance to /welcome; offers sample data when the server runs in demo mode. */

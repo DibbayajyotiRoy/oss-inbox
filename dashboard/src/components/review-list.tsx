@@ -4,12 +4,13 @@ import { ArrowDown, ArrowUp, Check, ExternalLink, Undo2, X } from "lucide-react"
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Actions, Preview, PreviewSkeleton, optionsOf, type Act } from "@/components/review/preview";
-import { ROW_H, Row, RowSkeleton, featureName } from "@/components/review/row";
+import { ROW_H, Row, RowSkeleton, featureName, itemRef } from "@/components/review/row";
 import { useCommands } from "@/components/shell/commands";
 import { useShell } from "@/components/shell/shell-context";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState, LoadMore } from "@/components/ui/load";
 import { NumberTicker } from "@/components/ui/number-ticker";
+import { PageHeader } from "@/components/ui/page-header";
 import { useReducedMotion } from "@/components/ui/presence";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs } from "@/components/ui/tabs";
@@ -17,6 +18,7 @@ import { toast } from "@/components/ui/toaster";
 import { api, errText } from "@/lib/api";
 import type { QueueEntry, Suggestion } from "@/lib/types";
 import { usePaged } from "@/lib/use-api";
+import { Busy } from "@/components/ui/skeleton";
 
 const ALL = "all";
 const UNDO_MS = 5000;
@@ -153,7 +155,7 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
   };
 
   function resolve(e: QueueEntry, action: Act) {
-    const label = e.item.number ? `#${e.item.number}` : e.item.kind.replace("_", " ");
+    const label = itemRef(e.item);
     const answers = Object.fromEntries(e.suggestions.filter((s) => picks[s.decision_id] !== undefined).map((s) => [s.decision_id, picks[s.decision_id]]));
     const commit = () =>
       api(`/api/queue/${e.id}/resolve`, { method: "POST", body: { action, answers: action === "accept" ? answers : undefined } }).then(reloadOverview, (err) => {
@@ -209,12 +211,12 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  if (list.error) return <ErrorState error={list.error} retry={list.reload} />;
   const title = held ? "Held" : "Queue";
   const header = (filter?: ReactNode) => (
-    <div className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight">
+    <PageHeader
+      className="mb-4"
+      title={
+        <>
           {title}
           {list.data && (
             <span className="ml-2 font-normal text-muted-foreground tabular-nums">
@@ -222,24 +224,29 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
               {list.more && "+"}
             </span>
           )}
-        </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          {held ? "Held as possibly sensitive. Nothing was closed." : "Oldest first. Accepting records your answer as truth."}
-        </p>
-      </div>
-      {filter}
-    </div>
+        </>
+      }
+      description={held ? "Held as possibly sensitive. Nothing was closed." : "Oldest first. Accepting records your answer as truth."}
+      actions={filter}
+    />
   );
+
+  if (list.error)
+    return (
+      <>
+        {header()}
+        <ErrorState error={list.error} retry={list.reload} />
+      </>
+    );
 
   if (list.data === undefined)
     return (
       <>
         {header()}
         <Split>
-          <div role="status" aria-busy="true" className="min-h-0 overflow-hidden rounded-lg border">
-            <span className="sr-only">Loading</span>
+          <Busy className="min-h-0 overflow-hidden rounded-lg border">
             {Array.from({ length: 7 }, (_, i) => <RowSkeleton key={i} />)}
-          </div>
+          </Busy>
           <div className="hidden min-h-0 lg:flex"><PreviewSkeleton /></div>
         </Split>
       </>

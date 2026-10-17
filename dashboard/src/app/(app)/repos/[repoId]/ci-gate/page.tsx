@@ -9,6 +9,7 @@ import { ReportRow } from "@/components/ci/report-row";
 import { useRepo } from "@/components/repo";
 import { Button } from "@/components/ui/button";
 import { CardSection } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Load, LoadMore } from "@/components/ui/load";
 import { PageHeader } from "@/components/ui/page-header";
 import { repoPath } from "@/lib/fmt";
@@ -46,10 +47,11 @@ export default function CiGate() {
                 <OutcomeBar reports={reports} onSelect={setOnly} />
               </CardSection>
               {shown.length === 0 ? (
-                <p className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
-                  No {only ? outcomeMeta(only).label.toLowerCase() : ""} reports in the loaded window.
-                  {list.more && " Load more to look further back."}
-                </p>
+                <EmptyState
+                  art="inbox"
+                  title="No matching reports"
+                  description={list.more ? "Load more to look further back." : "None in the loaded window."}
+                />
               ) : (
                 <ul className="divide-y overflow-hidden rounded-xl border bg-card shadow-sm" aria-label="CI reports">
                   {shown.map((r) => (

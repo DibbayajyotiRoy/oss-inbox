@@ -16,10 +16,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toaster";
 import { api } from "@/lib/api";
-import type { CiToken } from "@/lib/types";
-import { NEED, type NewToken } from "@/lib/types-settings";
+import { when } from "@/lib/fmt";
+import { type CiToken, NEED, type NewToken } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
-import { Confirm, Gate, RowsSkeleton, stamp, useRun } from "./parts";
+import { Confirm, Gate, RowsSkeleton, useRun } from "./parts";
 import { ACTIONS_STEP, curlReport } from "./snippets";
 
 export function Tokens() {
@@ -73,9 +73,9 @@ export function Tokens() {
                 {d.items.map((t) => (
                   <TableRow key={t.id} className={t.revoked_at ? "text-muted-foreground" : undefined}>
                     <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell className="text-muted-foreground tabular-nums">{stamp(t.created_at)} · {t.created_by}</TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">{when(t.created_at)} · {t.created_by}</TableCell>
                     <TableCell>
-                      {t.revoked_at ? <Status tone="neutral">Revoked {stamp(t.revoked_at)}</Status> : <Status tone="success">Active</Status>}
+                      {t.revoked_at ? <Status tone="neutral">Revoked {when(t.revoked_at)}</Status> : <Status tone="success">Active</Status>}
                     </TableCell>
                     <TableCell className="text-right">
                       {!t.revoked_at && <Button variant="ghost" size="sm" onClick={() => setRevoking(t)}>Revoke</Button>}

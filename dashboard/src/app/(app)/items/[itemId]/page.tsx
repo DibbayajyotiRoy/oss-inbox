@@ -3,6 +3,7 @@ import { CircleDot, CircleCheck, ExternalLink, GitMerge, type LucideIcon } from 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { itemRef } from "@/components/review/row";
 import { ActionsTaken, Decisions, OverridesHistory, RunsTable, Section, Seen } from "@/components/review/item-sections";
 import { useCommands } from "@/components/shell/commands";
 import { useShell } from "@/components/shell/shell-context";
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { Load } from "@/components/ui/load";
 import { PageHeader } from "@/components/ui/page-header";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Status, type StatusTone } from "@/components/ui/status";
 import { day, repoPath } from "@/lib/fmt";
 import type { ItemDetail } from "@/lib/types";
@@ -27,7 +28,7 @@ export default function ItemPage() {
   const { itemId } = useParams<{ itemId: string }>();
   const res = useApi<ItemDetail>(`/api/items/${itemId}`);
   return (
-    <Load res={res} fallback={<ItemSkeleton />}>
+    <Load res={res} fallback={<ItemSkeleton />} errorTitle="Item">
       {(d) => <Detail d={d} reload={res.reload} />}
     </Load>
   );
@@ -49,7 +50,7 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
   });
   const back = () => router.push(list);
   const s = STATE[item.state] ?? STATE.open;
-  const ref = item.number ? `#${item.number}` : item.kind.replace("_", " ");
+  const ref = itemRef(item);
   const github = () => item.html_url && window.open(item.html_url, "_blank", "noopener");
 
   useCommands([
@@ -124,8 +125,7 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
 
 function ItemSkeleton() {
   return (
-    <div role="status" aria-busy="true" className="flex flex-col gap-10">
-      <span className="sr-only">Loading</span>
+    <Busy className="flex flex-col gap-10">
       <div className="flex flex-col gap-3">
         <Skeleton className="h-4 w-56" />
         <Skeleton className="h-8 w-2/3" />
@@ -142,6 +142,6 @@ function ItemSkeleton() {
           <Skeleton className="h-16 w-full" />
         </div>
       ))}
-    </div>
+    </Busy>
   );
 }

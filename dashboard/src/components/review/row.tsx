@@ -1,17 +1,14 @@
 import { Meter } from "@/components/ui/meter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { age } from "@/lib/fmt";
-import type { QueueEntry, Suggestion } from "@/lib/types";
+import { FEATURES, type QueueEntry, type Suggestion } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** Fixed row height: the list virtualizes without measuring and scroll-into-view is exact. */
 export const ROW_H = 76;
 
-/** `inbound_gate` -> "Inbound gate", `ci_gate` -> "CI gate". */
-export const featureName = (f: string) => {
-  const t = f.replaceAll("_", " ").replace(/\b(ci|pr)\b/g, (m) => m.toUpperCase());
-  return t.charAt(0).toUpperCase() + t.slice(1);
-};
+/** `inbound_gate` -> "Inbound gate". */
+export const featureName = (f: string) => FEATURES[f]?.name ?? f.replaceAll("_", " ");
 
 /** "#123", or the kind for items without a GitHub number (CI reports). */
 export const itemRef = (i: QueueEntry["item"]) => (i.number ? `#${i.number}` : i.kind.replace("_", " "));
