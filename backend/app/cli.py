@@ -1,4 +1,4 @@
-"""python -m app.cli eval owner/repo [--limit N]   |   python -m app.cli token owner/repo NAME"""
+"""python -m app.cli eval owner/repo [--limit N]   |   token owner/repo NAME   |   demo (seed demo-org for DEMO_MODE=true)"""
 import argparse
 import hashlib
 import secrets
@@ -49,6 +49,15 @@ def _token(args) -> int:
     return 0
 
 
+def _demo(args) -> int:
+    from app import demo
+
+    print("seeding demo-org (wipes any previous demo data) ...")
+    print(", ".join(f"{n} {t}" for t, n in demo.seed().items()))
+    print("Start the API with DEMO_MODE=true and open the dashboard: /api/auth/login signs you in as `demo`.")
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="python -m app.cli")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -60,6 +69,8 @@ def main(argv=None) -> int:
     t.add_argument("repo")
     t.add_argument("name")
     t.set_defaults(fn=_token)
+    d = sub.add_parser("demo", help="seed the demo-org sample data (wipes demo-org first; use with DEMO_MODE=true)")
+    d.set_defaults(fn=_demo)
     args = p.parse_args(argv)
     db.init_schema()
     return args.fn(args)

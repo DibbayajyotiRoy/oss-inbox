@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 from app import audit, auth, db
 from app.questions import QUESTIONS, base_id
 from app.redis_client import redis
-from app.settings import settings
+from app.settings import DEMO_ORG, settings
 
 router = APIRouter()
 UserDep = Annotated[auth.User, Depends(auth.current_user)]
@@ -106,8 +106,11 @@ def _question(question_id: str) -> str:
 
 @router.get("/api/me")
 def me(user: UserDep):
-    orgs = db.fetch_all("SELECT id, login, avatar_url FROM orgs WHERE github_installation_id = ANY(%s) ORDER BY login",
-                        (_installation_ids(user),))
+    if settings.demo_mode:
+        orgs = db.fetch_all("SELECT id, login, avatar_url FROM orgs WHERE login = %s", (DEMO_ORG,))
+    else:
+        orgs = db.fetch_all("SELECT id, login, avatar_url FROM orgs WHERE github_installation_id = ANY(%s) ORDER BY login",
+                            (_installation_ids(user),))
     return {"login": user.login, "avatar_url": user.avatar_url, "orgs": orgs}
 
 
@@ -141,7 +144,7 @@ def _detail(repo: dict) -> dict:
         "role": repo["role"], "default_branch": row["default_branch"], "backend": settings.decision_backend,
         "model": cfg.model or (settings.jev_model if jev else settings.anthropic_model), "calibrated": jev,
         "features": {k: f.mode for k, f in cfg.features.items()}, "backfill_status": row["backfill_status"],
-        "config_source": row["config_source"], "questions": questions,
+        "config_source": row["config_source"], "config_error": row["config_error"], "questions": questions,
     }
 
 
@@ -231,11 +234,12 @@ def resolve(queue_id: int, body: Resolve, user: UserDep):
         from app import actions, pipeline, repo_config
         if github and (held := repo_config.load(repo).label("held")):
             actions.unlabel(item, repo, held, None)
-        pipeline.process(repo, item["kind"], {
-            "number": item["github_number"], "title": item["title"], "body": item["body"],
-            "user": {"login": item["author"]}, "author_association": item["author_association"],
-            "html_url": item["html_url"], "created_at": item["created_at"].isoformat(),
-        }, trigger="release")
+        if not settings.demo_mode:  # the demo has no decision backend to re-run against
+            pipeline.process(repo, item["kind"], {
+                "number": item["github_number"], "title": item["title"], "body": item["body"],
+                "user": {"login": item["author"]}, "author_association": item["author_association"],
+                "html_url": item["html_url"], "created_at": item["created_at"].isoformat(),
+            }, trigger="release")
 
     status = {"accept": "accepted", "dismiss": "dismissed", "release": "released"}[body.action]
     with db.transaction() as c:
@@ -334,8 +338,9 @@ def evaluation(repo_id: int, user: UserDep):
 def backfill(repo_id: int, user: UserDep):
     from app import jobs
     repo = auth.require_repo(user, repo_id, "maintainer")
-    db.execute("UPDATE repos SET backfill_status = 'queued' WHERE id = %s", (repo_id,))
-    jobs.enqueue("backfill", repo_id=repo_id)
+    if not settings.demo_mode:  # no worker runs in the demo, and a replay would clobber the seeded results
+        db.execute("UPDATE repos SET backfill_status = 'queued', backfill_progress = NULL WHERE id = %s", (repo_id,))
+        jobs.enqueue("backfill", repo_id=repo_id)
     audit.log(repo["org_id"], repo_id, user.login, "backfill.queue", repo["full_name"])
     return {"queued": True}
 
@@ -379,22 +384,127 @@ def get_config(repo_id: int, user: UserDep):
 
 
 class Render(BaseModel):
-    parsed: dict
+    yaml: str | None = None
+    parsed: dict | None = None
+
+
+def _edit_url(repo: dict, text: str) -> str:
+    from app import repo_config
+    exists = db.fetch_one("SELECT config_source FROM repos WHERE id = %s", (repo["id"],))["config_source"] == "repo"
+    return repo_config.edit_url(repo["full_name"], repo["default_branch"], text, exists)
 
 
 @router.post("/api/repos/{repo_id}/config/render")
 def render_config(repo_id: int, body: Render, user: UserDep):
+    """Validate a config given as YAML text (kept verbatim) or as a parsed object (rendered to YAML)."""
     from app import repo_config
     repo = auth.require_repo(user, repo_id)
-    text = repo_config.render_yaml(body.parsed)
+    if (body.yaml is None) == (body.parsed is None):
+        raise HTTPException(422, "send either yaml or parsed")
+    text = body.yaml if body.yaml is not None else repo_config.render_yaml(body.parsed)
+    parsed = body.parsed
     try:
-        repo_config.parse_config(text)
+        cfg = repo_config.parse_config(text)
         errors = []
+        if body.yaml is not None:
+            parsed = cfg.model_dump(mode="json")
     except ValueError as e:  # "invalid config: a.b: msg; c: msg"
         errors = str(e).removeprefix("invalid config: ").split("; ")
-    exists = repo["config_source"] == "repo"
-    return {"yaml": text, "edit_url": repo_config.edit_url(repo["full_name"], repo["default_branch"], text, exists),
-            "errors": errors}
+        parsed = parsed or {}
+    return {"yaml": text, "parsed": parsed, "edit_url": _edit_url(repo, text), "errors": errors}
+
+
+class FeatureChange(BaseModel):
+    feature: str
+    mode: Literal["off", "shadow", "auto"]
+
+
+@router.post("/api/repos/{repo_id}/features")
+def set_feature(repo_id: int, body: FeatureChange, user: UserDep):
+    """Renders the YAML with one feature's mode changed; the maintainer commits it on GitHub (Jev never writes repos)."""
+    from app import repo_config
+    repo = auth.require_repo(user, repo_id, "maintainer")
+    if body.feature not in repo_config.FEATURES:
+        raise HTTPException(400, f"unknown feature; valid features: {', '.join(repo_config.FEATURES)}")
+    parsed = repo_config.load(repo).model_dump(mode="json")
+    parsed["features"][body.feature] = {"mode": body.mode}
+    text = repo_config.render_yaml(parsed)
+    return {"yaml": text, "edit_url": _edit_url(repo, text)}
+
+
+def _existing_labels(repo: dict) -> list[str]:
+    """The repo's GitHub labels, cached 60s. Raises when GitHub can't be reached."""
+    from app.github import client_for
+    key = f"jev:labels:{repo['id']}"
+    if (hit := redis.get(key)) is not None:
+        return json.loads(hit)
+    names = client_for(repo).list_labels(repo["full_name"])
+    redis.set(key, json.dumps(names), ex=60)
+    return names
+
+
+def _missing(cfg, existing: list[str]) -> list[str]:
+    from app import repo_config
+    have = {n.lower() for n in existing}
+    return [n for n in repo_config.wanted_labels(cfg) if n.lower() not in have]
+
+
+@router.get("/api/repos/{repo_id}/labels/plan")
+def labels_plan(repo_id: int, user: UserDep):
+    from app import repo_config
+    repo = auth.require_repo(user, repo_id)
+    cfg = repo_config.load(repo)
+    try:
+        existing = _existing_labels(repo)
+    except Exception as e:  # any GitHub/auth failure
+        raise HTTPException(502, f"could not read labels from GitHub: {e}")
+    areas = {"route.area": {a: cfg.label("route.area", a) for a in cfg.areas}} if cfg.areas else {}
+    return {"existing": existing, "missing": _missing(cfg, existing), "mapping": {**cfg.labels, **areas}}
+
+
+@router.get("/api/repos/{repo_id}/onboarding")
+def onboarding(repo_id: int, user: UserDep):
+    from app import repo_config
+    repo = auth.require_repo(user, repo_id)
+    cfg = repo_config.load(repo)
+    row = db.fetch_one("SELECT enabled, private, config_source, config_error, backfill_status FROM repos WHERE id = %s", (repo_id,))
+    try:
+        missing = _missing(cfg, _existing_labels(repo))
+        labels = not missing, f"{len(missing)} missing: {', '.join(missing)}. Create them in one click." if missing else None
+    except Exception as e:  # GitHub unreachable: report it as the step's state instead of a 500
+        labels = False, f"Could not read the repository's labels from GitHub: {e}"
+    backfill = row["backfill_status"] or ""
+    first = db.fetch_one("SELECT 1 AS x FROM decision_runs r JOIN items i ON i.id = r.item_id "
+                         "WHERE i.repo_id = %s AND r.trigger <> 'backfill' LIMIT 1", (repo_id,))
+    auto = any(f.mode == "auto" for f in cfg.features.values())
+    steps = [  # (id, title, done, optional, what to do when not done)
+        ("enabled", "Enable the repository", row["enabled"], False,
+         "Turn it on to start reading new issues and PRs." + (" This is a private repo: its text will be sent to the decision backend." if row["private"] else "")),
+        ("labels", "Create the labels", labels[0], False, labels[1]),
+        ("config", "Add a config file", row["config_source"] != "default", True,
+         f"Your .github/jev-triage.yml could not be parsed, so defaults are in use: {row['config_error']}" if row["config_error"]
+         else "Optional. Defaults work; add .github/jev-triage.yml to set labels, areas and thresholds."),
+        ("backfill", "Measure accuracy on past issues", backfill == "done", False,
+         backfill.removeprefix("error:") if backfill.startswith("error") else
+         "Running..." if backfill in ("queued", "running") else "Replays your closed issues and merged PRs to show how accurate Jev is before it acts."),
+        ("first_event", "See the first live decision", first is not None, False,
+         "Waiting for the next new issue or PR. Open a test issue to see it."),
+        ("mode", "Let a feature act on its own", auto, True,
+         "Everything is in shadow or off, so nothing on GitHub changes yet. Switch a feature to auto once its accuracy looks right."),
+    ]
+    out = [{"id": i, "title": t, "done": bool(d), "optional": o, "detail": None if d else n} for i, t, d, o, n in steps]
+    return {"complete": all(x["done"] for x in out if not x["optional"]), "steps": out}
+
+
+@router.get("/api/repos/{repo_id}/backfill")
+def backfill_progress(repo_id: int, user: UserDep):
+    repo = auth.require_repo(user, repo_id)
+    status, p = repo["backfill_status"] or "idle", repo["backfill_progress"] or {}
+    failed = status.startswith("error")
+    return {"status": "error" if failed else status, "processed": p.get("processed", 0), "total": p.get("total"),
+            "with_truth": p.get("with_truth", 0), "errors": p.get("errors", 0),
+            "error": status.removeprefix("error:") if failed else None,
+            "started_at": p.get("started_at"), "finished_at": p.get("finished_at")}
 
 
 @router.post("/api/repos/{repo_id}/labels/sync")
@@ -402,6 +512,7 @@ def sync_labels(repo_id: int, user: UserDep):
     from app import install
     repo = auth.require_repo(user, repo_id, "maintainer")
     created = install.ensure_labels(repo)
+    redis.delete(f"jev:labels:{repo_id}")
     audit.log(repo["org_id"], repo_id, user.login, "labels.sync", repo["full_name"], {"created": created})
     return {"created": created}
 

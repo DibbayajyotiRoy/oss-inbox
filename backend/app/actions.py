@@ -1,4 +1,4 @@
-"""All GitHub writes. Each call records an `actions` row; settings.dry_run records without writing."""
+"""All GitHub writes. Each call records an `actions` row; settings.dry_run (or demo mode) records without writing."""
 import httpx
 from psycopg.types.json import Jsonb
 
@@ -7,10 +7,14 @@ from app.github import client_for
 from app.settings import settings
 
 
+def _dry() -> bool:
+    return settings.dry_run or settings.demo_mode
+
+
 def _record(item, repo, decision_id, kind, ref, **payload) -> None:
     db.execute(
         "INSERT INTO actions (item_id, repo_id, decision_id, kind, github_ref, payload) VALUES (%s, %s, %s, %s, %s, %s)",
-        (item["id"] if item else None, repo["id"], decision_id, kind, ref, Jsonb({**payload, "dry_run": settings.dry_run})))
+        (item["id"] if item else None, repo["id"], decision_id, kind, ref, Jsonb({**payload, "dry_run": _dry()})))
 
 
 def _ref(item, repo) -> str:
@@ -20,13 +24,13 @@ def _ref(item, repo) -> str:
 def label(item: dict, repo: dict, labels: list[str], decision_id: int | None) -> None:
     if not labels:
         return
-    if not settings.dry_run:
+    if not _dry():
         client_for(repo).add_labels(repo["full_name"], item["github_number"], labels)
     _record(item, repo, decision_id, "label", _ref(item, repo), labels=labels)
 
 
 def unlabel(item: dict, repo: dict, label: str, decision_id: int | None) -> None:
-    if not settings.dry_run:
+    if not _dry():
         client_for(repo).remove_label(repo["full_name"], item["github_number"], label)
     _record(item, repo, decision_id, "unlabel", _ref(item, repo), label=label)
 
@@ -34,7 +38,7 @@ def unlabel(item: dict, repo: dict, label: str, decision_id: int | None) -> None
 def assign(item: dict, repo: dict, logins: list[str], decision_id: int | None) -> None:
     if not logins:
         return
-    if not settings.dry_run:
+    if not _dry():
         client_for(repo).add_assignees(repo["full_name"], item["github_number"], logins)
     _record(item, repo, decision_id, "assign", _ref(item, repo), logins=logins)
 
@@ -43,7 +47,7 @@ def comment(item: dict, repo: dict, body: str, decision_id: int | None, key: str
     """Post once per (item, key); a repeat edits the earlier comment. A key sharing the prefix before ':' edits it too."""
     body = body.rstrip() + f"\n\n---\n<sub>Jev Triage · [why this comment?]({settings.dashboard_url.rstrip('/')}/items/{item['id']})</sub>"
     comment_id = None
-    if not settings.dry_run:
+    if not _dry():
         gh, full = client_for(repo), repo["full_name"]
         rows = db.fetch_all("SELECT key, github_comment_id FROM comment_state WHERE item_id = %s AND github_comment_id IS NOT NULL",
                             (item["id"],))
@@ -64,7 +68,7 @@ def comment(item: dict, repo: dict, body: str, decision_id: int | None, key: str
 
 
 def file_issue(repo: dict, title: str, body: str, labels: list[str], decision_id: int | None) -> dict:
-    issue = {"number": None, "html_url": None} if settings.dry_run else \
+    issue = {"number": None, "html_url": None} if _dry() else \
         client_for(repo).create_issue(repo["full_name"], title, body, labels)
     ref = f"{repo['full_name']}#{issue['number']}" if issue["number"] else None
     _record(None, repo, decision_id, "file_issue", ref, title=title, labels=labels, number=issue["number"])
@@ -74,7 +78,7 @@ def file_issue(repo: dict, title: str, body: str, labels: list[str], decision_id
 def check_run(item: dict, repo: dict, head_sha: str, title: str, summary_md: str, decision_id: int | None) -> None:
     """One neutral "Jev Triage" check per head sha: later calls update the first."""
     check_id = None
-    if not settings.dry_run:
+    if not _dry():
         gh, full = client_for(repo), repo["full_name"]
         fields = dict(name="Jev Triage", status="completed", conclusion="neutral",
                       output={"title": title, "summary": summary_md[:65000]})

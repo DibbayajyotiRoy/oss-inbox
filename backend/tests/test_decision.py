@@ -175,7 +175,8 @@ def fake_client(input_, model="claude-haiku-5-5", blocks=None, raises=None):
             SimpleNamespace(type="text", name="", input=None),
             SimpleNamespace(type="tool_use", name="record_answers", input=input_),
         ]
-        return SimpleNamespace(content=content, model=model, usage=SimpleNamespace(input_tokens=2000, output_tokens=100))
+        return SimpleNamespace(content=content, model=model, stop_reason="tool_use" if blocks is None else "end_turn",
+                               usage=SimpleNamespace(input_tokens=2000, output_tokens=100))
 
     return SimpleNamespace(messages=SimpleNamespace(create=create)), calls
 
@@ -191,7 +192,8 @@ def test_anthropic_request_and_parse(monkeypatch):
 
     kw = calls[0]
     assert kw["model"] == "claude-haiku-5-5"  # the Jev model arg is not forwarded
-    assert kw["tool_choice"] == {"type": "tool", "name": "record_answers"}
+    assert kw["tool_choice"] == {"type": "auto"}  # forced tool use 400s on opus-5-5 / sonnet-5-5 / fable-5-1
+    assert "record_answers" in kw["system"]
     schema = kw["tools"][0]["input_schema"]
     assert list(schema["properties"]) == ["issue_type", "pr_follows_rules", "gate_same_as_12"]
     probs = lambda sid: schema["properties"][sid]["properties"]["probabilities"]["properties"]
@@ -209,6 +211,22 @@ def test_anthropic_request_and_parse(monkeypatch):
     assert (a["issue.type"].answer, a["issue.type"].confidence) == ("bug", 0.75)
     assert a["pr.follows_rules"].answer == "2"
     assert a["gate.same_as#12"].answer == "true"
+
+
+@pytest.mark.parametrize("model", ["claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1", "claude-haiku-5-5"])
+def test_anthropic_any_model_never_forces_tool_choice(monkeypatch, model):
+    monkeypatch.setattr(settings, "anthropic_model", model)
+    thinking = SimpleNamespace(type="thinking", name="", input=None)
+    tool = SimpleNamespace(type="tool_use", name="record_answers", input={"spam": {"probabilities": {"true": 0.9, "false": 0.1}}})
+    client, calls = fake_client(None, model=model, blocks=[thinking, tool])  # models that always think put a thinking block first
+    res = anthropic_llm.AnthropicBackend(client).decide("s", [NOUL_PLAIN])
+    assert calls[0]["model"] == model and calls[0]["tool_choice"]["type"] == "auto" and res.answers["spam"].answer == "true"
+
+
+def test_anthropic_text_only_reply_is_a_clear_error():
+    client, _ = fake_client(None, blocks=[SimpleNamespace(type="text", name="", input=None)])
+    with pytest.raises(DecisionError, match="did not call record_answers.*end_turn"):
+        anthropic_llm.AnthropicBackend(client).decide("s", [NOUL_PLAIN])
 
 
 def test_anthropic_uniform_fallback_and_unknown_model_cost():

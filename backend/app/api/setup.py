@@ -1,5 +1,6 @@
 """GitHub App manifest flow for self-hosters. Active only while GITHUB_APP_ID is unset.
 
+/api/setup/status    JSON checklist state for the dashboard's first-run screen (always on, no auth)
 /api/setup           form that POSTs the manifest to GitHub
 /api/setup/callback  GitHub redirects here with ?code; we exchange it and append the credentials to .env
 """
@@ -16,6 +17,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 
+from app import db
 from app.settings import settings
 
 router = APIRouter()
@@ -57,6 +59,27 @@ def manifest() -> dict:
             "metadata": "read",
         },
         "default_events": ["issues", "pull_request", "push"],  # installation events are always delivered
+    }
+
+
+@router.get("/api/setup/status")
+def setup_status():
+    jev = settings.decision_backend == "jev"
+    configured = bool(settings.github_app_id)
+    slug = settings.github_app_slug or None
+    return {
+        "app_configured": configured,
+        "app_slug": slug,
+        "install_url": f"https://github.com/apps/{quote(slug)}/installations/new" if configured and slug else None,
+        "setup_url": None if configured else "/api/setup",
+        "decision_backend": settings.decision_backend,
+        "decision_key_present": bool(settings.typesafe_api_key if jev else settings.anthropic_api_key),
+        "calibrated": jev,
+        "model": settings.jev_model if jev else settings.anthropic_model,
+        "public_url": settings.public_url,
+        "dashboard_url": settings.dashboard_url,
+        "demo_mode": settings.demo_mode,
+        "installations": db.fetch_one("SELECT count(*) AS n FROM orgs")["n"],
     }
 
 

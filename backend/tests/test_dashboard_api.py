@@ -510,7 +510,7 @@ def test_config_and_render(client, calls, box, repo):
                  "edit_url": "https://gh/acme/widgets/main/False", "labels": ["bug", "feature"]}
 
     ok = client.post(f"/api/repos/{repo['id']}/config/render", json={"parsed": {"comments": True}}).json()
-    assert ok == {"yaml": "yaml:comments", "edit_url": "https://gh/acme/widgets/main/False", "errors": []}
+    assert ok == {"yaml": "yaml:comments", "parsed": {"comments": True}, "edit_url": "https://gh/acme/widgets/main/False", "errors": []}
     bad = client.post(f"/api/repos/{repo['id']}/config/render", json={"parsed": {"bad": 1}}).json()
     assert bad["errors"] == ["a.b: bad", "c: worse"] and bad["yaml"] == "yaml:bad"
 

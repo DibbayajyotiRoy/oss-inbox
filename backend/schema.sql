@@ -203,3 +203,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS audit_repo ON audit_log (repo_id, created_at DESC);
+
+-- v0.2 (additive)
+ALTER TABLE repos ADD COLUMN IF NOT EXISTS backfill_progress jsonb;  -- {processed,total,with_truth,errors,started_at,finished_at}
+ALTER TABLE repos ADD COLUMN IF NOT EXISTS config_error text;        -- parse error of the repo's YAML while defaults are in use

@@ -5,7 +5,7 @@ import httpx
 
 from app import db
 from app.github import GitHubClient, client_for
-from app.repo_config import DEFAULT_LABELS, load
+from app.repo_config import DEFAULT_LABELS, load, wanted_labels
 
 _UPSERT_REPO = """
 INSERT INTO repos (org_id, github_repo_id, full_name, private, enabled, default_branch, description)
@@ -75,13 +75,10 @@ def propose_label_map(existing: list[str]) -> dict:
 
 
 def ensure_labels(repo_row: dict) -> list[str]:
-    cfg = load(repo_row)
-    wanted = [x for v in cfg.labels.values() for x in (v.values() if isinstance(v, dict) else [v])]
-    wanted += [cfg.label("route.area", a) for a in cfg.areas]
     gh, full = client_for(repo_row), repo_row["full_name"]
     have = {n.lower() for n in gh.list_labels(full)}
     created = []
-    for name in dict.fromkeys(x for x in wanted if x):
+    for name in wanted_labels(load(repo_row)):
         if name.lower() in have:
             continue
         try:

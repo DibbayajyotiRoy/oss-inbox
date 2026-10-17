@@ -33,6 +33,16 @@ class _Model(BaseModel):
 class FeatureConfig(_Model):
     mode: Literal["off", "shadow", "auto"] = "shadow"
 
+    @field_validator("mode", mode="before")
+    @classmethod
+    def _yaml_bool(cls, v):
+        """YAML 1.1 reads a bare off/no as false and on/yes as true."""
+        if v is False:
+            return "off"
+        if v is True:
+            raise ValueError('YAML read a bare on/yes/true as a boolean, so write the mode in quotes: "auto" (or "shadow", "off")')
+        return v
+
 
 class AreaConfig(_Model):
     owner: str | None = None
@@ -122,16 +132,19 @@ def _refresh(repo_row: dict) -> RepoConfig:
     gh = client_for(repo_row)
     own = gh.get_file(full, CONFIG_PATH)
     org = gh.get_file(org_repo, CONFIG_PATH) if full != org_repo else None
+    error = None
     try:
         cfg, source = parse_config(own and own[0], org and org[0]), "repo" if own else "org" if org else "default"
     except ValueError as e:  # defaults never act, so a broken file fails safe
         log.warning("%s: %s; using defaults", full, e)
-        cfg, source = RepoConfig(), "default"
+        cfg, source, error = RepoConfig(), "default", str(e)
     names = [cfg.rules_file] if cfg.rules_file else RULES_FILES
     rules = next(filter(None, (gh.get_file(full, n) for n in names)), None)
     db.execute(
-        "UPDATE repos SET config = %s, config_source = %s, config_sha = %s, rules_text = %s, rules_sha = %s WHERE id = %s",
-        (Jsonb(cfg.model_dump()), source, (own or org or (None, None))[1], rules and rules[0], rules and rules[1], repo_row["id"]))
+        "UPDATE repos SET config = %s, config_source = %s, config_sha = %s, rules_text = %s, rules_sha = %s, config_error = %s "
+        "WHERE id = %s",
+        (Jsonb(cfg.model_dump()), source, (own or org or (None, None))[1], rules and rules[0], rules and rules[1], error,
+         repo_row["id"]))
     return cfg
 
 
@@ -146,8 +159,32 @@ def load(repo_row: dict, refresh: bool = False) -> RepoConfig:
         return cached or RepoConfig()
 
 
+class _Quoted(str):
+    """Rendered double-quoted, so `mode: "off"` survives a YAML 1.1 round trip (bare off is false)."""
+
+
+class _Dumper(yaml.SafeDumper):
+    pass
+
+
+_Dumper.add_representer(_Quoted, lambda d, v: d.represent_scalar("tag:yaml.org,2002:str", str(v), style='"'))
+
+
+def _quote_modes(x: Any) -> Any:
+    if isinstance(x, dict):
+        return {k: _Quoted(v) if k == "mode" and isinstance(v, str) else _quote_modes(v) for k, v in x.items()}
+    return x
+
+
 def render_yaml(data: dict) -> str:
-    return yaml.safe_dump(data, sort_keys=False, default_flow_style=False, allow_unicode=True)
+    return yaml.dump(_quote_modes(data), Dumper=_Dumper, sort_keys=False, default_flow_style=False, allow_unicode=True)
+
+
+def wanted_labels(cfg: RepoConfig) -> list[str]:
+    """Every label name the config can apply (area labels included), de-duplicated, in config order."""
+    names = [x for v in cfg.labels.values() for x in (v.values() if isinstance(v, dict) else [v])]
+    names += [cfg.label("route.area", a) for a in cfg.areas]
+    return list(dict.fromkeys(x for x in names if x))
 
 
 def edit_url(full_name: str, branch: str, yaml_text: str, exists: bool) -> str:

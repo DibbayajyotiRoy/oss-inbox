@@ -144,3 +144,30 @@ def test_cli_eval_and_token(repo, fake, capsys):
     token = capsys.readouterr().out.split()[-1]
     row = db.fetch_one("SELECT * FROM ci_tokens")
     assert (row["name"], row["created_by"], row["token_hash"]) == ("ci", "cli", hashlib.sha256(token.encode()).hexdigest())
+
+
+def test_backfill_progress_is_stored_after_every_item(repo, fake, monkeypatch):
+    seen, real = [], backfill._progress
+
+    def spy(repo_id, counts, total, started, finished=None):
+        seen.append((dict(counts), finished))
+        real(repo_id, counts, total, started, finished)
+
+    monkeypatch.setattr(backfill, "_progress", spy)
+    backfill.run(repo["id"])
+    assert len(seen) == 9  # start, labels read, 6 items (issues 1/3/4/5, PRs 10/11), finish
+    assert [c["processed"] for c, _ in seen] == sorted(c["processed"] for c, _ in seen)
+    assert seen[-1][1] is not None and all(f is None for _, f in seen[:-1])
+    p = db.fetch_one("SELECT backfill_progress FROM repos")["backfill_progress"]
+    assert (p["processed"], p["with_truth"], p["errors"], p["total"]) == (4, 3, 2, None)  # fake GitHub has no search: total unknown
+    assert p["started_at"] < p["finished_at"] or p["started_at"] == p["finished_at"]
+
+
+def test_backfill_total_counts_what_a_run_can_visit():
+    class GH:
+        def request(self, method, path, **kw):
+            return {"total_count": 7 if "is:issue" in kw["params"]["q"] else 2}
+
+    assert backfill._total(GH(), "a/b", 5) == 5 + 2  # capped by the limit per kind
+    assert backfill._total(GH(), "a/b", 100) == 7 + 2
+    assert backfill._total(SimpleNamespace(), "a/b", 5) is None  # GitHub search unavailable

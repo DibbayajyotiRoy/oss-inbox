@@ -289,6 +289,26 @@ Also: `POST /api/github/webhook` (W3), `POST /api/v1/reports` (W4), `GET /api/se
 GitHub App manifest flow that writes credentials to `.env` for self-hosters). Dashboard proxies `/api/*` to
 `API_URL` via Next.js rewrite. Dates are ISO-8601 UTC strings.
 
+## v0.2 additions: onboarding, demo mode, DX (B1 implements, dashboard consumes)
+```ts
+GET /api/setup/status (no auth) -> {app_configured:boolean, app_slug:string|null, install_url:string|null,
+   setup_url:string|null /* "/api/setup" when app not configured */, decision_backend:"jev"|"anthropic",
+   decision_key_present:boolean, calibrated:boolean, model:string, public_url:string, dashboard_url:string,
+   demo_mode:boolean, installations:number}
+GET /api/repos/:id/onboarding -> {complete:boolean, steps:{id:"enabled"|"labels"|"config"|"backfill"|"first_event"|"mode",
+   title:string, done:boolean, optional:boolean, detail:string|null}[]}
+GET /api/repos/:id/labels/plan -> {existing:string[], missing:string[], mapping:Record<string,Record<string,string>|string>}
+GET /api/repos/:id/backfill -> {status:"idle"|"queued"|"running"|"done"|"error", processed:number, total:number|null,
+   with_truth:number, errors:number, error:string|null, started_at:string|null, finished_at:string|null}
+POST /api/repos/:id/config/render accepts {yaml:string} OR {parsed:object} -> {yaml, parsed, edit_url, errors:string[]}
+GET /api/repos/:id additionally returns config_error:string|null (YAML in repo failed to parse; defaults in use)
+POST /api/repos/:id/features {feature, mode} -> {yaml, edit_url}  // renders the YAML change; still committed via GitHub
+```
+Demo mode (`DEMO_MODE=true`): `/api/auth/login` signs in user `demo` without GitHub, role admin on demo repos,
+all GitHub writes forced dry-run, `/api/me` lists the demo org. `python -m app.cli demo` seeds org `demo-org`
+(repos `demo-org/api`, `demo-org/web`) with ~60 days of realistic items, runs, decisions (plausibly calibrated),
+ground truth, overrides, open queue + held entries, CI reports, flaky tests, audit rows. Idempotent (wipes demo org first).
+
 ## Routers mounted in `app/main.py`
 `app.auth.router`, `app.api.dashboard.router`, `app.webhooks.router`, `app.api.reports.router`, `app.api.setup.router`.
 Each is an `APIRouter()` with full paths (no prefix).

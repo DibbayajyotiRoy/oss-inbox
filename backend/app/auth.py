@@ -10,7 +10,7 @@ from itsdangerous import BadSignature, URLSafeTimedSerializer
 
 from app import db
 from app.redis_client import redis
-from app.settings import settings
+from app.settings import DEMO_ORG, settings
 
 router = APIRouter()
 
@@ -45,8 +45,23 @@ def _unsign(request: Request, name: str, max_age: int) -> str | None:
         return None
 
 
+def _session(user_id: int, login: str, avatar_url: str, token: str) -> RedirectResponse:
+    sid = secrets.token_urlsafe(32)
+    db.execute("DELETE FROM sessions WHERE expires_at < now()")
+    db.execute(
+        "INSERT INTO sessions (id, github_user_id, login, avatar_url, token, expires_at) "
+        "VALUES (%s, %s, %s, %s, %s, now() + make_interval(secs => %s))",
+        (sid, user_id, login, avatar_url, token, SESSION_TTL),
+    )
+    resp = RedirectResponse(settings.dashboard_url, status_code=302)
+    _cookie(resp, SESSION_COOKIE, _signer(SESSION_COOKIE).dumps(sid), SESSION_TTL)
+    return resp
+
+
 @router.get("/api/auth/login")
 def login():
+    if settings.demo_mode:  # no GitHub: everyone is the "demo" user
+        return _session(0, "demo", "", "demo")
     state = secrets.token_urlsafe(16)
     query = urlencode({"client_id": settings.github_client_id, "state": state,
                        "redirect_uri": f"{settings.dashboard_url}/api/auth/callback"})
@@ -75,15 +90,7 @@ def callback(request: Request, code: str = "", state: str = ""):
     except httpx.HTTPError:
         raise HTTPException(502, "could not reach GitHub")
     u = gh.json()
-    sid = secrets.token_urlsafe(32)
-    db.execute("DELETE FROM sessions WHERE expires_at < now()")
-    db.execute(
-        "INSERT INTO sessions (id, github_user_id, login, avatar_url, token, expires_at) "
-        "VALUES (%s, %s, %s, %s, %s, now() + make_interval(secs => %s))",
-        (sid, u["id"], u["login"], u.get("avatar_url") or "", token, SESSION_TTL),
-    )
-    resp = RedirectResponse(settings.dashboard_url, status_code=302)
-    _cookie(resp, SESSION_COOKIE, _signer(SESSION_COOKIE).dumps(sid), SESSION_TTL)
+    resp = _session(u["id"], u["login"], u.get("avatar_url") or "", token)
     resp.delete_cookie(STATE_COOKIE)
     return resp
 
@@ -105,6 +112,8 @@ def current_user(request: Request) -> User:
 
 
 def role(user: User, repo_row: dict) -> str | None:
+    if settings.demo_mode:
+        return "admin" if repo_row["full_name"].startswith(f"{DEMO_ORG}/") else None
     key = f"jev:role:{repo_row['id']}:{user.id}"
     cached = redis.get(key)
     if cached is None:

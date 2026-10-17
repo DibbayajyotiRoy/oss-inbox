@@ -133,3 +133,31 @@ def test_load_github_unreachable_uses_defaults_then_cache(monkeypatch, repo):
 
     db.execute("UPDATE repos SET config = %s", (repo_config.Jsonb(parse_config("comments: true").model_dump()),))
     assert load(repo, refresh=True).comments is True  # keeps the cached copy when refresh fails
+
+
+def test_yaml_booleans_for_mode():
+    assert parse_config("features: {spam: {mode: off}}").mode("spam") == "off"  # YAML 1.1 reads bare off/no as false
+    assert parse_config("features: {routing: {mode: no}}").mode("routing") == "off"
+    for word in ("on", "yes", "true"):  # ...and on/yes/true as true: say what to write instead of guessing
+        with pytest.raises(ValueError, match='features.routing.mode.*write the mode in quotes: "auto"'):
+            parse_config("features: {routing: {mode: %s}}" % word)
+
+
+def test_render_yaml_quotes_modes_so_off_round_trips():
+    data = RepoConfig().model_dump(mode="json")
+    text = render_yaml(data)
+    assert 'mode: "off"' in text and 'mode: "shadow"' in text and "mode: off" not in text and "mode: shadow" not in text
+    assert yaml.safe_load(text)["features"]["spam"]["mode"] == "off"
+    assert parse_config(text).model_dump() == RepoConfig().model_dump()
+    assert render_yaml({"model": "x", "areas": {"mode": {"owner": "a"}}}).count('"') == 0  # only `mode: <string>` values are quoted
+
+
+def test_load_stores_config_error_and_clears_it(monkeypatch, repo):
+    fake = FakeGH({("acme/widgets", ".github/jev-triage.yml"): ("features: {spam: {mode: on}}", "s1")})
+    monkeypatch.setattr(repo_config, "client_for", lambda r: fake)
+    load(repo)
+    row = db.fetch_one("SELECT config_source, config_error FROM repos")
+    assert row["config_source"] == "default" and "features.spam.mode" in row["config_error"]
+    fake.files[("acme/widgets", ".github/jev-triage.yml")] = ('features: {spam: {mode: "auto"}}', "s2")
+    assert load(repo, refresh=True).mode("spam") == "auto"
+    assert db.fetch_one("SELECT config_source, config_error FROM repos") == {"config_source": "repo", "config_error": None}

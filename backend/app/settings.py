@@ -1,6 +1,8 @@
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEMO_ORG = "demo-org"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -26,6 +28,7 @@ class Settings(BaseSettings):
     public_url: str = "http://localhost:8000"
     dashboard_url: str = "http://localhost:3000"
     dry_run: bool = False
+    demo_mode: bool = False  # DEMO_MODE=true: sign in as "demo", no GitHub calls, every action dry-run
     backfill_limit: int = 500
     retention_days: int = 365
 

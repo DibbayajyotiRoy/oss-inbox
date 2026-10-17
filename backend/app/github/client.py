@@ -202,5 +202,32 @@ def installation_for_repo(repo_row: dict) -> int:
     return row["github_installation_id"]
 
 
+class _DemoClient:
+    """DEMO_MODE stand-in: reads return seed-like data, writes are no-ops (actions are forced dry-run anyway)."""
+    _GITHUB_DEFAULTS = ["bug", "documentation", "duplicate", "enhancement", "good first issue", "help wanted", "invalid",
+                        "question", "wontfix"]
+
+    def list_labels(self, repo) -> list[str]:
+        from app.repo_config import RepoConfig, wanted_labels
+
+        row = db.fetch_one("SELECT enabled, config FROM repos WHERE full_name = %s", (repo,))
+        # enabled demo repos are fully onboarded; the disabled one still has only GitHub's stock labels
+        return self._GITHUB_DEFAULTS + (wanted_labels(RepoConfig.model_validate(row["config"])) if row and row["enabled"] and row["config"] else [])
+
+    def create_label(self, *a, **k) -> None:
+        return None
+
+    def get_file(self, *a, **k) -> None:
+        return None
+
+    def get_tree_paths(self, *a, **k) -> set[str]:
+        return set()
+
+    def permission(self, *a, **k) -> str:
+        return "admin"
+
+
 def client_for(repo_row: dict) -> GitHubClient:
+    if settings.demo_mode:
+        return _DemoClient()
     return GitHubClient(installation_for_repo(repo_row))
