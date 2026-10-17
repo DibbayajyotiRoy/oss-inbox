@@ -71,7 +71,7 @@ def test_setup_status_before_the_app_exists(monkeypatch):
     for k, v in dict(github_app_id="", github_app_slug="", typesafe_api_key="", decision_backend="jev", demo_mode=False).items():
         monkeypatch.setattr(settings, k, v)
     s = setup_client().get("/api/setup/status").json()
-    assert s == {"app_configured": False, "app_slug": None, "install_url": None, "setup_url": "/api/setup", "decision_backend": "jev",
+    assert s == {"app_configured": False, "app_slug": None, "install_url": None, "setup_url": "/api/setup?auto=1", "decision_backend": "jev",
                  "decision_key_present": False, "calibrated": True, "model": settings.jev_model, "public_url": settings.public_url,
                  "dashboard_url": settings.dashboard_url, "demo_mode": False, "installations": 0}
 
@@ -247,3 +247,67 @@ def test_repo_detail_exposes_config_error_until_the_file_is_fixed(client, repo, 
     repo_config.load(repo, refresh=True)
     d = detail()
     assert d["config_error"] is None and d["features"]["spam"] == "auto" and d["config_source"] == "repo"
+
+
+# ---- comment-preserving config + chained feature edits ----------------------------------------------------------------
+
+COMMENTED = """# Jev config for widgets
+comments: true  # be chatty
+
+features:
+  # triage is the one we trust
+  issue_triage: {mode: auto}   # keep
+  spam:
+    mode: off    # trial
+    # reviewed monthly
+  routing:
+    mode: 'shadow'
+
+areas: {}
+"""
+
+
+def features(client, repo, **body):
+    return client.post(f"/api/repos/{repo['id']}/features", json=body).json()
+
+
+def test_get_config_returns_the_repo_file_verbatim(client, repo, gh):
+    gh.files[("acme/widgets", ".github/jev-triage.yml")] = (COMMENTED, "s1")
+    repo_config.load(repo, refresh=True)
+    r = client.get(f"/api/repos/{repo['id']}/config").json()
+    assert r["source"] == "repo" and r["yaml"] == COMMENTED and r["parsed"]["comments"] is True
+    db.execute("UPDATE repos SET config_source = 'org'")  # org/default sources get the normalized render
+    assert client.get(f"/api/repos/{repo['id']}/config").json()["yaml"] == repo_config.render_yaml(r["parsed"])
+
+
+def test_feature_edit_keeps_comments_and_formatting(client, repo, gh):
+    gh.files[("acme/widgets", ".github/jev-triage.yml")] = (COMMENTED, "s1")
+    repo_config.load(repo, refresh=True)
+    r = features(client, repo, feature="spam", mode="auto")
+    assert r["yaml"] == COMMENTED.replace("mode: off    # trial", 'mode: "auto"    # trial') and r["errors"] == []
+    r = features(client, repo, feature="issue_triage", mode="off", yaml=r["yaml"])  # chained on the working text
+    assert '  issue_triage: {mode: "off"}   # keep\n' in r["yaml"] and 'mode: "auto"    # trial' in r["yaml"]
+    assert features(client, repo, feature="routing", mode="auto", yaml=r["yaml"])["yaml"].count("# reviewed monthly\n  routing:\n    mode: \"auto\"\n") == 1
+    cfg = repo_config.parse_config(r["yaml"])
+    assert (cfg.mode("issue_triage"), cfg.mode("spam"), cfg.comments) == ("off", "auto", True)
+
+
+def test_feature_insert_and_append(client, repo, gh):
+    r = features(client, repo, feature="pr_checks", mode="off", yaml="# hi\nfeatures:\n  spam:\n    mode: \"auto\"\n\ncomments: true\n")
+    assert r["yaml"] == "# hi\nfeatures:\n  spam:\n    mode: \"auto\"\n  pr_checks:\n    mode: \"off\"\n\ncomments: true\n" and r["errors"] == []
+    r = features(client, repo, feature="spam", mode="shadow", yaml="# only a comment\ncomments: true")
+    assert r["yaml"] == '# only a comment\ncomments: true\nfeatures:\n  spam:\n    mode: "shadow"\n' and r["errors"] == []
+    assert features(client, repo, feature="spam", mode="auto", yaml="")["yaml"] == 'features:\n  spam:\n    mode: "auto"\n'
+    r = features(client, repo, feature="priority", mode="auto", yaml="features:\n    spam:\n        mode: off\n")  # 4-space indent
+    assert repo_config.parse_config(r["yaml"]).mode("priority") == "auto" and r["errors"] == []
+    r = features(client, repo, feature="spam", mode="auto", yaml="features: {spam: {mode: off}, routing: {mode: auto}}\n")  # flow style
+    assert repo_config.parse_config(r["yaml"]).mode("spam") == "auto" and repo_config.parse_config(r["yaml"]).mode("routing") == "auto"
+
+
+def test_feature_edit_defaults_to_the_normalized_render_and_reports_errors(client, repo, gh):
+    r = features(client, repo, feature="priority", mode="auto")  # no file in the repo
+    assert 'mode: "auto"' in r["yaml"] and repo_config.parse_config(r["yaml"]).mode("priority") == "auto" and r["errors"] == []
+    r = features(client, repo, feature="spam", mode="auto", yaml="comment: true\nfeatures:\n  spam:\n    mode: off\n")
+    assert r["yaml"].endswith('mode: "auto"\n') and len(r["errors"]) == 1 and "comment" in r["errors"][0]  # result is invalid: errors, yaml kept
+    r = features(client, repo, feature="spam", mode="auto", yaml="features: [")
+    assert "invalid YAML" in r["errors"][0] and r["edit_url"]

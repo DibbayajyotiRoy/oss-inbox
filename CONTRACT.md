@@ -158,7 +158,7 @@ class RepoConfig(BaseModel):
 def parse_config(yaml_text: str | None, org_yaml: str | None = None) -> RepoConfig   # deep-merge default<org<repo; raises ValueError on invalid
 def load(repo_row: dict, refresh: bool = False) -> RepoConfig
     # uses repos.config jsonb unless refresh/missing; refresh fetches files via client_for, updates
-    # repos.config, config_source, config_sha, rules_text, rules_sha
+    # repos.config, config_source, config_sha, rules_text, rules_sha, config_error, config_text (raw repo file)
 def render_yaml(data: dict) -> str
 def edit_url(full_name: str, branch: str, yaml_text: str, exists: bool) -> str
 ```
@@ -276,7 +276,7 @@ POST /api/repos/:id/backfill -> {queued:true} (maintainer)
 GET /api/repos/:id/ci-reports -> Page<{id, created_at, title, source, outcome, issue_number, merged_into, run_url,
    candidates:{item_id, number, title, retrieval_score, same_as_probability:number|null}[]}>
 GET /api/repos/:id/flaky-tests -> {items:{test_id, occurrences, first_seen, last_seen, last_run_url}[]}
-GET /api/repos/:id/config -> {yaml, source, parsed, edit_url, labels:string[]}
+GET /api/repos/:id/config -> {yaml, source, parsed, edit_url, labels:string[]}  // yaml = repos.config_text verbatim when source is "repo"
 POST /api/repos/:id/config/render {parsed} -> {yaml, edit_url, errors:string[]}
 POST /api/repos/:id/labels/sync -> {created:string[]} (maintainer)
 GET /api/repos/:id/ci-tokens -> {items:{id, name, created_by, created_at, revoked_at}[]}
@@ -291,8 +291,9 @@ GitHub App manifest flow that writes credentials to `.env` for self-hosters). Da
 
 ## v0.2 additions: onboarding, demo mode, DX (B1 implements, dashboard consumes)
 ```ts
+GET /api/setup?auto=1 -> the manifest form, auto-submitted to GitHub (script + visible button + <noscript> note)
 GET /api/setup/status (no auth) -> {app_configured:boolean, app_slug:string|null, install_url:string|null,
-   setup_url:string|null /* "/api/setup" when app not configured */, decision_backend:"jev"|"anthropic",
+   setup_url:string|null /* "/api/setup?auto=1" when app not configured */, decision_backend:"jev"|"anthropic",
    decision_key_present:boolean, calibrated:boolean, model:string, public_url:string, dashboard_url:string,
    demo_mode:boolean, installations:number}
 GET /api/repos/:id/onboarding -> {complete:boolean, steps:{id:"enabled"|"labels"|"config"|"backfill"|"first_event"|"mode",
@@ -302,7 +303,11 @@ GET /api/repos/:id/backfill -> {status:"idle"|"queued"|"running"|"done"|"error",
    with_truth:number, errors:number, error:string|null, started_at:string|null, finished_at:string|null}
 POST /api/repos/:id/config/render accepts {yaml:string} OR {parsed:object} -> {yaml, parsed, edit_url, errors:string[]}
 GET /api/repos/:id additionally returns config_error:string|null (YAML in repo failed to parse; defaults in use)
-POST /api/repos/:id/features {feature, mode} -> {yaml, edit_url}  // renders the YAML change; still committed via GitHub
+POST /api/repos/:id/features {feature, mode, yaml?:string} -> {yaml, edit_url, errors:string[]}
+   // renders the change; still committed via GitHub. Optional `yaml` = the working text being edited (chained edits);
+   // else repos.config_text when source is "repo", else the normalized render. A minimal line edit: comments and
+   // formatting survive, `mode:` is always quoted; missing feature is inserted, missing `features:` block appended.
+   // `errors` = parse_config failures of the result (yaml is still returned so the user can fix it).
 ```
 Demo mode (`DEMO_MODE=true`): `/api/auth/login` signs in user `demo` without GitHub, role admin on demo repos,
 all GitHub writes forced dry-run, `/api/me` lists the demo org. `python -m app.cli demo` seeds org `demo-org`

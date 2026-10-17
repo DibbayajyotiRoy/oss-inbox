@@ -370,13 +370,22 @@ def flaky_tests(repo_id: int, user: UserDep):
         "ORDER BY occurrences DESC, test_id LIMIT 200", (repo_id,))}
 
 
+def _working_yaml(repo: dict, cfg) -> str:
+    """The repo's file verbatim (comments and all) when it has one, else the normalized render of the effective config."""
+    from app import repo_config
+    row = db.fetch_one("SELECT config_source, config_text FROM repos WHERE id = %s", (repo["id"],))
+    raw = row["config_text"] if row["config_source"] == "repo" else None
+    return raw if raw is not None else repo_config.render_yaml(cfg.model_dump(mode="json"))
+
+
 @router.get("/api/repos/{repo_id}/config")
 def get_config(repo_id: int, user: UserDep):
     from app import repo_config
     from app.github import client_for
     repo = auth.require_repo(user, repo_id)
-    parsed = repo_config.load(repo).model_dump(mode="json")
-    text = repo_config.render_yaml(parsed)
+    cfg = repo_config.load(repo)
+    parsed = cfg.model_dump(mode="json")
+    text = _working_yaml(repo, cfg)
     row = db.fetch_one("SELECT config_source FROM repos WHERE id = %s", (repo_id,))
     return {"yaml": text, "source": row["config_source"], "parsed": parsed,
             "edit_url": repo_config.edit_url(repo["full_name"], repo["default_branch"], text, row["config_source"] == "repo"),
@@ -417,19 +426,24 @@ def render_config(repo_id: int, body: Render, user: UserDep):
 class FeatureChange(BaseModel):
     feature: str
     mode: Literal["off", "shadow", "auto"]
+    yaml: str | None = None  # the text being edited; chained edits build on it instead of the repo's file
 
 
 @router.post("/api/repos/{repo_id}/features")
 def set_feature(repo_id: int, body: FeatureChange, user: UserDep):
-    """Renders the YAML with one feature's mode changed; the maintainer commits it on GitHub (Jev never writes repos)."""
+    """Renders the YAML with one feature's mode changed (comments kept); the maintainer commits it on GitHub (Jev never writes repos)."""
     from app import repo_config
     repo = auth.require_repo(user, repo_id, "maintainer")
     if body.feature not in repo_config.FEATURES:
         raise HTTPException(400, f"unknown feature; valid features: {', '.join(repo_config.FEATURES)}")
-    parsed = repo_config.load(repo).model_dump(mode="json")
-    parsed["features"][body.feature] = {"mode": body.mode}
-    text = repo_config.render_yaml(parsed)
-    return {"yaml": text, "edit_url": _edit_url(repo, text)}
+    base = body.yaml if body.yaml is not None else _working_yaml(repo, repo_config.load(repo))
+    text = repo_config.set_feature_mode(base, body.feature, body.mode)
+    try:
+        repo_config.parse_config(text)
+        errors = []
+    except ValueError as e:
+        errors = str(e).removeprefix("invalid config: ").split("; ")
+    return {"yaml": text, "edit_url": _edit_url(repo, text), "errors": errors}
 
 
 def _existing_labels(repo: dict) -> list[str]:

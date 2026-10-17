@@ -53,6 +53,16 @@ def test_form_manifest_and_org_target(client):
     assert client.get("/api/setup?org=a/../b").status_code == 400
 
 
+def test_auto_form_submits_itself_under_a_nonce_csp(client):
+    plain = client.get("/api/setup")
+    assert "<script" not in plain.text and "content-security-policy" not in plain.headers
+    r, state = _start(client, auto=1)
+    nonce = r.headers["content-security-policy"].removeprefix("script-src 'nonce-").removesuffix("'")
+    assert f"<script nonce='{nonce}'>document.forms[0].submit()</script>" in r.text and nonce
+    assert "<button>Create GitHub App</button>" in r.text and "<noscript>" in r.text  # manual fallback
+    assert r.cookies["jev_setup_state"] == state and "settings/apps/new?state=" in r.text
+
+
 def test_callback_rejects_bad_state(client, monkeypatch):
     monkeypatch.setattr(setup.httpx, "post", lambda *a, **k: pytest.fail("must not call GitHub"))
     assert client.get("/api/setup/callback?code=c&state=x").status_code == 400  # no cookie

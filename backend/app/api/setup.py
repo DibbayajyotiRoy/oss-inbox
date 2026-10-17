@@ -1,7 +1,7 @@
 """GitHub App manifest flow for self-hosters. Active only while GITHUB_APP_ID is unset.
 
 /api/setup/status    JSON checklist state for the dashboard's first-run screen (always on, no auth)
-/api/setup           form that POSTs the manifest to GitHub
+/api/setup           form that POSTs the manifest to GitHub (?auto=1 submits it on load)
 /api/setup/callback  GitHub redirects here with ?code; we exchange it and append the credentials to .env
 """
 
@@ -71,7 +71,7 @@ def setup_status():
         "app_configured": configured,
         "app_slug": slug,
         "install_url": f"https://github.com/apps/{quote(slug)}/installations/new" if configured and slug else None,
-        "setup_url": None if configured else "/api/setup",
+        "setup_url": None if configured else "/api/setup?auto=1",
         "decision_backend": settings.decision_backend,
         "decision_key_present": bool(settings.typesafe_api_key if jev else settings.anthropic_api_key),
         "calibrated": jev,
@@ -84,11 +84,11 @@ def setup_status():
 
 
 @router.get("/api/setup")
-def setup_form(org: str | None = Query(None)):
+def setup_form(org: str | None = Query(None), auto: bool = Query(False)):
     _require_enabled()
     if org and not re.fullmatch(r"[A-Za-z0-9-]{1,39}", org):
         raise HTTPException(400, "invalid org")
-    state = secrets.token_urlsafe(24)
+    state, nonce = secrets.token_urlsafe(24), secrets.token_urlsafe(16)
     base = f"https://github.com/organizations/{org}/settings/apps/new" if org else "https://github.com/settings/apps/new"
     res = _page(
         "Create the Jev Triage GitHub App",
@@ -96,8 +96,12 @@ def setup_form(org: str | None = Query(None)):
         f"Credentials are written to your <code>.env</code>; nothing leaves this server except the request to GitHub.</p>"
         f"<form method=post action='{html.escape(base)}?state={html.escape(state)}'>"
         f"<input type=hidden name=manifest value='{html.escape(json.dumps(manifest()), quote=True)}'>"
-        f"<button>Create GitHub App</button></form>",
+        f"<button>Create GitHub App</button></form>"
+        + ("<noscript><p>JavaScript is off, so press the button to continue.</p></noscript>"
+           f"<script nonce='{nonce}'>document.forms[0].submit()</script>" if auto else ""),
     )
+    if auto:  # nonce-only CSP: this one inline script runs, nothing else can
+        res.headers["Content-Security-Policy"] = f"script-src 'nonce-{nonce}'"
     res.set_cookie(COOKIE, state, max_age=3600, httponly=True, samesite="lax", secure=settings.public_url.startswith("https"))
     return res
 

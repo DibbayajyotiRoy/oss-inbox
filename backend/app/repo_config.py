@@ -1,6 +1,7 @@
 """Per-repo config. The YAML in the repo is the truth; repos.config is a cache of the parsed result."""
 import copy
 import logging
+import re
 from typing import Any, Literal
 from urllib.parse import quote
 
@@ -141,10 +142,10 @@ def _refresh(repo_row: dict) -> RepoConfig:
     names = [cfg.rules_file] if cfg.rules_file else RULES_FILES
     rules = next(filter(None, (gh.get_file(full, n) for n in names)), None)
     db.execute(
-        "UPDATE repos SET config = %s, config_source = %s, config_sha = %s, rules_text = %s, rules_sha = %s, config_error = %s "
-        "WHERE id = %s",
+        "UPDATE repos SET config = %s, config_source = %s, config_sha = %s, rules_text = %s, rules_sha = %s, config_error = %s, "
+        "config_text = %s WHERE id = %s",
         (Jsonb(cfg.model_dump()), source, (own or org or (None, None))[1], rules and rules[0], rules and rules[1], error,
-         repo_row["id"]))
+         own and own[0], repo_row["id"]))
     return cfg
 
 
@@ -178,6 +179,48 @@ def _quote_modes(x: Any) -> Any:
 
 def render_yaml(data: dict) -> str:
     return yaml.dump(_quote_modes(data), Dumper=_Dumper, sort_keys=False, default_flow_style=False, allow_unicode=True)
+
+
+def _edit_mode(text: str, feature: str, mode: str) -> str:
+    """Line edit of one feature's mode, so comments and formatting survive. Unchanged when the file's shape defeats it."""
+    text += "\n" * (bool(text) and not text.endswith("\n"))
+    lines = text.splitlines(keepends=True)
+    entry = f'mode: "{mode}"'
+    head = next((i for i, l in enumerate(lines) if re.match(r"features:\s*(#.*)?$", l)), None)
+    if head is None:
+        return text if re.search(r"^features\s*:", text, re.M) else f"{text}features:\n  {feature}:\n    {entry}\n"
+    content = lambda l: l.strip() and not l.lstrip().startswith("#")  # noqa: E731
+    indent = lambda l: len(l) - len(l.lstrip())  # noqa: E731
+    end = next((i for i in range(head + 1, len(lines)) if lines[i][0] not in " \t\r\n#"), len(lines))  # next top-level key
+    for i in range(head + 1, end):
+        if re.match(rf"\s+{re.escape(feature)}:", lines[i]):
+            for j in range(i, end):  # the feature's line plus its deeper-indented children
+                if j > i and content(lines[j]) and indent(lines[j]) <= indent(lines[i]):
+                    break
+                lines[j], n = re.subn(r"^([^#\n]*\bmode:\s*)(\"[^\"\n]*\"|'[^'\n]*'|[^\s,}#]+)", lambda m: m[1] + f'"{mode}"', lines[j], count=1)
+                if n:
+                    return "".join(lines)
+            return text
+    rows = [i for i in range(head + 1, end) if content(lines[i])]
+    pad = " " * indent(lines[rows[0]]) if rows else "  "
+    at = (rows[-1] if rows else head) + 1
+    lines[at:at] = [f"{pad}{feature}:\n", f"{pad}  {entry}\n"]
+    return "".join(lines)
+
+
+def set_feature_mode(text: str, feature: str, mode: str) -> str:
+    """`text` with one feature's mode changed, comments and formatting kept. Not validated: the caller reports parse errors.
+    A shape the line edit can't handle (flow-style `features: {...}`) falls back to the normalized render."""
+    out = _edit_mode(text, feature, mode)
+    try:
+        cfg = parse_config(out)
+    except ValueError:
+        return out
+    if cfg.mode(feature) == mode:
+        return out
+    data = cfg.model_dump(mode="json")
+    data["features"][feature] = {"mode": mode}
+    return render_yaml(data)
 
 
 def wanted_labels(cfg: RepoConfig) -> list[str]:

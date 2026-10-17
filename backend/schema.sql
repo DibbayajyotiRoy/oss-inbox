@@ -207,3 +207,4 @@ CREATE INDEX IF NOT EXISTS audit_repo ON audit_log (repo_id, created_at DESC);
 -- v0.2 (additive)
 ALTER TABLE repos ADD COLUMN IF NOT EXISTS backfill_progress jsonb;  -- {processed,total,with_truth,errors,started_at,finished_at}
 ALTER TABLE repos ADD COLUMN IF NOT EXISTS config_error text;        -- parse error of the repo's YAML while defaults are in use
+ALTER TABLE repos ADD COLUMN IF NOT EXISTS config_text text;         -- the repo's .github/jev-triage.yml verbatim (comments kept); null when absent

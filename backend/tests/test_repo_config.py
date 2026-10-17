@@ -95,7 +95,7 @@ def test_load_refresh_caches_and_reads_rules(monkeypatch, repo):
     assert c.comments and c.mode("routing") == "auto"
     row = db.fetch_one("SELECT * FROM repos WHERE id = %s", (repo["id"],))
     assert (row["config_source"], row["config_sha"], row["rules_text"], row["rules_sha"]) == ("repo", "sha-repo", "Be nice.", "sha-rules")
-    assert row["config"]["comments"] is True
+    assert row["config"]["comments"] is True and row["config_text"] == "comments: true\n"  # raw text kept for the dashboard
     assert ("acme/widgets", "AGENTS.md") in fake.calls  # rules candidates tried in order
 
     fake.calls.clear()
@@ -115,7 +115,7 @@ def test_load_org_only_and_explicit_rules_file(monkeypatch, repo):
     monkeypatch.setattr(repo_config, "client_for", lambda r: fake)
     load(repo)
     row = db.fetch_one("SELECT * FROM repos WHERE id = %s", (repo["id"],))
-    assert (row["config_source"], row["config_sha"], row["rules_text"]) == ("org", "sha-org", "rules!")
+    assert (row["config_source"], row["config_sha"], row["rules_text"], row["config_text"]) == ("org", "sha-org", "rules!", None)
 
 
 def test_load_invalid_yaml_falls_back_to_defaults(monkeypatch, repo):
