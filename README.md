@@ -65,6 +65,19 @@ Backfill accuracy is an upper bound: only items your maintainers labeled are cou
 
 ## Quickstart
 
+### Try it with sample data (no GitHub, no API key)
+
+```bash
+git clone https://github.com/YOUR-ORG/jev-triage.git && cd jev-triage
+cp .env.example .env && echo "DEMO_MODE=true" >> .env
+docker compose up -d --build
+docker compose exec api python -m app.cli demo   # seeds a sample org with 3 repos
+```
+
+Open `http://localhost:3000/login` and click **Try with sample data**. Every screen works; nothing is sent to GitHub.
+
+### Run it on your repos
+
 Self-host in about five minutes with Docker Compose. You need Docker with Compose v2, a [TypeSafe API key](https://typesafe.ai), and a GitHub account or org that can own an App. Full guide: [docs/self-hosting.md](docs/self-hosting.md).
 
 ```bash
@@ -73,7 +86,7 @@ cp .env.example .env     # set TYPESAFE_API_KEY and SESSION_SECRET; keep DRY_RUN
 docker compose up -d --build
 ```
 
-Then open `http://localhost:8000/api/setup` and click **Create GitHub App**. This is GitHub's app manifest flow: the API appends the new app's credentials to `.env`. Restart with `docker compose restart api worker`, follow the install link, and open the dashboard at `http://localhost:3000`.
+Then open `http://localhost:3000`. The setup screen walks you through it: check your API key, click **Create GitHub App** (GitHub's app manifest flow writes the app's credentials to `.env`), restart with `docker compose restart api worker`, install the app, and pick a repo.
 
 GitHub cannot reach `localhost`, so forward webhooks with smee or a tunnel. The self-hosting guide shows both.
 
