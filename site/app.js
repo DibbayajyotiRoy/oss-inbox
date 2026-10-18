@@ -1,10 +1,12 @@
-const $ = (s, r = document) => r.querySelector(s);
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const f2 = (v) => (v / 100).toFixed(2);
 
 // Copy buttons.
-document.querySelectorAll('[data-cp]').forEach((b) => b.addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText(b.closest('.code').querySelector('pre').textContent); b.textContent = 'Copied'; } catch { b.textContent = 'Select and copy'; }
-  setTimeout(() => (b.textContent = 'Copy'), 1600);
+$$('[data-cp]').forEach((b) => b.addEventListener('click', async () => {
+  const l = b.lastElementChild;
+  try { await navigator.clipboard.writeText(b.closest('.code').querySelector('pre').textContent); l.textContent = 'Copied'; } catch { l.textContent = 'Select and copy'; }
+  setTimeout(() => (l.textContent = 'Copy'), 1600);
 }));
 
 // In-page links scroll smoothly (a click-time switch, so scripted and keyboard jumps stay instant).
@@ -17,19 +19,40 @@ document.addEventListener('click', (e) => {
 
 // Phone menu.
 const nav = $('.hd nav'), mb = $('.mbtn');
-const shut = () => { nav.classList.remove('open'); mb.setAttribute('aria-expanded', 'false'); };
-mb.addEventListener('click', () => mb.setAttribute('aria-expanded', nav.classList.toggle('open')));
+const shut = () => { nav.classList.remove('open'); mb.setAttribute('aria-expanded', 'false'); mb.textContent = 'Menu'; };
+mb.addEventListener('click', () => { const on = nav.classList.toggle('open'); mb.setAttribute('aria-expanded', on); mb.textContent = on ? 'Close' : 'Menu'; });
 nav.addEventListener('click', (e) => e.target.closest('a') && shut());
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && nav.classList.contains('open')) { shut(); mb.focus(); } });
+document.addEventListener('pointerdown', (e) => nav.classList.contains('open') && !e.target.closest('.hd') && shut());
 
-// Current section in the nav (sections without a link clear it).
-const links = [...document.querySelectorAll('.hd nav a[href^="#"]')];
-const spy = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && links.forEach((a) => {
-  if (a.hash === '#' + e.target.id) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
-})), { rootMargin: '-40% 0px -55% 0px' });
-document.querySelectorAll('main > section[id]').forEach((s) => spy.observe(s));
+// Nav: the section in view is marked, and one amber needle settles onto the marked or hovered link.
+const links = $$('.hd nav li:not(.mcta) a[href^="#"]'), nn = $('.nn');
+let fresh = true;
+const place = (a) => {
+  if (!a) return nn.style.setProperty('--o', 0);
+  const pad = parseFloat(getComputedStyle(a).paddingLeft);
+  if (fresh) nn.style.transition = 'none'; // the first placement appears in place instead of swinging in from the left
+  nn.style.setProperty('--x', a.offsetLeft + pad + 'px');
+  nn.style.setProperty('--w', a.offsetWidth - 2 * pad);
+  nn.style.setProperty('--o', 1);
+  if (fresh) { nn.offsetWidth; nn.style.transition = ''; fresh = false; }
+};
+const home = () => place($('.hd nav [aria-current]'));
+nav.addEventListener('pointerover', (e) => { const a = e.target.closest('li:not(.mcta) a'); a && place(a); });
+nav.addEventListener('focusin', (e) => { const a = e.target.closest('li:not(.mcta) a'); a && place(a); });
+nav.addEventListener('pointerleave', home);
+nav.addEventListener('focusout', home);
+addEventListener('resize', home);
+const spy = new IntersectionObserver((es) => es.forEach((e) => {
+  if (!e.isIntersecting) return;
+  links.forEach((a) => (a.hash === '#' + e.target.id ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
+  home();
+}), { rootMargin: '-40% 0px -55% 0px' });
+$$('main > section[id]').forEach((s) => spy.observe(s));
 
-// Threshold demo: 240 seeded sample decisions from a calibrated model (P(right) = confidence).
+// ---- The instrument: 240 seeded sample decisions from a calibrated model (P(right) = confidence). ----
+// One driver, the needle position x (50..100), feeds the dots, the counts, the pill and the zone,
+// so every part of the instrument always agrees. It follows a damped spring ("settle like a needle").
 const N = 240;
 const rnd = ((a) => () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; })(13);
 const gauss = () => { let u = 0; for (let i = 0; i < 6; i++) u += rnd(); return (u - 3) / Math.SQRT1_2; };
@@ -37,105 +60,151 @@ const items = Array.from({ length: N }, () => {
   const c = Math.min(0.995, Math.max(0.5, rnd() < 0.5 ? 0.985 - Math.abs(gauss()) * 0.05 : 0.5 + 0.5 * rnd() ** 0.9));
   return { p: Math.floor(c * 100), ok: rnd() < c };
 });
+const tab = Array.from({ length: 51 }, (_, i) => { // [acted, wrong] for every threshold 50..100
+  const v = 50 + i; let A = 0, W = 0;
+  items.forEach((it) => it.p >= v && (A++, it.ok || W++));
+  return [A, W];
+});
+const peak = Math.max(...items.reduce((h, it) => (h[it.p - 50]++, h), Array(50).fill(0)));
 
-const plot = $('#plot'), thr = $('#thr'), svg = $('#dots'), pre = [...document.querySelectorAll('.pre button')];
+const inst = $('#threshold'), plot = $('#plot'), rail = $('#rail'), thr = $('#thr'), svg = $('#dots'), pre = $$('.pre button');
 const dots = items.map(() => svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'circle')));
-const f2 = (v) => (v / 100).toFixed(2);
 
-function layout() { // one column per 0.01 of confidence, so the tick always sits on a column edge
-  const w = svg.clientWidth, h = svg.clientHeight, cw = w / 50, per = cw >= 17 ? 2 : 1, r = Math.min(cw / (2 * per) - 1.3, 4.5), stack = Array(50).fill(0);
+function layout() { // one column per 0.01 of confidence, so the needle always sits on a column edge
+  const w = svg.clientWidth, H = svg.clientHeight, cw = w / 50, stack = Array(50).fill(0);
+  let per = 1;
+  while (per < 4 && Math.ceil(peak / per) * (cw / per) > H) per++; // widen the columns' dot lanes until the tallest fits
+  const pitch = cw / per, r = Math.min(pitch / 2 - 1, 5.5);
   items.forEach((it, i) => {
     const k = it.p - 50, n = stack[k]++, c = dots[i];
     c.setAttribute('r', r);
     c.setAttribute('cx', k * cw + (cw * ((n % per) + 0.5)) / per);
-    c.setAttribute('cy', h - r - 2 - Math.floor(n / per) * (cw / per));
-    c.style.setProperty('--d', k * 14 + n * 6);
+    c.setAttribute('cy', H - r - 2 - Math.floor(n / per) * pitch);
+    c.style.setProperty('--d', k * 9 + n * 5);
   });
 }
 
-function update(v) {
-  let A = 0, W = 0;
+let shown = -1;
+function paint(v) { // what the visitor sees at threshold v: dot states, rolling counts, pill
+  v = Math.max(50, Math.min(100, v));
+  if (v === shown) return;
+  shown = v;
   items.forEach((it, i) => {
-    const on = it.p >= v;
-    if (on) { A++; if (!it.ok) W++; }
-    const cls = on ? (it.ok ? 'a' : 'w') : 'q', c = dots[i];
-    if (!still && c.getAttribute('class') && c.getAttribute('class') !== cls) c.animate({ transform: ['scale(1)', 'scale(1.6)', 'scale(1)'] }, { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    const on = it.p >= v, cls = on ? (it.ok ? 'a' : 'w') : 'q', c = dots[i], was = c.getAttribute('class');
+    if (was === cls) return;
+    if (was && !still) c.animate({ transform: ['scale(1)', 'scale(1.7)', 'scale(1)'] }, { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)' });
     c.setAttribute('class', cls);
   });
-  const Q = N - A, t = f2(v);
-  plot.style.setProperty('--f', (v - 50) / 50);
-  plot.dataset.e = (v < 57 ? 'l ' : '') + (v > 93 ? 'r' : '');
-  $('#pill').textContent = t;
+  const [A, W] = tab[v - 50], Q = N - A;
   [['nA', A], ['nQ', Q], ['nW', W]].forEach(([id, n]) => $('#' + id).style.setProperty('--n', n));
   $('#sA').textContent = `${Math.round((A / N) * 100)}% of ${N}`;
   $('#sQ').textContent = `${Math.round((Q / N) * 100)}% of ${N}`;
   $('#sW').textContent = A ? `${((W / A) * 100).toFixed(1)}% of acted` : 'nothing acted on';
+  $('#pill').textContent = f2(v);
+  plot.dataset.e = (v < 57 ? 'l ' : '') + (v > 93 ? 'r' : '');
+}
+
+function speak(v) { // what is said and remembered once the choice is made (not on every frame of the needle's travel)
+  const [A, W] = tab[v - 50], Q = N - A, t = f2(v);
   const tail = Q ? `The other ${Q} wait in your queue.` : 'Nothing waits in your queue.';
   $('#rd').textContent = A ? `At ${t} it acts on ${A} of ${N} decisions and is ${W ? `wrong on ${W} of those` : 'wrong on none of those'}. ${tail}` : `At ${t} nothing clears the bar, so all ${N} decisions wait in your queue.`;
+  thr.setAttribute('aria-valuenow', v);
   thr.setAttribute('aria-valuetext', `${t}: acts on ${A} of ${N}, ${W} would be wrong, ${Q} queued`);
   pre.forEach((b) => b.setAttribute('aria-pressed', +b.dataset.v === v));
+  document.documentElement.style.setProperty('--thr', (v - 50) / 50); // the closing ruler remembers it
+  $$('.ruler .thr').forEach((e) => (e.firstChild.textContent = t));
 }
 
-let touched = false;
-const go = (v) => { thr.value = v; update(+v); };
-// One driver: the chosen threshold also moves the page's rulers, so they remember it when you scroll back.
-const ruled = (v) => {
-  document.documentElement.style.setProperty('--thr', (v - 50) / 50);
-  document.querySelectorAll('.ruler .thr').forEach((e) => (e.firstChild.textContent = f2(v)));
+let x = 90, target = 90, cur = 90, vel = 0, live = 0, grab = false, seen = true, raf = 0, last = 0;
+function render(b) {
+  rail.style.setProperty('--f', (x - 50) / 50);
+  rail.style.setProperty('--b', b / 50);
+  paint(Math.round(x));
+}
+function frame(now, dt) {
+  const k = grab ? 900 : 174, c = grab ? 54 : 17.4; // stiff while dragging, a gentle spring otherwise
+  for (let i = 0; i < 2; i++) { vel += (-k * (x - target) - c * vel) * dt / 2; x += (vel * dt) / 2; }
+  const rest = Math.abs(x - target) < 0.005 && Math.abs(vel) < 0.02;
+  if (rest) { x = target; vel = 0; }
+  live += ((grab || !rest ? 0 : 1) - live) * Math.min(1, dt * 1.5); // idle: once it settles, the needle breathes within +-0.003
+  render(Math.sin(now * 1.1) * 0.3 * live);
+  return !rest || (seen && !document.hidden);
+}
+const loop = (ms) => { raf = 0; const dt = Math.min(0.05, (ms - last) / 1000); last = ms; if (frame(ms / 1000, dt)) raf = requestAnimationFrame(loop); };
+const wake = () => { if (!raf && !still) { last = performance.now(); raf = requestAnimationFrame(loop); } };
+const go = (v) => { // a choice made by keys, presets, taps or the pointer
+  target = cur = Math.max(50, Math.min(100, v));
+  v = target;
+  speak(v);
+  if (still) { x = v; render(0); } else wake();
 };
-thr.addEventListener('input', () => { update(+thr.value); ruled(+thr.value); });
-pre.forEach((b) => b.addEventListener('click', () => { go(b.dataset.v); ruled(+b.dataset.v); }));
-['pointerdown', 'keydown', 'focusin'].forEach((e) => $('#inst').addEventListener(e, () => (touched = true)));
 
+pre.forEach((b) => b.addEventListener('click', () => go(+b.dataset.v)));
+thr.addEventListener('keydown', (e) => { // the needle is an ARIA slider: arrows step, page keys jump, Home and End go to the ends
+  const k = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1, PageDown: -10, PageUp: 10 }[e.key];
+  if (k) go(cur + k); else if (e.key === 'Home') go(50); else if (e.key === 'End') go(100); else return;
+  e.preventDefault();
+});
+// The pill is the focusable slider (keys, screen readers); the plot itself takes the pointer.
+const at = (e) => { const r = plot.getBoundingClientRect(); return Math.round(50 + Math.max(0, Math.min(1, (e.clientX - r.left - 14) / (r.width - 28))) * 50); };
+const pick = (e) => { const v = at(e); if (v !== cur) go(v); };
+const drop = () => { grab = false; inst.classList.remove('grab'); };
+plot.addEventListener('pointerdown', (e) => {
+  if (e.button) return;
+  grab = true; inst.classList.add('grab'); plot.setPointerCapture(e.pointerId); thr.focus({ preventScroll: true });
+  pick(e); wake();
+});
+plot.addEventListener('pointermove', (e) => grab && pick(e));
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach((n) => plot.addEventListener(n, drop));
+new IntersectionObserver((es) => { seen = es[0].isIntersecting; seen && wake(); }).observe(inst);
+document.addEventListener('visibilitychange', wake);
 new ResizeObserver(layout).observe(svg);
-// Start with nothing acting, then settle on 0.90 when the demo scrolls into view.
-still ? update(+thr.value) : go(100);
 
-new IntersectionObserver((es, io) => {
-  if (!es[0].isIntersecting) return;
-  io.disconnect();
-  plot.classList.add('in');
-  if (still) return;
-  let t0;
-  setTimeout(() => requestAnimationFrame(function step(now) {
-    if (touched) return;
-    t0 ??= now;
-    const k = Math.min(1, (now - t0) / 1800), v = Math.round(100 - 10 * (1 - (1 - k) ** 4));
-    if (v !== +thr.value) go(v);
-    if (k < 1) requestAnimationFrame(step);
-  }), 800);
-}, { threshold: 0.35 }).observe($('#inst'));
-
-// The closing ruler settles its needle on 0.90 when it scrolls into view.
-new IntersectionObserver((es, io) => es[0].isIntersecting && (io.disconnect(), es[0].target.classList.add('in')), { threshold: 0.6 }).observe($('.ruler.late'));
-
-// The hero card scores a second sample decision now and then, so it keeps working at rest.
-const D = [
-  { id: '#1234', t: 'Crash on startup when config has a trailing comma', rows: [['issue.type', 'bug', 0.94, 0.9], ['issue.has_repro', 'no', 0.74, 0.8], ['issue.has_version', 'no', 0.91, 0.8]] },
-  { id: '#1241', t: 'Add retry with backoff to the webhook client', rows: [['pr.follows_rules', 'yes', 0.96, 0.9], ['pr.breaking', 'no', 0.83, 0.9], ['route.area', 'api', 0.88, 0.8]] },
-];
-const pz = $('.pz');
-if (still) pz.remove();
+// First frame: the dots fall in with the needle parked at 1.00 (nothing acts), then it settles on 0.90.
+if (still) { x = 90; render(0); speak(90); plot.classList.add('in'); }
 else {
-  let i = 0, held = false, seen = true;
-  const card = $('.dec'), rows = [...card.querySelectorAll('.qs li')];
-  const show = (d) => {
-    card.querySelectorAll('.fill, .tk, .q, .s, .dec-t').forEach((e) => { e.style.animation = 'none'; e.offsetWidth; e.style.animation = ''; }); // replay the entrance
-    $('#d-id').textContent = d.id;
-    $('#d-t').textContent = d.t;
-    rows.forEach((li, n) => {
-      const [k, a, c, t] = d.rows[n], m = $('.meter', li), ok = c >= t;
-      $('.k', li).textContent = k; $('.a', li).textContent = a; $('.v', li).textContent = c.toFixed(2);
-      m.style.setProperty('--v', (c - 0.5) / 0.5); m.style.setProperty('--t', (t - 0.5) / 0.5);
-      m.classList.toggle('lo', !ok);
-      m.setAttribute('aria-label', `Confidence ${c.toFixed(2)} against a threshold of ${t.toFixed(2)}`);
-      const s = $('.s', li); s.classList.toggle('ok', ok);
-      s.textContent = `Threshold ${t.toFixed(2)}. ${ok ? 'Clears it.' : 'Waits for you.'}`;
-    });
-  };
-  pz.addEventListener('click', () => { held = !held; pz.textContent = held ? 'Play' : 'Pause'; });
-  new IntersectionObserver((es) => (seen = es[0].isIntersecting)).observe(card);
-  const next = () => { if (!held && seen && !document.hidden && !card.matches(':hover, :focus-within')) show(D[(i = (i + 1) % D.length)]); };
-  setTimeout(next, 4500);
-  setInterval(next, 8000);
+  x = 100; render(0);
+  requestAnimationFrame(() => {
+    plot.classList.add('in');
+    setTimeout(() => go(90), 750);
+  });
 }
+
+// ---- How it works: the four steps drive the specimen's state (on wide screens it is a sticky stage). ----
+const spec = $('#spec'), steps = $$('.stp li');
+if (!still) {
+  const upd = () => { // the active step is the last one whose top has reached the 40% line, so jumps and fast scrolls never leave a stale state
+    let n = 0;
+    steps.forEach((s, i) => s.getBoundingClientRect().top <= innerHeight * 0.4 && (n = i));
+    spec.dataset.s = n + 1;
+    steps.forEach((s, i) => s.classList.toggle('on', i === n));
+  };
+  upd();
+  const io = new IntersectionObserver(upd, { rootMargin: '0px 0px -60% 0px', threshold: [0, 1] });
+  [spec, ...steps].forEach((e) => io.observe(e));
+}
+
+// ---- Closing ruler: the needle settles on the chosen threshold when it scrolls into view. ----
+const ruler = $('.ruler');
+if (still) ruler.classList.add('in');
+else new IntersectionObserver((es, io) => es[0].isIntersecting && (io.disconnect(), ruler.classList.add('in')), { threshold: 0.6 }).observe(ruler);
+
+// ---- Register: each feature's default-mode needle settles into place when the list scrolls into view. ----
+const reg = $('.reg');
+if (still) reg.classList.add('in');
+else new IntersectionObserver((es, io) => es[0].isIntersecting && (io.disconnect(), reg.classList.add('in')), { threshold: 0.35 }).observe(reg);
+
+// ---- Register: a dial is a real control. Selecting it cycles the feature's mode and the needle settles on it. ----
+const MODES = ['off', 'shadow', 'auto'];
+const SAY = ['The feature does not run.', 'It records each decision and queues the item with suggested answers. Nothing is written to GitHub.', 'It acts on decisions at or above the threshold, on questions measured against your history, and queues the rest.'];
+$$('.reg .dial').forEach((d) => d.addEventListener('click', () => {
+  const m = (+d.style.getPropertyValue('--m') + 1) % 3, name = d.closest('div').querySelector('.mono').textContent;
+  d.style.setProperty('--m', m);
+  const md = d.nextElementSibling;
+  md.textContent = MODES[m]; md.dataset.n = MODES[(m + 1) % 3];
+  d.setAttribute('aria-label', `${name} mode, currently ${MODES[m]}. Select to try another.`);
+  $('#regs').textContent = `${name} is set to ${MODES[m]}. ${SAY[m]}`;
+}));
+
+// ---- A compact CTA joins the header once the hero has scrolled away. ----
+new IntersectionObserver((es) => document.documentElement.classList.toggle('past', !es[0].isIntersecting)).observe($('#top'));
