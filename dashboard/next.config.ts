@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  distDir: process.env.NEXT_DIST_DIR ?? ".next", // lets parallel builds/QA runs use separate dirs
   turbopack: {
     rules: {
       "*.css": {
