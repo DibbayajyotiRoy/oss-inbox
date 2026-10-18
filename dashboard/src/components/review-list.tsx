@@ -3,15 +3,15 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown, ArrowUp, Check, ExternalLink, Undo2, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Actions, Preview, PreviewSkeleton, optionsOf, type Act } from "@/components/review/preview";
+import { Preview, PreviewSkeleton, optionsOf, type Act } from "@/components/review/preview";
 import { ROW_H, Row, RowSkeleton, featureName, itemRef } from "@/components/review/row";
 import { useCommands } from "@/components/shell/commands";
 import { useShell } from "@/components/shell/shell-context";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState, LoadMore } from "@/components/ui/load";
-import { NumberTicker } from "@/components/ui/number-ticker";
 import { PageHeader } from "@/components/ui/page-header";
-import { useReducedMotion } from "@/components/ui/presence";
+import { SwapText, useReducedMotion } from "@/components/ui/presence";
+import { Select } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toaster";
@@ -217,10 +217,10 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
       className="mb-4"
       title={
         <>
-          {title}
+          {title}{" "}
           {list.data && (
-            <span className="ml-2 font-normal text-muted-foreground tabular-nums">
-              <NumberTicker value={live.length} animateOnMount={false} />
+            <span className="ml-1 font-normal text-muted-foreground tabular-nums">
+              <SwapText value={live.length} roll="down" />
               {list.more && "+"}
             </span>
           )}
@@ -264,20 +264,18 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
       </>
     );
 
+  const tabs = [
+    { id: ALL, label: <>All <span className="text-muted-foreground tabular-nums">{live.length}</span></> },
+    ...[...counts].map(([id, es]) => ({ id, label: <>{featureName(id)} <span className="text-muted-foreground tabular-nums">{es.length}</span></> })),
+  ];
   const filter = counts.size > 1 && (
-    <Tabs
-      variant="segmented"
-      aria-label="Filter by feature"
-      value={active}
-      onValueChange={setFeature}
-      className="max-w-full overflow-x-auto"
-      items={[
-        { id: ALL, label: <>All <span className="text-muted-foreground tabular-nums">{live.length}</span></> },
-        ...[...counts].map(([id, es]) => ({ id, label: <>{featureName(id)} <span className="text-muted-foreground tabular-nums">{es.length}</span></> })),
-      ]}
-    />
+    <>
+      <Tabs variant="segmented" aria-label="Filter by feature" value={active} onValueChange={setFeature} className="max-w-full overflow-x-auto max-lg:hidden" items={tabs} />
+      <Select aria-label="Filter by feature" value={active} onValueChange={setFeature} wrapperClassName="lg:hidden">
+        {tabs.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+      </Select>
+    </>
   );
-  const changed = cur ? cur.suggestions.filter((s) => picks[s.decision_id] !== undefined && picks[s.decision_id] !== s.answer).length : 0;
   const preview = (className?: string) =>
     cur && <Preview e={cur} held={held} picks={picks} active={si} onPick={pick} onAct={act} className={className} />;
 
@@ -310,11 +308,6 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
             </div>
           </div>
           {(more || list.moreError) && <LoadMore list={list} />}
-          {cur && (
-            <div className="mt-3 shrink-0 lg:hidden">
-              <Actions e={cur} held={held} changed={changed} onAct={act} />
-            </div>
-          )}
         </div>
         <div className="hidden min-h-0 lg:flex">{preview()}</div>
       </Split>

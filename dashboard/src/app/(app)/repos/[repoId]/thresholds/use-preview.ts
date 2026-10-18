@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { Bin } from "@/components/measure/threshold-chart";
+import type { Bin } from "@/components/measure/threshold-scale";
 import type { Preview } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 import type { Counts, In, Out } from "./preview.worker";

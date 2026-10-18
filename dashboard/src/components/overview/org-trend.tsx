@@ -1,13 +1,15 @@
 "use client";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ReferenceLine } from "recharts";
-import { EvilAreaChart } from "@/components/evilcharts/charts/recharts-area-chart";
 import { CardSection } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { repoPath } from "@/lib/fmt";
 import type { RepoCard } from "@/lib/types";
-import { trendConfig } from "./repo-card";
+
+// Recharts (~440 KB) loads after first paint into a skeleton of the chart's exact size, so nothing shifts.
+const TrendChart = dynamic(() => import("./trend-chart").then((m) => m.TrendChart), { ssr: false, loading: () => <Skeleton className="-mt-3 h-52 sm:h-64" /> });
 
 const label = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
@@ -67,23 +69,7 @@ export function OrgTrend({ repos }: { repos: RepoCard[] }) {
         )
       }
     >
-      <EvilAreaChart
-        data={data}
-        config={trendConfig}
-        stackType="stacked"
-        className="-mt-3 aspect-auto h-52 cursor-pointer sm:h-64"
-        chartProps={{ onClick: (s) => s.activeIndex != null && pick(Number(s.activeIndex)), margin: { top: 8, right: 4, bottom: 0, left: 0 } }}
-      >
-        <EvilAreaChart.Grid />
-        <EvilAreaChart.XAxis dataKey="day" interval="preserveStartEnd" minTickGap={32} />
-        <EvilAreaChart.YAxis allowDecimals={false} width={32} />
-        <EvilAreaChart.Tooltip />
-        <EvilAreaChart.Legend align="left" />
-        <EvilAreaChart.Area dataKey="acted" strokeVariant="solid" />
-        <EvilAreaChart.Area dataKey="queued" strokeVariant="solid" />
-        <EvilAreaChart.Area dataKey="shadow" />
-        {sel !== null && <ReferenceLine x={data[sel].day} stroke="var(--foreground)" strokeOpacity={0.4} strokeDasharray="3 3" />}
-      </EvilAreaChart>
+      <TrendChart data={data} sel={sel} onPick={pick} />
     </CardSection>
   );
 }

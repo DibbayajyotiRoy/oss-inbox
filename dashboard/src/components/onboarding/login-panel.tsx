@@ -29,12 +29,12 @@ export function LoginPanel() {
   }, [fresh, router]);
 
   return (
-    <div className="grid min-h-dvh bg-background lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-      <div className="flex min-h-dvh flex-col px-5 py-6 sm:px-10">
+    <div className="grid min-h-dvh grid-rows-[auto_1fr] bg-background lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:grid-rows-none">
+      <div className="flex flex-col px-5 py-6 sm:px-10 lg:min-h-dvh">
         <header>
           <Brand />
         </header>
-        <main className="flex flex-1 items-center justify-center py-12">
+        <main className="flex flex-1 items-center justify-center py-8 lg:py-12">
           <div className="w-full max-w-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-250">
             <h1 className="text-2xl font-semibold tracking-tight">Triage that earns trust</h1>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -57,7 +57,7 @@ export function LoginPanel() {
                     </a>
                   </Button>
                   <p className="text-[13px] text-muted-foreground">Demo instance. Nothing is written to GitHub.</p>
-                  <Button asChild variant="link" size="sm" className="self-start">
+                  <Button asChild variant="link" size="sm" className="h-8 self-start">
                     <Link href="/welcome">Set up your own instance</Link>
                   </Button>
                 </>
@@ -82,8 +82,8 @@ export function LoginPanel() {
         </main>
       </div>
 
-      <aside aria-label="Example readings" className="hidden border-l bg-muted/20 lg:flex lg:flex-col lg:justify-center">
-        <div className="mx-auto w-full max-w-md px-10 py-16">
+      <aside aria-label="Example readings" className="flex flex-col justify-center border-t bg-muted/20 lg:border-t-0 lg:border-l">
+        <div className="mx-auto w-full max-w-md px-5 py-10 sm:px-10 lg:py-16">
           <p className="text-[13px] text-muted-foreground">Example readings</p>
           <div className="mt-6 flex flex-col gap-7">
             {READINGS.map((r, i) => (

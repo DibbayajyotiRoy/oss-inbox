@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardSection } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { InlineCode } from "@/components/ui/inline-code";
 import { Load } from "@/components/ui/load";
 import { Meter } from "@/components/ui/meter";
 import { Notice } from "@/components/ui/notice";
@@ -174,13 +175,13 @@ function Detail({ x, here, sp, threshold }: { x: EvalQuestion; here: (qs: string
             {misses.map((m) => (
               <li key={m.item_id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-6">
                 <div className="min-w-0 flex-1">
-                  <Link href={`/items/${m.item_id}`} className="inline-block max-w-full truncate align-top text-sm font-medium underline-offset-4 link-grow">
-                    {m.number ? `#${m.number} ` : ""}{m.title}
+                  <Link href={`/items/${m.item_id}`} className="-my-0.5 inline-block max-w-full truncate py-0.5 align-top text-sm font-medium underline-offset-4 link-grow">
+                    {m.number ? `#${m.number} ` : ""}<InlineCode text={m.title} />
                   </Link>
-                  <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                  <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
                     Jev said <b className="font-medium text-foreground">{m.answer}</b> · decided <b className="font-medium text-foreground">{m.truth}</b>
                     {m.html_url && (
-                      <a href={m.html_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 underline-offset-4 hover:text-foreground link-grow">
+                      <a href={m.html_url} target="_blank" rel="noreferrer" className="-my-1 inline-flex items-center gap-0.5 py-1 underline-offset-4 hover:text-foreground link-grow">
                         GitHub <ExternalLink aria-hidden className="size-3" /><span className="sr-only">(opens in a new tab)</span>
                       </a>
                     )}

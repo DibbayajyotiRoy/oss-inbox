@@ -1,7 +1,7 @@
 "use client";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowUpRight, CirclePause, Inbox, Lock } from "lucide-react";
-import { EvilAreaChart } from "@/components/evilcharts/charts/recharts-area-chart";
+import { ArrowUpRight, ChevronRight, CirclePause, Inbox, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,12 +10,12 @@ import { MODE_VARIANT } from "@/components/ui/mode-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
 import { pct, repoPath } from "@/lib/fmt";
-import { chartTheme } from "@/lib/chart-theme";
 import type { Repo, RepoCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { labelled } from "./use-repo-details";
 
-export const trendConfig = chartTheme({ acted: "Auto-acted", queued: "Queued", shadow: "Shadow" });
+// Recharts loads after first paint into a skeleton of the sparkline's exact size, so nothing shifts.
+const SparkChart = dynamic(() => import("./trend-chart").then((m) => m.Spark), { ssr: false, loading: () => <Skeleton className="h-12" /> });
 
 /** Where a card leads: the queue, or setup while the repo is off (admins only; others cannot enable it). */
 export const cardHref = (r: RepoCard) => (r.enabled ? repoPath(r.id) : r.role === "admin" ? `/onboarding/${r.id}` : repoPath(r.id));
@@ -28,11 +28,7 @@ function Spark({ r }: { r: RepoCard }) {
       {empty ? (
         <p className="grid h-full place-items-center rounded-md border border-dashed text-xs text-muted-foreground">No activity in 30 days</p>
       ) : (
-        <EvilAreaChart data={r.trend} config={trendConfig} stackType="stacked" animationType="none" className="aspect-auto h-12" chartProps={{ margin: { top: 2, right: 0, bottom: 0, left: 0 } }}>
-          <EvilAreaChart.Area dataKey="acted" strokeVariant="solid" strokeWidth={1.25} />
-          <EvilAreaChart.Area dataKey="queued" strokeVariant="solid" strokeWidth={1.25} />
-          <EvilAreaChart.Area dataKey="shadow" strokeWidth={1.25} />
-        </EvilAreaChart>
+        <SparkChart trend={r.trend} />
       )}
     </div>
   );
@@ -53,7 +49,7 @@ export function OrgRepoCard({ r, detail, detailsLoading }: { r: RepoCard; detail
   const [owner, name] = r.full_name.split("/");
   const n = detail ? labelled(detail) : null;
   return (
-    <Card className="group relative gap-4 py-5 shadow-xs motion-safe:transition-[border-color,background-color] motion-safe:duration-200 motion-safe:ease-settle focus-within:border-chart-4 hover:border-chart-4 hover:bg-[color-mix(in_oklab,var(--card)_62%,var(--accent))]">
+    <Card className="group relative gap-4 py-5 shadow-xs motion-safe:transition-[border-color,background-color,box-shadow,translate] motion-safe:duration-200 motion-safe:ease-settle focus-within:border-chart-4 hover:border-chart-4 hover:bg-[color-mix(in_oklab,var(--card)_62%,var(--accent))] hover:shadow-md motion-safe:hover:-translate-y-0.5">
       <div className="flex items-center justify-between gap-3 px-5">
         <h3 className="flex min-w-0 items-center gap-2 text-[15px] font-semibold">
           <Link href={cardHref(r)} className="min-w-0 truncate rounded-sm outline-none link-grow after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring">
@@ -91,7 +87,7 @@ export function OrgRepoCard({ r, detail, detailsLoading }: { r: RepoCard; detail
           </Badge>
         ))}
       </div>
-      <div className="mt-auto flex items-center gap-5 border-t px-5 pt-4 text-[13px]">
+      <div className="mt-auto flex items-center gap-2 border-t px-3 pt-3 text-[13px]">
         <Count href={repoPath(r.id, "queue")} icon={<Inbox aria-hidden className="size-3.5" />} n={r.queued_open} label="in queue" />
         <Count href={repoPath(r.id, "held")} icon={<CirclePause aria-hidden className="size-3.5" />} n={r.held_open} label="held" />
       </div>
@@ -134,11 +130,19 @@ export function OffRepoRow({ r }: { r: RepoCard }) {
   );
 }
 
+/** A count that links to its list: a pill grows in behind it and the chevron slides out (hover role: row). */
 function Count({ href, icon, n, label }: { href: string; icon: React.ReactNode; n: number; label: string }) {
   return (
-    <Link href={href} className={cn("relative z-10 inline-flex items-center gap-1.5 rounded-sm link-grow hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none", n ? "text-foreground" : "text-muted-foreground")}>
+    <Link
+      href={href}
+      className={cn(
+        "group/count hover-pill relative z-10 inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 [--pill:var(--accent)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        n ? "text-foreground" : "text-muted-foreground",
+      )}
+    >
       {icon}
       <span className="font-medium tabular-nums">{n}</span> {label}
+      <ChevronRight aria-hidden className="-ml-0.5 size-3 -translate-x-1 opacity-0 motion-safe:transition-[opacity,translate] motion-safe:duration-150 motion-safe:ease-settle group-hover/count:translate-x-0 group-hover/count:opacity-100 group-focus-visible/count:translate-x-0 group-focus-visible/count:opacity-100" />
     </Link>
   );
 }

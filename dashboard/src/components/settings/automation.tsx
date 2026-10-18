@@ -3,10 +3,11 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { CardSection } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
-import { ModeControl } from "@/components/ui/mode-control";
+import { ModeControl, autoReason } from "@/components/ui/mode-control";
 import { useReducedMotion } from "@/components/ui/presence";
 import { useRepo } from "@/components/repo";
 import { CONFIG_PATH, FEATURES, NEED, featureModes } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { useModeEdits } from "@/lib/use-mode-edits";
 import { GithubLink } from "./parts";
 
@@ -34,30 +35,28 @@ export function Automation() {
     <CardSection
       title="Automation"
       description="Choose what Jev may do, per feature."
-      hint="Auto only acts on questions that are measured: enough labeled samples, with accuracy at or above the threshold. Shadow records and queues; off does nothing."
+      hint="Auto acts only when every question of a feature is measured: enough labeled samples, accuracy at or above its threshold. Shadow records and queues; off does nothing."
       footer={<p className="text-[13px] text-muted-foreground">Jev never writes to your repo. A change applies after you commit the file to {repo.default_branch}.</p>}
     >
       <ul className="divide-y divide-border">
         {featureModes(repo).map(([f]) => {
-          const qs = repo.questions.filter((q) => q.feature === f);
-          const measured = qs.filter((q) => q.measured).length;
+          const block = autoReason(repo.questions.filter((q) => q.feature === f));
           const value = mode(f);
           const no = !canAct && NEED.maintainer;
           return (
             <li key={f} className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="font-mono text-[13px] font-medium">{f}</p>
-                <p className="text-[13px] text-muted-foreground">
-                  {FEATURES[f]?.about}
-                  {qs.length > 0 && <span className="tabular-nums"> · {measured} of {qs.length} measured</span>}
-                </p>
+                <p className="text-[13px] text-muted-foreground">{FEATURES[f]?.about}</p>
+                {block && <p className={cn("text-xs tabular-nums", value === "auto" ? "text-warning" : "text-muted-foreground")}>{block}</p>}
               </div>
               <ModeControl
                 label={`${f} mode`}
                 value={value}
                 busy={busy}
                 onChange={(m) => pick(f, m)}
-                disabled={{ off: no, shadow: no, auto: no || (value !== "auto" && measured === 0 && NEED.measured) }}
+                autoReason={block}
+                disabled={{ off: no, shadow: no, auto: no }}
               />
             </li>
           );

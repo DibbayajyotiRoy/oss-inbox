@@ -17,7 +17,6 @@ import { Status } from "@/components/ui/status";
 import { api, errText } from "@/lib/api";
 import type { Me, Overview, SetupStatus } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
-import { cn } from "@/lib/utils";
 import { Continue, Flow, FlowError, FlowSkeleton, Primary, useInterval } from "./flow";
 import { Rows } from "./parts";
 
@@ -58,10 +57,10 @@ export function WelcomeFlow() {
         )
       }
       steps={[
-        { id: "key", title: "Add your decision key", subtitle: "Every decision comes from this key.", skip: s.decision_key_present ? undefined : "Skip for now", body: <KeyStep s={s} /> },
-        { id: "app", title: "Create the GitHub App", subtitle: "Private to you, with minimum access.", body: <AppStep s={s} /> },
-        { id: "install", title: "Install it on your repos", subtitle: "Choose the repositories to triage.", body: <InstallStep s={s} /> },
-        { id: "pick", title: "Pick a repository", subtitle: "Start with one. Add more later.", body: <PickStep demo={s.demo_mode} /> },
+        { id: "key", name: "Key", title: "Add your decision key", subtitle: "Every decision comes from this key.", skip: s.decision_key_present ? undefined : "Skip for now", body: <KeyStep s={s} /> },
+        { id: "app", name: "GitHub App", title: "Create the GitHub App", subtitle: "Private to you, with minimum access.", body: <AppStep s={s} /> },
+        { id: "install", name: "Install", title: "Install it on your repos", subtitle: "Choose the repositories to triage.", body: <InstallStep s={s} /> },
+        { id: "pick", name: "Repository", title: "Pick a repository", subtitle: "Start with one. Add more later.", body: <PickStep demo={s.demo_mode} /> },
       ]}
     />
   );
@@ -266,10 +265,16 @@ function PickStep({ demo }: { demo: boolean }) {
       <Rows label="Repositories" className="max-h-[50dvh] overflow-y-auto">
         {repos.map((r) => (
           <li key={r.id}>
-            <label className="flex min-h-12 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm has-[:checked]:bg-accent has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-inset hover:bg-accent/50">
-              <input type="radio" name="repo" className="peer sr-only" checked={r.id === chosen.id} onChange={() => setSel(r.id)} />
-              <span aria-hidden className="grid size-4 shrink-0 place-items-center rounded-full border border-input peer-checked:border-foreground">
-                <span className={cn("size-2 rounded-full bg-foreground motion-safe:transition-transform motion-safe:duration-150 motion-safe:ease-settle", r.id === chosen.id ? "scale-100" : "scale-0")} />
+            <label className="flex min-h-12 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm has-[:checked]:bg-accent hover:bg-accent/50">
+              <span className="relative grid size-4 shrink-0 place-items-center">
+                <input
+                  type="radio"
+                  name="repo"
+                  className="peer absolute inset-0 appearance-none rounded-full border border-input outline-none checked:border-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                  checked={r.id === chosen.id}
+                  onChange={() => setSel(r.id)}
+                />
+                <span aria-hidden className="size-2 scale-0 rounded-full bg-foreground peer-checked:scale-100 motion-safe:transition-transform motion-safe:duration-150 motion-safe:ease-settle" />
               </span>
               <span className="min-w-0 flex-1 truncate font-medium">{r.full_name}</span>
               {r.private ? <Badge variant="outline">Private</Badge> : null}

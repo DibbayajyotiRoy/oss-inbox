@@ -258,6 +258,8 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
+          role="region"
+          aria-label="Sidebar"
           className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm"
         >
           {children}
@@ -305,7 +307,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
       onClick={toggleSidebar}
       title="Toggle sidebar"
       className={cn(
-        "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 motion-safe:transition-[left,right] motion-safe:duration-150 motion-safe:ease-settle group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border motion-safe:after:transition-[scale,background-color] motion-safe:after:duration-150 motion-safe:after:ease-settle hover:after:scale-x-[2.5] sm:flex",
+        "absolute inset-y-0 z-20 hidden w-6 -translate-x-1/2 motion-safe:transition-[left,right] motion-safe:duration-150 motion-safe:ease-settle group-data-[side=left]:-right-6 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border motion-safe:after:transition-[scale,background-color] motion-safe:after:duration-150 motion-safe:after:ease-settle hover:after:scale-x-[2.5] sm:flex",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
         "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar",

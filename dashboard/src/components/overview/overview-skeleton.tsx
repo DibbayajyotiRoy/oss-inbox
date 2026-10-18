@@ -2,7 +2,7 @@ import { CardSection } from "@/components/ui/card";
 import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { StatStrip } from "@/components/ui/stat-strip";
 
-/** Mirrors the org overview: header, five readings, trend card, two repo cards. */
+/** Mirrors the org overview: header, five readings (two lead), trend card, two repo cards. */
 export function OverviewSkeleton() {
   return (
     <Busy className="flex flex-col gap-10">
@@ -10,11 +10,11 @@ export function OverviewSkeleton() {
         <Skeleton className="h-8 w-48" />
         <Skeleton className="mt-2.5 h-4 w-64" />
       </div>
-      <StatStrip className="lg:grid-cols-5 max-sm:[&>*:last-child]:col-span-2">
+      <StatStrip className="lg:grid-cols-[1.5fr_1.5fr_1fr_1fr_1fr] max-sm:[&>*:last-child]:col-span-2">
         {Array.from({ length: 5 }, (_, i) => (
           <div key={i}>
             <Skeleton className="h-4 w-20" />
-            <Skeleton className="mt-2 h-8 w-14" />
+            <Skeleton className={i < 2 ? "mt-2 h-10 w-20" : "mt-2 h-8 w-14"} />
             <Skeleton className="mt-2 h-3 w-28" />
           </div>
         ))}

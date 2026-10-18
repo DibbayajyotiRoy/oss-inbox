@@ -121,31 +121,56 @@ function DecisionRow({ x, last, canAct, reload }: { x: Decision; last?: Override
   );
 }
 
-/** Latest run first; older runs fold away. Each decision is a row with its distribution and an inline override. */
+const FOLD = "flex cursor-pointer list-none items-center gap-2 text-sm text-muted-foreground outline-none select-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden";
+const Chevron = () => <ChevronRight aria-hidden className="size-4 motion-safe:transition-transform motion-safe:duration-150 group-open:rotate-90" />;
+
+/** "3 auto-acted · 2 shadow · 9 skipped": what the latest run did, before the rows. */
+function Summary({ decisions }: { decisions: Decision[] }) {
+  const n = Map.groupBy(decisions, (x) => x.outcome);
+  const parts = Object.keys(OUTCOME).filter((k) => n.has(k));
+  return (
+    <p className="text-sm text-muted-foreground tabular-nums">
+      {parts.map((k, i) => (
+        <span key={k}>
+          {i > 0 && " · "}
+          <span className="font-medium text-foreground">{n.get(k)?.length}</span> {OUTCOME[k].label.toLowerCase()}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+/** Latest run first, skipped decisions folded away; older runs fold too. Each decision is a row with its distribution and an inline override. */
 export function Decisions({ runs, overrides, canAct, reload }: { runs: Run[]; overrides: Override[]; canAct: boolean; reload: () => void }) {
   const withDecisions = runs.filter((r) => r.decisions.length);
   if (!withDecisions.length) return <Muted>No decisions yet. They appear after Jev&apos;s first run on this item.</Muted>;
-  const list = (r: Run) => (
+  const list = (ds: Decision[]) => (
     <ul className="divide-y divide-border">
-      {r.decisions.map((x) => (
+      {ds.map((x) => (
         <DecisionRow key={x.id} x={x} last={overrides.filter((o) => o.decision_id === x.id).at(-1)} canAct={canAct} reload={reload} />
       ))}
     </ul>
   );
   const [latest, ...older] = withDecisions;
+  const skipped = latest.decisions.filter((x) => x.outcome === "skipped");
+  const rest = latest.decisions.filter((x) => x.outcome !== "skipped");
   return (
     <div className="flex flex-col gap-4">
+      <Summary decisions={latest.decisions} />
       <div className="rounded-lg border p-4">
         <p className="mb-4 text-xs text-muted-foreground">Latest run #{latest.id} · {when(latest.created_at)}</p>
-        {list(latest)}
+        {rest.length > 0 && list(rest)}
+        {skipped.length > 0 && (
+          <details className={cn("group", rest.length > 0 && "mt-4 border-t pt-3")}>
+            <summary className={cn(FOLD, "w-fit rounded-md")}><Chevron />{skipped.length} skipped</summary>
+            <div className="pt-4">{list(skipped)}</div>
+          </details>
+        )}
       </div>
       {older.map((r) => (
         <details key={r.id} className="group rounded-lg border">
-          <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm text-muted-foreground outline-none select-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-            <ChevronRight aria-hidden className="size-4 motion-safe:transition-transform motion-safe:duration-150 group-open:rotate-90" />
-            Run #{r.id} · {when(r.created_at)}
-          </summary>
-          <div className="border-t p-4">{list(r)}</div>
+          <summary className={cn(FOLD, "px-4 py-3")}><Chevron />Run #{r.id} · {when(r.created_at)}</summary>
+          <div className="border-t p-4">{list(r.decisions)}</div>
         </details>
       ))}
     </div>
@@ -175,71 +200,117 @@ export function Seen({ run }: { run?: Run }) {
   );
 }
 
+/** Phones get stacked cards (`cards`, one `li` each) instead of a table that would scroll sideways. */
+const Responsive = ({ cards, children }: { cards: ReactNode; children: ReactNode }) => (
+  <>
+    <ul className="divide-y rounded-lg border md:hidden">{cards}</ul>
+    <div className="max-md:hidden">{children}</div>
+  </>
+);
+const CARD = "flex flex-col gap-1 p-3";
+const mono = "font-mono text-[13px]";
+
 export function ActionsTaken({ actions }: { actions: ItemDetail["actions"] }) {
   if (!actions.length) return <Muted>Nothing was changed on GitHub.</Muted>;
+  const dry = (a: ItemDetail["actions"][number]) => a.dry_run && <Badge variant="warning" title="Recorded only. Nothing was written to GitHub.">Dry run</Badge>;
   return (
-    <Table>
-      <TableHeader><TableRow className="hover:bg-transparent"><TableHead>When</TableHead><TableHead>Action</TableHead><TableHead>Reference</TableHead><TableHead /></TableRow></TableHeader>
-      <TableBody>
-        {actions.map((a) => (
-          <TableRow key={a.id}>
-            <TableCell className="text-muted-foreground tabular-nums">{when(a.created_at)}</TableCell>
-            <TableCell className="font-mono text-[13px]">{a.kind}</TableCell>
-            <TableCell className="font-mono text-[13px] text-muted-foreground">{a.github_ref ?? "none"}</TableCell>
-            <TableCell className="text-right">{a.dry_run && <Badge variant="warning" title="Recorded only. Nothing was written to GitHub.">Dry run</Badge>}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <Responsive
+      cards={actions.map((a) => (
+        <li key={a.id} className={CARD}>
+          <div className="flex items-center justify-between gap-2"><span className={mono}>{a.kind}</span>{dry(a)}</div>
+          <span className={cn(mono, "break-all text-muted-foreground")}>{a.github_ref ?? "none"}</span>
+          <span className="text-xs text-muted-foreground tabular-nums">{when(a.created_at)}</span>
+        </li>
+      ))}
+    >
+      <Table>
+        <TableHeader><TableRow className="hover:bg-transparent"><TableHead>When</TableHead><TableHead>Action</TableHead><TableHead>Reference</TableHead><TableHead><span className="sr-only">Status</span></TableHead></TableRow></TableHeader>
+        <TableBody>
+          {actions.map((a) => (
+            <TableRow key={a.id}>
+              <TableCell className="text-muted-foreground tabular-nums">{when(a.created_at)}</TableCell>
+              <TableCell className={mono}>{a.kind}</TableCell>
+              <TableCell className={cn(mono, "text-muted-foreground")}>{a.github_ref ?? "none"}</TableCell>
+              <TableCell className="text-right">{dry(a)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Responsive>
   );
 }
 
 export function OverridesHistory({ overrides, runs }: { overrides: Override[]; runs: Run[] }) {
   if (!overrides.length) return <Muted>No one has overridden Jev here.</Muted>;
   const question = new Map(runs.flatMap((r) => r.decisions.map((x) => [x.id, x.question_id] as const)));
+  const list = [...overrides].reverse();
   return (
-    <Table>
-      <TableHeader><TableRow className="hover:bg-transparent"><TableHead>When</TableHead><TableHead>Who</TableHead><TableHead>Question</TableHead><TableHead>New answer</TableHead></TableRow></TableHeader>
-      <TableBody>
-        {[...overrides].reverse().map((o) => (
-          <TableRow key={o.id}>
-            <TableCell className="text-muted-foreground tabular-nums">{when(o.created_at)}</TableCell>
-            <TableCell>{o.user}</TableCell>
-            <TableCell className="font-mono text-[13px]">{question.get(o.decision_id) ?? o.decision_id}</TableCell>
-            <TableCell className="font-medium">{o.new_answer}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <Responsive
+      cards={list.map((o) => (
+        <li key={o.id} className={CARD}>
+          <span><span className={mono}>{question.get(o.decision_id) ?? o.decision_id}</span> <span className="font-medium">{o.new_answer}</span></span>
+          <span className="text-xs text-muted-foreground">{o.user} · <span className="tabular-nums">{when(o.created_at)}</span></span>
+        </li>
+      ))}
+    >
+      <Table>
+        <TableHeader><TableRow className="hover:bg-transparent"><TableHead>When</TableHead><TableHead>Who</TableHead><TableHead>Question</TableHead><TableHead>New answer</TableHead></TableRow></TableHeader>
+        <TableBody>
+          {list.map((o) => (
+            <TableRow key={o.id}>
+              <TableCell className="text-muted-foreground tabular-nums">{when(o.created_at)}</TableCell>
+              <TableCell>{o.user}</TableCell>
+              <TableCell className={mono}>{question.get(o.decision_id) ?? o.decision_id}</TableCell>
+              <TableCell className="font-medium">{o.new_answer}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Responsive>
   );
 }
 
 export function RunsTable({ runs }: { runs: Run[] }) {
   if (!runs.length) return <Muted>Jev has not evaluated this item yet.</Muted>;
+  const calibration = (r: Run) => (r.calibrated ? <Badge variant="success">Calibrated</Badge> : <Badge variant="warning" title="Probabilities from this backend are not calibrated.">Uncalibrated</Badge>);
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead>Run</TableHead><TableHead>When</TableHead><TableHead>Model</TableHead><TableHead>Calibration</TableHead>
-          <TableHead className="text-right">Latency</TableHead><TableHead className="text-right">Tokens</TableHead><TableHead className="text-right">Cost</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {runs.flatMap((r) => [
-          <TableRow key={r.id} className={r.error ? "border-b-0" : undefined}>
-            <TableCell className="tabular-nums">#{r.id} <span className="text-muted-foreground">{r.trigger}</span></TableCell>
-            <TableCell className="text-muted-foreground tabular-nums">{when(r.created_at)}</TableCell>
-            <TableCell className="font-mono text-[13px]">{r.model_version} <span className="text-muted-foreground">{r.backend}</span></TableCell>
-            <TableCell>{r.calibrated ? <Badge variant="success">Calibrated</Badge> : <Badge variant="warning" title="Probabilities from this backend are not calibrated.">Uncalibrated</Badge>}</TableCell>
-            <TableCell className="text-right tabular-nums">{r.latency_ms} ms</TableCell>
-            <TableCell className="text-right tabular-nums">{r.tokens_in.toLocaleString("en-US")}</TableCell>
-            <TableCell className="text-right tabular-nums">${r.cost_usd.toFixed(4)}</TableCell>
-          </TableRow>,
-          ...(r.error
-            ? [<TableRow key={`${r.id}-e`}><TableCell colSpan={7} className="pt-0 whitespace-normal"><Status tone="danger">Run failed: {r.error}</Status></TableCell></TableRow>]
-            : []),
-        ])}
-      </TableBody>
-    </Table>
+    <Responsive
+      cards={runs.map((r) => (
+        <li key={r.id} className={CARD}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="tabular-nums">#{r.id} <span className="text-muted-foreground">{r.trigger}</span></span>
+            {calibration(r)}
+          </div>
+          <span className={mono}>{r.model_version} <span className="text-muted-foreground">{r.backend}</span></span>
+          <span className="text-xs text-muted-foreground tabular-nums">{when(r.created_at)} · {r.latency_ms} ms · {r.tokens_in.toLocaleString("en-US")} tokens · ${r.cost_usd.toFixed(4)}</span>
+          {r.error && <Status tone="danger" className="items-start whitespace-normal">Run failed: {r.error}</Status>}
+        </li>
+      ))}
+    >
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead>Run</TableHead><TableHead>When</TableHead><TableHead>Model</TableHead><TableHead>Calibration</TableHead>
+            <TableHead className="text-right">Latency</TableHead><TableHead className="text-right">Tokens</TableHead><TableHead className="text-right">Cost</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {runs.flatMap((r) => [
+            <TableRow key={r.id} className={r.error ? "border-b-0" : undefined}>
+              <TableCell className="tabular-nums">#{r.id} <span className="text-muted-foreground">{r.trigger}</span></TableCell>
+              <TableCell className="text-muted-foreground tabular-nums">{when(r.created_at)}</TableCell>
+              <TableCell className={mono}>{r.model_version} <span className="text-muted-foreground">{r.backend}</span></TableCell>
+              <TableCell>{calibration(r)}</TableCell>
+              <TableCell className="text-right tabular-nums">{r.latency_ms} ms</TableCell>
+              <TableCell className="text-right tabular-nums">{r.tokens_in.toLocaleString("en-US")}</TableCell>
+              <TableCell className="text-right tabular-nums">${r.cost_usd.toFixed(4)}</TableCell>
+            </TableRow>,
+            ...(r.error
+              ? [<TableRow key={`${r.id}-e`}><TableCell colSpan={7} className="pt-0 whitespace-normal"><Status tone="danger">Run failed: {r.error}</Status></TableCell></TableRow>]
+              : []),
+          ])}
+        </TableBody>
+      </Table>
+    </Responsive>
   );
 }

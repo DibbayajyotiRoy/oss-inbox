@@ -39,18 +39,22 @@ function AvatarImage({
 
 function AvatarFallback({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
-      aria-hidden // an initial beside the name it repeats: it must not become part of the control's accessible name
+      aria-hidden // an initial beside the name it repeats: drawn by CSS, so it is neither in the control's accessible name nor its visible text
+      data-initial={typeof children === "string" ? children : undefined}
       className={cn(
-        "flex size-full items-center justify-center rounded-full bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs",
+        "flex size-full items-center justify-center before:content-[attr(data-initial)] rounded-full bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs",
         className
       )}
       {...props}
-    />
+    >
+      {typeof children === "string" ? null : children}
+    </AvatarPrimitive.Fallback>
   )
 }
 

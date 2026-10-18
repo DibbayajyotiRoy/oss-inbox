@@ -4,17 +4,18 @@ import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/ui/code-block";
-import { ModeControl } from "@/components/ui/mode-control";
+import { ModeControl, autoReason } from "@/components/ui/mode-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
 import { pct } from "@/lib/fmt";
-import { CONFIG_PATH, FEATURES, NEED, featureModes, type Repo } from "@/lib/types";
+import { CONFIG_PATH, FEATURES, featureModes, type Repo } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { useModeEdits } from "@/lib/use-mode-edits";
 import { Continue, useInterval } from "./flow";
 import { Rows } from "./parts";
 
 /**
- * Per-feature mode: off, shadow (suggest only) or auto. Auto is open only where a question of that feature is
+ * Per-feature mode: off, shadow (suggest only) or auto. Auto is open only where every question of that feature is
  * measured. Changes are collected into one rendered file, because Jev never writes to the repo.
  */
 export function ModesStep({ repo, reload }: { repo: Repo; reload: () => void }) {
@@ -28,7 +29,9 @@ export function ModesStep({ repo, reload }: { repo: Repo; reload: () => void }) 
         {featureModes(repo).map(([f]) => {
           const { name, about } = FEATURES[f] ?? { name: f, about: "" };
           const value = mode(f);
-          const best = repo.questions.filter((q) => q.feature === f && q.measured).sort((a, b) => b.n - a.n)[0];
+          const qs = repo.questions.filter((q) => q.feature === f);
+          const best = qs.filter((q) => q.measured).sort((a, b) => b.n - a.n)[0];
+          const block = autoReason(qs);
           return (
             <li key={f} className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
@@ -37,12 +40,12 @@ export function ModesStep({ repo, reload }: { repo: Repo; reload: () => void }) 
                   {value !== repo.features[f] ? <Badge variant="warning">Not committed</Badge> : null}
                 </div>
                 <p className="text-[13px] text-muted-foreground">{about}</p>
-                <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-                  {best ? `Measured: ${best.id} ${pct(best.accuracy)}, n=${best.n.toLocaleString()}` : "Not measured yet"}
-                  {best && (best.accuracy ?? 1) < best.threshold ? <span className="text-warning"> · below its {pct(best.threshold)} threshold</span> : null}
-                </p>
+                {best && (
+                  <p className="mt-1 text-xs text-muted-foreground tabular-nums">Measured: {best.id} {pct(best.accuracy)}, n={best.n.toLocaleString()}</p>
+                )}
+                {block && <p className={cn("text-xs", !best && "mt-1", value === "auto" ? "text-warning" : "text-muted-foreground")}>{block}</p>}
               </div>
-              <ModeControl label={`${name} mode`} value={value} busy={busy} onChange={(m) => pick(f, m)} disabled={{ auto: !best && NEED.measured }} />
+              <ModeControl label={`${name} mode`} value={value} busy={busy} onChange={(m) => pick(f, m)} autoReason={block} />
             </li>
           );
         })}

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useSeeded } from "@/lib/seed";
 import type { Repo } from "@/lib/types";
 
 /** Labelled decisions behind a repo's accuracy number (the n of "91% n = 412"). */
@@ -10,13 +11,18 @@ const NONE: Record<number, Repo> = {};
 
 /**
  * Detail (feature modes, question n) for the given repos, fetched in parallel. The overview card has neither.
- * `undefined` while loading; a repo whose request failed is absent from the map.
+ * Starts from server data (`Seed`) when every repo shipped with the page. `undefined` while loading; a repo whose
+ * request failed is absent from the map.
  */
 export function useRepoDetails(ids: number[]) {
+  const seeded = useSeeded();
   const key = ids.join(",");
-  const [res, setRes] = useState<{ key: string; byId: Record<number, Repo> }>();
+  const [res, setRes] = useState<{ key: string; byId: Record<number, Repo> } | undefined>(() => {
+    const repos = ids.map((id) => seeded(`/api/repos/${id}`) as Repo | undefined);
+    return key && repos.every(Boolean) ? { key, byId: Object.fromEntries(repos.map((r) => [r!.id, r!])) } : undefined;
+  });
   useEffect(() => {
-    if (!key) return;
+    if (!key || res?.key === key) return;
     let live = true;
     Promise.allSettled(key.split(",").map((id) => api<Repo>(`/api/repos/${id}`))).then((rs) => {
       if (live) setRes({ key, byId: Object.fromEntries(rs.flatMap((r) => (r.status === "fulfilled" ? [[r.value.id, r.value]] : []))) });
@@ -24,6 +30,6 @@ export function useRepoDetails(ids: number[]) {
     return () => {
       live = false;
     };
-  }, [key]);
+  }, [key, res]);
   return key === "" ? NONE : res?.key === key ? res.byId : undefined;
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronsUpDown, Keyboard, LogOut, SunMoon } from "lucide-react"
 
@@ -33,6 +34,8 @@ export function UserMenu({ onShortcuts }: { onShortcuts: () => void }) {
   const { isMobile } = useSidebar()
   const signOut = useSignOut()
   const { toggle } = useThemeToggle()
+  // A dialog opened from the menu waits until the menu has handed focus back to its trigger, so Esc returns there.
+  const later = useRef<() => void>(null)
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -47,13 +50,22 @@ export function UserMenu({ onShortcuts }: { onShortcuts: () => void }) {
               <ChevronsUpDown className="ml-auto opacity-60" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side={isMobile ? "top" : "right"} align="end" className="min-w-52">
+          <DropdownMenuContent
+            side={isMobile ? "top" : "right"}
+            align="end"
+            className="min-w-52"
+            onCloseAutoFocus={() => {
+              const run = later.current
+              later.current = null
+              if (run) queueMicrotask(run)
+            }}
+          >
             <DropdownMenuLabel className="font-normal text-muted-foreground">Signed in as {me.login}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={toggle}>
               <SunMoon /> Toggle theme
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onShortcuts}>
+            <DropdownMenuItem onSelect={() => (later.current = onShortcuts)}>
               <Keyboard /> Keyboard shortcuts <DropdownMenuShortcut>?</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

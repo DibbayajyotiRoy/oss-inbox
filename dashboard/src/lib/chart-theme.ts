@@ -22,6 +22,15 @@ const ROLES = {
 
 export type ChartRole = keyof typeof ROLES;
 
+// Black or white, whichever has more contrast on the hex (WCAG luminance; the two tie at L = 0.179).
+const onFill = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.179 ? "#111113" : "#fcfcfd";
+};
+
+/** Readable text colour per theme for a label drawn on top of a role's fill (bar segment labels). */
+export const ink = (role: ChartRole) => ({ light: onFill(ROLES[role].light), dark: onFill(ROLES[role].dark) });
+
 type Spec = string | { role: ChartRole; label: string };
 
 /**

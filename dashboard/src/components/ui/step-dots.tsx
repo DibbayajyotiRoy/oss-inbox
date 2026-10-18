@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 
-/** Onboarding progress: dots plus a muted "Step 2 of 6" caption (no chip). `step` is 1-based. */
-export function StepDots({ step, total, className }: { step: number; total: number; className?: string }) {
+/** Onboarding progress: dots plus a muted "Step 2 of 6 · Labels" caption (no chip). `step` is 1-based; `name` is one or two words. */
+export function StepDots({ step, total, name, className }: { step: number; total: number; name?: string; className?: string }) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <ol aria-hidden className="flex items-center gap-1.5">
@@ -17,6 +17,7 @@ export function StepDots({ step, total, className }: { step: number; total: numb
       </ol>
       <p className="text-xs text-muted-foreground tabular-nums">
         Step {step} of {total}
+        {name ? ` · ${name}` : null}
       </p>
     </div>
   )

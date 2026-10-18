@@ -9,6 +9,7 @@ import { useCommands } from "@/components/shell/commands";
 import { useShell } from "@/components/shell/shell-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InlineCode } from "@/components/ui/inline-code";
 import { Kbd } from "@/components/ui/kbd";
 import { Load } from "@/components/ui/load";
 import { PageHeader } from "@/components/ui/page-header";
@@ -81,7 +82,7 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
         </nav>
         <PageHeader
           className="mb-0"
-          title={item.title}
+          title={<InlineCode text={item.title} />}
           description={
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <Badge variant="outline">{item.kind.replace("_", " ")}</Badge>

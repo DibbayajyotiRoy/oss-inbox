@@ -45,12 +45,12 @@ export function RepoFlow({ repoId }: { repoId: number }) {
         </div>
       }
       steps={[
-        { id: "enable", title: "Turn on this repository", subtitle: "It starts in shadow mode.", body: <EnableStep repo={repo} reload={res.reload} /> },
-        { id: "labels", title: "Create the labels", subtitle: "Jev tags items with these.", body: <LabelsStep repoId={repoId} /> },
-        { id: "config", title: "Add a config file", subtitle: "Defaults work without it.", optional: true, body: <ConfigStep repo={repo} /> },
-        { id: "measure", title: "Measure its accuracy", subtitle: "Replay your history before anything acts.", body: <MeasureStep repo={repo} reload={res.reload} /> },
-        { id: "modes", title: "Choose what may act", subtitle: "Shadow suggests. Auto acts.", body: <ModesStep repo={repo} reload={res.reload} /> },
-        { id: "done", title: "Ready for live items", subtitle: "Watch the queue fill in shadow mode.", body: <DoneStep repo={repo} /> },
+        { id: "enable", name: "Enable", title: "Turn on this repository", subtitle: "It starts in shadow mode.", body: <EnableStep repo={repo} reload={res.reload} /> },
+        { id: "labels", name: "Labels", title: "Create the labels", subtitle: "Jev tags items with these.", body: <LabelsStep repoId={repoId} /> },
+        { id: "config", name: "Config", title: "Add a config file", subtitle: "Defaults work without it.", optional: true, body: <ConfigStep repo={repo} /> },
+        { id: "measure", name: "Measure", title: "Measure its accuracy", subtitle: "Replay your history before anything acts.", body: <MeasureStep repo={repo} reload={res.reload} /> },
+        { id: "modes", name: "Modes", title: "Choose what may act", subtitle: "Shadow suggests. Auto acts.", body: <ModesStep repo={repo} reload={res.reload} /> },
+        { id: "done", name: "Done", title: "Ready for live items", subtitle: "Watch the queue fill in shadow mode.", body: <DoneStep repo={repo} /> },
       ]}
     />
   );

@@ -1,6 +1,6 @@
 // Threshold what-if maths, off the main thread so the slider never stutters.
 // "load" sorts the points once, builds prefix sums and the distribution; each "query" is then a binary search.
-import type { Bin } from "@/components/measure/threshold-chart";
+import type { Bin } from "@/components/measure/threshold-scale";
 
 type Pt = { confidence: number; correct: boolean | null };
 export type In = { op: "load"; points: Pt[] } | { op: "query"; t: number };

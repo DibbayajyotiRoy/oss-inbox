@@ -1,3 +1,4 @@
+import { InlineCode } from "@/components/ui/inline-code";
 import { Meter } from "@/components/ui/meter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { age } from "@/lib/fmt";
@@ -32,7 +33,7 @@ export function Row({ e, start, focused, onSelect }: { e: QueueEntry; start: num
       )}
     >
       <div className="flex items-baseline gap-3">
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">{e.item.title}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium"><InlineCode text={e.item.title} /></span>
         <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{age(e.age_hours)}</span>
       </div>
       <p className="truncate text-xs text-muted-foreground">

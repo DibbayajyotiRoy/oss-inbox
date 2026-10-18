@@ -1,18 +1,18 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { createContext, Suspense, useContext, type ReactElement, type ReactNode } from "react";
-import { ArrowRight, Lock, TriangleAlert } from "lucide-react";
+import { createContext, Suspense, useContext, type ReactNode } from "react";
+import { ArrowRight, ChevronDown, Lock, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InfoHint } from "@/components/ui/info-hint";
-import { MODE_VARIANT } from "@/components/ui/mode-control";
+import { MODE_LABEL, MODE_VARIANT, WAITING, autoReason } from "@/components/ui/mode-control";
 import { Load } from "@/components/ui/load";
 import { Notice } from "@/components/ui/notice";
 import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { repoPath } from "@/lib/fmt";
-import { CONFIG_PATH, featureModes, type Mode, type Repo } from "@/lib/types";
+import { CONFIG_PATH, FEATURES, featureModes, type Repo } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 
 const Ctx = createContext<{ repo: Repo; reload: () => void } | null>(null);
@@ -22,12 +22,6 @@ export function useRepo() {
   if (!c) throw new Error("useRepo outside repo layout");
   return { ...c, canAct: c.repo.role !== "viewer", isAdmin: c.repo.role === "admin" };
 }
-
-const MODE_TIP: Record<Mode, string> = {
-  off: "Does nothing.",
-  shadow: "Records decisions and queues suggestions. Never acts.",
-  auto: "Acts on confident answers from measured questions.",
-};
 
 /** Loads the repo in the URL (server data when the page shipped with it), then renders its identity strip and the page under it. */
 export function RepoGate({ children }: { children: ReactNode }) {
@@ -48,20 +42,47 @@ export function RepoGate({ children }: { children: ReactNode }) {
 /** The only place this app links to onboarding. */
 const onboardingHref = (id: number) => `/onboarding/${id}`;
 
-const Tip = ({ tip, children }: { tip: ReactNode; children: ReactElement }) => (
-  <Tooltip>
-    <TooltipTrigger asChild>{children}</TooltipTrigger>
-    <TooltipContent>{tip}</TooltipContent>
-  </Tooltip>
-);
+/** Every lane and its mode in one chip ("7 lanes · 4 auto · 3 shadow"); the list behind it links to Settings. */
+function Lanes({ repo }: { repo: Repo }) {
+  const lanes = featureModes(repo).map(([f, m]) => ({ f, m: m === "auto" && autoReason(repo.questions.filter((q) => q.feature === f)) ? ("waiting" as const) : m }));
+  const count = (m: string) => lanes.filter((l) => l.m === m).length;
+  const parts = [`${lanes.length} lanes`, ...(["auto", "waiting", "shadow", "off"] as const).filter(count).map((m) => `${count(m)} ${m}`)];
+  const waiting = count("waiting") > 0;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Badge asChild variant={waiting ? "warning" : "outline"} className="h-6 cursor-pointer font-mono">
+          <button type="button">
+            {waiting && <TriangleAlert aria-hidden />}
+            {parts.join(" · ")}
+            <ChevronDown aria-hidden />
+          </button>
+        </Badge>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-80">
+        <DropdownMenuLabel>Lanes</DropdownMenuLabel>
+        {lanes.map(({ f, m }) => (
+          <DropdownMenuItem key={f} asChild>
+            <Link href={`${repoPath(repo.id, "settings")}?s=automation`}>
+              <span className="truncate">{FEATURES[f]?.name ?? f}</span>
+              <Badge variant={m === "waiting" ? "warning" : MODE_VARIANT[m]} className="ml-auto">
+                {m === "waiting" ? WAITING : MODE_LABEL[m]}
+              </Badge>
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
-/** A compact identity strip, not a page heading (each page renders its own h1): name, backend and mode chips, then the two states worth interrupting for, a config that failed to parse and setup not finished. */
+/** A compact identity strip, one line: name, backend, role and a lanes summary; then the two states worth interrupting for, a config that failed to parse and setup not finished. */
 export function RepoHeader({ repo }: { repo: Repo }) {
   const settings = repoPath(repo.id, "settings");
   return (
     <header className="mb-6" aria-label="Repository">
-      <ul className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&>li]:shrink-0">
-        <li className="mr-1.5 text-sm font-semibold">{repo.full_name}</li>
+      <ul className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <li className="mr-1 text-sm font-semibold">{repo.full_name}</li>
         {repo.private && (
           <li>
             <Badge variant="outline">
@@ -75,7 +96,6 @@ export function RepoHeader({ repo }: { repo: Repo }) {
             <Status tone="neutral">Disabled</Status>
           </li>
         )}
-        <li aria-hidden className="mx-1 h-4 w-px bg-border" />
         <li>
           <Badge variant="outline" className="font-mono">
             <span className="sr-only">Decision backend and model: </span>
@@ -99,18 +119,9 @@ export function RepoHeader({ repo }: { repo: Repo }) {
             {repo.role}
           </Badge>
         </li>
-        <li aria-hidden className="mx-1 h-4 w-px bg-border" />
-        {featureModes(repo).map(([f, m]) => (
-          <li key={f}>
-            <Tip tip={`${f} is ${m}. ${MODE_TIP[m]}`}>
-              <Badge asChild variant={MODE_VARIANT[m]} className="font-mono">
-                <Link href={`${settings}?s=automation`}>
-                  {f} · {m}
-                </Link>
-              </Badge>
-            </Tip>
-          </li>
-        ))}
+        <li>
+          <Lanes repo={repo} />
+        </li>
       </ul>
       {repo.config_error && (
         <Notice

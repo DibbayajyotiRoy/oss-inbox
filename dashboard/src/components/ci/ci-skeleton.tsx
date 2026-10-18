@@ -6,7 +6,7 @@ export function CiSkeleton() {
   return (
     <Busy className="flex flex-col gap-6">
       <CardSection title="Outcomes">
-        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-28 w-full sm:h-20" />
       </CardSection>
       <ul className="divide-y rounded-xl border bg-card">
         {Array.from({ length: 5 }, (_, i) => (

@@ -75,6 +75,8 @@ export function FlowError({ error, retry }: { error: Error; retry?: () => void }
 
 export interface FlowStep {
   id: string;
+  /** One or two words, shown as "Step n of N · name". */
+  name: string;
   /** At most 6 words. */
   title: string;
   /** At most 8 words. */
@@ -185,7 +187,7 @@ export function Flow({ steps, initial = 0, right }: { steps: FlowStep[]; initial
     >
       <div ref={scroller} className="mx-auto w-full max-w-3xl px-4 pt-8 pb-10 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-250 sm:px-6 sm:pt-12">
         <div className="mb-6 flex items-center gap-3">
-          <StepDots step={nav.i + 1} total={steps.length} />
+          <StepDots step={nav.i + 1} total={steps.length} name={step.name} />
           {step.optional ? <span className="text-xs text-muted-foreground">Optional</span> : null}
         </div>
         <div ref={slide}>

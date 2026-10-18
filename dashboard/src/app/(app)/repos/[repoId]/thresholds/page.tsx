@@ -1,9 +1,10 @@
 "use client";
 import { RotateCcw } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useId, useState } from "react";
-import { snap, ThresholdChart, type Bin } from "@/components/measure/threshold-chart";
+import { useCallback, useEffect, useId, useState } from "react";
+import { snap, type Bin } from "@/components/measure/threshold-scale";
 import { useRepo } from "@/components/repo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,13 @@ import type { Counts } from "./preview.worker";
 import { usePreview } from "./use-preview";
 
 const same = (a: number, b: number) => Math.abs(a - b) < 0.0005;
+
+// Recharts + the Evil area chart load on demand (a Panel starts the fetch as it mounts, beside its data); the skeleton has the chart's exact height, so nothing shifts.
+const loadChart = () => import("@/components/measure/threshold-chart").then((m) => m.ThresholdChart);
+const ThresholdChart = dynamic(loadChart, {
+  ssr: false,
+  loading: () => <Skeleton className="h-64 w-full" />,
+});
 
 export default function Thresholds() {
   const { repo } = useRepo();
@@ -138,6 +146,7 @@ function Panel({ repo, q, value, edited, recommended, evalN, set }: {
   const onChange = useCallback((v: number) => set(q.id, v), [set, q.id]);
   const { res, empty, bins, counts } = usePreview(repo.id, q.id, value);
   const reading = useId();
+  useEffect(() => void loadChart(), []);
   return (
     <CardSection
       title={<span className="font-mono">{q.id}</span>}
@@ -184,6 +193,7 @@ function Body({ repoId, q, value, edited, recommended, evalN, bins, counts: c, o
   bins: Bin[]; counts: Counts; onChange: (v: number) => void;
 }) {
   const labeled = c.acted - c.unmeasured; // auto-acted with a known answer
+  const [peek, setPeek] = useState(false); // hovering or focusing "Use recommended" lights its line on the chart
   const roll = (n: number, cls?: string) => <span className={cn("text-3xl sm:text-4xl", cls)}><NumberTicker value={n} locale animateOnMount={false} duration={0.4} /></span>;
   return (
     <>
@@ -195,7 +205,7 @@ function Body({ repoId, q, value, edited, recommended, evalN, bins, counts: c, o
           <li className="flex items-center gap-1.5"><i className="h-3 w-0.5 rounded-full bg-warning" />Threshold</li>
           {recommended != null && <li className="flex items-center gap-1.5"><i className="h-3 w-0 border-l-2 border-dashed border-warning/70" />Recommended {pct(recommended)}</li>}
         </ul>
-        <ThresholdChart bins={bins} value={value} onChange={onChange} recommended={recommended} label={`Threshold for ${q.id}`} describedBy={reading} />
+        <ThresholdChart bins={bins} value={value} onChange={onChange} recommended={recommended} peek={peek} label={`Threshold for ${q.id}`} describedBy={reading} />
       </div>
 
       <StatStrip className="grid-cols-3 gap-x-4 sm:gap-x-8 lg:grid-cols-3">
@@ -235,7 +245,19 @@ function Body({ repoId, q, value, edited, recommended, evalN, bins, counts: c, o
       </p>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
-        <Button variant="secondary" size="sm" disabled={recommended == null || same(value, recommended)} onClick={() => recommended != null && onChange(snap(recommended))}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={recommended == null || same(value, recommended)}
+          onPointerEnter={() => setPeek(true)}
+          onPointerLeave={() => setPeek(false)}
+          onFocus={() => setPeek(true)}
+          onBlur={() => setPeek(false)}
+          onClick={() => {
+            setPeek(false);
+            if (recommended != null) onChange(snap(recommended));
+          }}
+        >
           Use recommended{recommended != null && ` ${pct(recommended)}`}
         </Button>
         <Button variant="ghost" size="sm" disabled={same(value, q.default_threshold)} onClick={() => onChange(snap(q.default_threshold))}>

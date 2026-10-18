@@ -7,13 +7,7 @@ import { ReferenceArea, ReferenceLine } from "recharts";
 import { EvilAreaChart } from "@/components/evilcharts/charts/recharts-area-chart";
 import { chartTheme } from "@/lib/chart-theme";
 import { cn } from "@/lib/utils";
-
-/** One confidence bucket of the history, as stacked counts. */
-export type Bin = { x: number; wrong: number; correct: number; unlabeled: number };
-
-export const MIN = 0.5;
-export const MAX = 0.99;
-export const snap = (v: number) => Math.min(MAX, Math.max(MIN, Math.round(v * 100) / 100));
+import { MAX, MIN, snap, type Bin } from "./threshold-scale";
 
 const PAD = 14; // chart side margin: the overlay slider and the pill are laid out against it
 const THUMB = 40; // transparent hit area of the native thumb (a finger-sized column)
@@ -46,6 +40,7 @@ export const ThresholdChart = memo(function ThresholdChart({
   value,
   onChange,
   recommended,
+  peek,
   label,
   describedBy,
 }: {
@@ -53,6 +48,7 @@ export const ThresholdChart = memo(function ThresholdChart({
   value: number;
   onChange: (v: number) => void;
   recommended?: number | null;
+  peek?: boolean; // the recommended line is being previewed (hovering its button)
   label: string;
   describedBy?: string;
 }) {
@@ -93,7 +89,7 @@ export const ThresholdChart = memo(function ThresholdChart({
         <EvilAreaChart.Area dataKey="wrong" variant="solid" strokeVariant="solid" strokeWidth={1.5} />
         <EvilAreaChart.Area dataKey="correct" variant="lines" strokeVariant="solid" strokeWidth={1.5} />
         <EvilAreaChart.Area dataKey="unlabeled" variant="hatched" strokeVariant="dashed" />
-        {recommended != null && <ReferenceLine x={recommended} stroke="var(--warning)" strokeDasharray="4 4" strokeOpacity={0.7} />}
+        {recommended != null && <ReferenceLine x={recommended} stroke="var(--warning)" strokeDasharray="4 4" strokeOpacity={peek ? 1 : 0.7} strokeWidth={peek ? 2 : 1} />}
         <ReferenceLine x={shown} stroke="var(--warning)" strokeWidth={2} />
       </EvilAreaChart>
 
