@@ -30,6 +30,8 @@ text is `text-muted-foreground`. Types live in one file, `@/lib/types` (API shap
 | `empty-state` | `EmptyState` `{title (<=6 words), description? (<=10), action? (one), art?: inbox\|chart\|done}` |
 | `stat-strip` | `StatStrip` (unboxed `<dl>`) with `Stat` `{label, value, detail?, hint?, href?}`; put `n = ...` in `detail` for accuracy |
 | `table` | `Table` `{sticky?}`, `TableHeader/Body/Row/Head/Cell`; `sticky` pins header cells to the page scroller (table then clips instead of scrolling sideways) |
+| **`data-table`** | `DataTable` `{columns: {key, header, cell?, align?, width?, className?}[], rows, rowKey, label, storageKey?, defaultRows = 10, onRowClick?, rowHref?, empty?, className?}`: **the one table for every list of rows** (raw `Table` parts only for layout tables). Shows at most N rows, then the body scrolls under a sticky header; the footer "Rows 5 / 10 / 25 / 50 / All" + "Showing N of M" is the user's choice, remembered per `storageKey` (hidden at <= 5 rows). Box height is measured from the first N rows, so it never jumps. Below sm it scrolls sideways with a fade edge. Client components only. The header paints `bg-card`: on a bare page add `className="[&_th]:bg-background"`. `rowHref` makes the first cell a real link and the row clickable; `onRowClick` also gets Enter/Space |
+| **`section-nav`** | `SectionNav` wraps a long page's `Section` `{id, label}` blocks; sections are discovered from the DOM, so ones that mount after a fetch join the nav. xl+: sticky right rail with the section being read marked (`aria-current="location"`); below xl: sticky "On this page" menu. Click smooth-scrolls (instant under reduced motion), sets `#id`, focuses the heading. Spy runs on `#content`. Needs 2+ sections, else hidden. Put it below the `PageHeader` |
 | `progress` | `Progress` `{value 0..100, label}` |
 | `kbd` | `Kbd` |
 | `code-block` | `CodeBlock` `{code, filename?, lineNumbers?}` mono + copy button. `CopyButton` (`copy-button`) `{value, label?, variant?, size?}` |
@@ -130,4 +132,25 @@ const config = chartTheme({ acted: "Auto-acted", queued: "Queued" })
 <Meter value={s.confidence} threshold={s.threshold} />                      {/* row */}
 <Meter value={0.87} threshold={0.8} size="md" label="Duplicate of #123" />  {/* detail */}
 <Meter value={null} />                                                      {/* not measured */}
+```
+
+```tsx
+<DataTable
+  label="Audit log" storageKey="audit" rows={rows} rowKey={(r) => r.id}
+  rowHref={(r) => `/items/${r.id}`}                       // optional; or onRowClick={(r) => ...}
+  columns={[
+    { key: "actor", header: "Actor" },                    // default cell: row.actor, "–" when empty
+    { key: "action", header: "Action", cell: (r) => <code>{r.action}</code> },
+    { key: "target", header: "Target", className: "max-sm:hidden" },
+    { key: "at", header: "When", align: "right", cell: (r) => when(r.at) },
+  ]}
+/>
+
+<PageHeader title="Settings" />
+<SectionNav>
+  <div className="flex flex-col gap-10">
+    <Section id="labels" label="Labels"><CardSection title="Labels">...</CardSection></Section>
+    <Section id="tokens" label="Tokens"><CardSection title="Tokens">...</CardSection></Section>
+  </div>
+</SectionNav>
 ```

@@ -3,7 +3,9 @@ import { CircleDot, CircleCheck, ExternalLink, GitMerge, type LucideIcon } from 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { itemRef } from "@/components/review/row";
+import { OpenedBy } from "@/components/review/author";
+import { itemRef, kindName } from "@/components/review/row";
+import { OpenInVSCode } from "@/components/review/vscode";
 import { ActionsTaken, Decisions, OverridesHistory, RunsTable, Section, Seen } from "@/components/review/item-sections";
 import { useCommands } from "@/components/shell/commands";
 import { useShell } from "@/components/shell/shell-context";
@@ -15,7 +17,7 @@ import { Load } from "@/components/ui/load";
 import { PageHeader } from "@/components/ui/page-header";
 import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Status, type StatusTone } from "@/components/ui/status";
-import { day, repoPath } from "@/lib/fmt";
+import { repoPath } from "@/lib/fmt";
 import type { ItemDetail } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 
@@ -56,7 +58,7 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
 
   useCommands([
     { id: "item:github", label: "Open on GitHub", group: "Item", icon: ExternalLink, keys: "o", run: github },
-    { id: "item:back", label: `Back to ${list.endsWith("/held") ? "held" : "queue"}`, group: "Item", keys: "Esc", run: back },
+    { id: "item:back", label: `Back to ${list.endsWith("/held") ? "held" : "needs review"}`, group: "Item", keys: "Esc", run: back },
   ]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -73,7 +75,7 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
       <div>
         <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <Link href={list} className="rounded-sm outline-none link-grow hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
-            {list.endsWith("/held") ? "Held" : "Queue"}
+            {list.endsWith("/held") ? "Held" : "Needs review"}
           </Link>
           <span aria-hidden>/</span>
           <span>{card?.full_name ?? "Repository"}</span>
@@ -85,7 +87,7 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
           title={<InlineCode text={item.title} />}
           description={
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <Badge variant="outline">{item.kind.replace("_", " ")}</Badge>
+              <Badge variant="outline">{kindName(item.kind)}</Badge>
               {item.html_url ? (
                 <a href={item.html_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 tabular-nums link-grow hover:text-foreground">
                   {ref}<ExternalLink aria-hidden className="size-3" /><span className="sr-only">Open on GitHub</span>
@@ -93,13 +95,13 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
               ) : (
                 <span className="tabular-nums">{ref}</span>
               )}
-              <span>{item.author ?? "unknown author"}</span>
+              <OpenedBy who={item} at={item.created_at} />
               <Status tone={s.tone} icon={s.icon} className="capitalize">{item.state}</Status>
-              <span className="tabular-nums">{day(item.created_at)}</span>
             </span>
           }
           actions={
             <>
+              <OpenInVSCode item={item} />
               {item.html_url && (
                 <Button variant="outline" size="sm" onClick={github}>
                   Open on GitHub<Kbd className="max-sm:hidden">O</Kbd>
@@ -113,13 +115,13 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
         />
       </div>
 
-      <Section title="Decisions" aside={runs.length ? `${runs.length} ${runs.length === 1 ? "run" : "runs"}` : undefined}>
+      <Section title="What Jev decided" aside={runs.length ? `${runs.length} ${runs.length === 1 ? "check" : "checks"}` : undefined}>
         <Decisions runs={runs} overrides={d.overrides} canAct={card?.role !== "viewer"} reload={reload} />
       </Section>
       <Seen run={runs[0]} />
-      <Section title="Actions taken"><ActionsTaken actions={d.actions} /></Section>
-      <Section title="Override history"><OverridesHistory overrides={d.overrides} runs={runs} /></Section>
-      <Section title="Runs"><RunsTable runs={runs} /></Section>
+      <Section title="What was done on GitHub"><ActionsTaken actions={d.actions} /></Section>
+      <Section title="Answers changed by people"><OverridesHistory overrides={d.overrides} runs={runs} /></Section>
+      <Section title="Checks Jev ran"><RunsTable runs={runs} /></Section>
     </div>
   );
 }

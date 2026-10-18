@@ -30,11 +30,11 @@ export function ReportGroup({ test, reports, repoId, fullName }: { test: string;
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen(!open)}
-        className="grid w-full gap-x-4 gap-y-1 px-4 py-3.5 text-left outline-none motion-safe:transition-colors motion-safe:duration-150 hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:px-5"
+        className="grid w-full gap-x-4 gap-y-1 px-4 py-3.5 text-left outline-none motion-safe:transition-colors motion-safe:duration-150 hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:grid-cols-[11rem_minmax(0,1fr)_auto] sm:px-5"
       >
         <span className="flex items-center gap-1.5 self-start">
           <ChevronRight aria-hidden className={cn("size-3.5 shrink-0 text-muted-foreground motion-safe:transition-transform motion-safe:duration-150 motion-safe:ease-settle", open && "rotate-90")} />
-          <span className="sr-only">Latest outcome: </span>
+          <span className="sr-only">Latest result: </span>
           <OutcomeStatus outcome={latest.outcome} />
         </span>
         <TestName id={test} className="min-w-0 self-center" />

@@ -4,14 +4,14 @@ import { ArrowRight } from "lucide-react";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Stat, StatStrip } from "@/components/ui/stat-strip";
-import { pct, repoPath } from "@/lib/fmt";
+import { answers, pct, repoPath } from "@/lib/fmt";
 import type { Repo, RepoCard } from "@/lib/types";
 import { labelled } from "./use-repo-details";
 
 const count = (n: number) => <NumberTicker value={n} locale animateOnMount={false} />;
 const big = (v: React.ReactNode) => <span className="text-4xl leading-10">{v}</span>; // the two readings to act on
 
-/** Org-level readings summed from the repo cards. The queue and measured accuracy lead; accuracy is weighted by n once repo details are in. */
+/** Org-level readings summed from the repo cards. What needs review and how often Jev is right lead; accuracy is weighted by n once repo details are in. */
 export function OrgStats({ repos, details }: { repos: RepoCard[]; details?: Record<number, Repo> }) {
   const sum = (f: (r: RepoCard) => number) => repos.reduce((a, r) => a + f(r), 0);
   const trend = (k: "acted" | "queued") => sum((r) => r.trend.reduce((a, d) => a + d[k], 0));
@@ -30,7 +30,7 @@ export function OrgStats({ repos, details }: { repos: RepoCard[]; details?: Reco
   return (
     <StatStrip className="lg:grid-cols-[1.5fr_1.5fr_1fr_1fr_1fr] max-sm:[&>*:last-child]:col-span-2">
       <Stat
-        label="In queue"
+        label="Needs review"
         value={big(count(queued))}
         detail={
           queued ? (
@@ -45,18 +45,18 @@ export function OrgStats({ repos, details }: { repos: RepoCard[]; details?: Reco
         }
       />
       <Stat
-        label="Measured accuracy"
+        label="How often right"
         value={big(measured.length === 0 ? "–" : details ? pct(accuracy) : <Skeleton className="h-10 w-20" />)}
-        detail={measured.length === 0 ? "not measured yet" : details ? (n > 0 ? `n=${n.toLocaleString()}, ${measured.length} of ${repos.length} repos` : `mean of ${measured.length} repos, n unknown`) : "…"}
-        hint="Agreement with maintainers' own decisions and backfilled history. Backfilled accuracy is an upper bound."
+        detail={measured.length === 0 ? "not checked yet" : details ? (n > 0 ? `out of ${answers(n)}, ${measured.length} of ${repos.length} repos` : `average of ${measured.length} repos, answers unknown`) : "…"}
+        hint="How often Jev matched your answers, including past issues checked in bulk. Probably a bit lower in real use."
       />
       <Stat
-        label="Auto-acted"
+        label="Acted by itself"
         value={decided ? pct(acted / decided) : "–"}
         detail={decided ? `${acted.toLocaleString()} of ${decided.toLocaleString()} decisions` : "no decisions yet"}
-        hint="Decisions Jev acted on without a human, out of those acted on or queued. Shadow decisions are excluded."
+        hint="Share of decisions Jev acted on without a person, out of those it acted on or sent for review. Learning decisions are left out."
       />
-      <Stat label="Held" value={count(held)} detail={held ? `most in ${top("held_open").full_name}` : "nothing held"} href={held ? repoPath(top("held_open").id, "held") : undefined} />
+      <Stat label="Held for a check" value={count(held)} detail={held ? `most in ${top("held_open").full_name}` : "nothing held"} href={held ? repoPath(top("held_open").id, "held") : undefined} />
       <Stat label="Items" value={count(sum((r) => r.items_30d))} detail={`last 30 days, ${repos.length} ${repos.length === 1 ? "repo" : "repos"}`} />
     </StatStrip>
   );

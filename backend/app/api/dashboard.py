@@ -41,8 +41,11 @@ def _page(rows: list[dict], limit: int, shape=lambda r: r) -> dict:
 
 
 def _summary(i: dict) -> dict:
+    login = i["author"]
+    avatar = (i.get("extra") or {}).get("author_avatar") or (f"https://avatars.githubusercontent.com/{login}?s=64" if login else None)
     return {"id": i["id"], "kind": i["kind"], "number": i["github_number"], "title": i["title"],
-            "html_url": i["html_url"], "author": i["author"], "created_at": i["created_at"]}
+            "html_url": i["html_url"], "author": login, "created_at": i["created_at"],
+            "author_avatar_url": avatar, "author_url": f"https://github.com/{login}" if login else None}
 
 
 def _options(d: dict) -> list[str]:

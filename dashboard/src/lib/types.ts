@@ -27,6 +27,7 @@ export type Repo = {
 export type ItemSummary = {
   id: number; kind: "issue" | "pr" | "ci_report" | "report"; number: number | null; title: string;
   html_url: string | null; author: string | null; created_at: string;
+  author_avatar_url: string | null; author_url: string | null;
 };
 export type Suggestion = {
   decision_id: number; question_id: string; answer: string; confidence: number; threshold: number;
@@ -111,23 +112,24 @@ const RANK: Record<Role, number> = { viewer: 0, maintainer: 1, admin: 2 };
 export const atLeast = (role: Role, need: Role) => RANK[role] >= RANK[need];
 /** Tooltip text for a control that is not available. */
 export const NEED = {
-  maintainer: "Maintainer role needed",
-  admin: "Admin role needed",
-  measured: "Auto needs a measured question. Run a backfill first.",
+  maintainer: "Only maintainers can do this",
+  admin: "Only admins can do this",
+  measured: "Turn this on after Jev is checked on your past issues",
 } as const;
 
 export const CONFIG_PATH = ".github/jev-triage.yml";
 
-/** The features in the docs' order (the API returns them in storage order). */
+/** The features in the docs' order (the API returns them in storage order). `name` is what people see; the raw id only goes in YAML and code. */
 export const FEATURES: Record<string, { name: string; about: string }> = {
-  inbound_gate: { name: "Inbound gate", about: "Holds risky outside issues, suggests duplicates" },
-  issue_triage: { name: "Issue triage", about: "Labels the type and what is missing" },
-  pr_checks: { name: "PR checks", about: "Flags breaking changes and rule gaps" },
-  routing: { name: "Routing", about: "Suggests the area or repository" },
-  priority: { name: "Priority", about: "Suggests p0 to p3" },
-  spam: { name: "Spam", about: "Flags empty and promotional items" },
-  ci_gate: { name: "CI gate", about: "Files, merges or ignores CI failures" },
+  inbound_gate: { name: "Outside reports", about: "Holds risky reports from outsiders, spots repeats" },
+  issue_triage: { name: "Issue labels", about: "Labels the kind of issue and what is missing" },
+  pr_checks: { name: "PR checks", about: "Flags breaking changes and broken rules" },
+  routing: { name: "Routing", about: "Suggests where an item belongs" },
+  priority: { name: "Priority", about: "Suggests how urgent an item is" },
+  spam: { name: "Spam", about: "Flags empty and promotional posts" },
+  ci_gate: { name: "CI failures", about: "Files, merges or ignores failed CI runs" },
 };
+export const featureName = (f: string) => FEATURES[f]?.name ?? f.replaceAll("_", " ");
 const ORDER = Object.keys(FEATURES);
 export const featureModes = (r: Pick<Repo, "features">) =>
   Object.entries(r.features).sort(([a], [b]) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99));

@@ -273,7 +273,9 @@ def test_queue_listing_shape_and_suggestions(client, calls, box, repo):
     e = page["items"][0]
     assert e["item"] == {"id": item["id"], "kind": "issue", "number": 1, "title": "Issue 1",
                          "html_url": "https://github.com/acme/widgets/issues/1", "author": "alice",
-                         "created_at": e["item"]["created_at"]}
+                         "created_at": e["item"]["created_at"],
+                         "author_avatar_url": "https://avatars.githubusercontent.com/alice?s=64",
+                         "author_url": "https://github.com/alice"}
     assert (e["feature"], e["reason"], e["bucket"]) == ("issue_triage", "low confidence", "review")
     assert isinstance(e["age_hours"], float) and e["age_hours"] >= 0 and e["created_at"]
     sug = {s["question_id"]: s for s in e["suggestions"]}

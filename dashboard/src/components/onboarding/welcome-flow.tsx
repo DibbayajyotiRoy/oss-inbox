@@ -24,7 +24,7 @@ const RESTART = "docker compose restart api worker";
 const PERMISSIONS = [
   ["Issues", "Read & write", "Apply labels to issues"],
   ["Pull requests", "Read & write", "Apply labels to pull requests"],
-  ["Checks", "Read & write", "Report the CI gate"],
+  ["Checks", "Read & write", "Report CI failures"],
   ["Contents", "Read", "Read your config and contributing rules"],
   ["Metadata", "Read", "List your repositories"],
 ] as const;
@@ -57,8 +57,8 @@ export function WelcomeFlow() {
         )
       }
       steps={[
-        { id: "key", name: "Key", title: "Add your decision key", subtitle: "Every decision comes from this key.", skip: s.decision_key_present ? undefined : "Skip for now", body: <KeyStep s={s} /> },
-        { id: "app", name: "GitHub App", title: "Create the GitHub App", subtitle: "Private to you, with minimum access.", body: <AppStep s={s} /> },
+        { id: "key", name: "Key", title: "Add your model key", subtitle: "Jev's answers come from this key.", skip: s.decision_key_present ? undefined : "Skip for now", body: <KeyStep s={s} /> },
+        { id: "app", name: "GitHub App", title: "Create the GitHub App", subtitle: "Private to you, with the least access.", body: <AppStep s={s} /> },
         { id: "install", name: "Install", title: "Install it on your repos", subtitle: "Choose the repositories to triage.", body: <InstallStep s={s} /> },
         { id: "pick", name: "Repository", title: "Pick a repository", subtitle: "Start with one. Add more later.", body: <PickStep demo={s.demo_mode} /> },
       ]}
@@ -76,7 +76,7 @@ function KeyStep({ s }: { s: SetupStatus }) {
           {s.decision_key_present ? `Key found (${env})` : `No ${env} yet`}
         </Status>
         <p className="text-sm text-muted-foreground">
-          Backend <span className="font-mono text-foreground">{s.decision_backend}</span>, model <span className="font-mono text-foreground">{s.model}</span>
+          Model provider <span className="font-mono text-foreground">{s.decision_backend}</span>, model <span className="font-mono text-foreground">{s.model}</span>
         </p>
       </div>
 
@@ -97,12 +97,12 @@ function KeyStep({ s }: { s: SetupStatus }) {
 
       {s.calibrated ? (
         <Status tone="success" className="text-sm">
-          Calibrated: confidences are measured probabilities
+          Its sure-scores are reliable: 90% sure means right about 9 times in 10
         </Status>
       ) : (
-        <Notice tone="warning" title="Uncalibrated">
-          Claude reports its own confidence, not a measured one. A 90% answer can be right far less often. Everything starts in shadow mode, and
-          the backfill measures the real accuracy.
+        <Notice tone="warning" title="Sure-scores not checked">
+          Claude says how sure it is, but nobody has checked that. A 90% sure answer can be right far less often. Everything starts in Learning, and
+          the check on your past issues shows how often Jev is right.
         </Notice>
       )}
 
@@ -278,7 +278,7 @@ function PickStep({ demo }: { demo: boolean }) {
               </span>
               <span className="min-w-0 flex-1 truncate font-medium">{r.full_name}</span>
               {r.private ? <Badge variant="outline">Private</Badge> : null}
-              <Status tone={r.enabled ? "success" : "waiting"}>{r.enabled ? "Enabled" : "Not set up"}</Status>
+              <Status tone={r.enabled ? "success" : "waiting"}>{r.enabled ? "On" : "Not set up"}</Status>
             </label>
           </li>
         ))}

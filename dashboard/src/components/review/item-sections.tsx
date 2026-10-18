@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "@/components/ui/toaster";
 import { api, errText } from "@/lib/api";
 import { pct, when } from "@/lib/fmt";
+import { answerText, questionLabel } from "@/lib/questions";
 import type { Decision, ItemDetail, Run } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -29,11 +30,11 @@ export function Section({ title, aside, children }: { title: string; aside?: Rea
 const Muted = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 
 const OUTCOME: Record<string, { tone: StatusTone; label: string; icon?: LucideIcon }> = {
-  acted: { tone: "success", label: "Auto-acted" },
-  queued: { tone: "waiting", label: "Queued" },
+  acted: { tone: "success", label: "Acted on its own" },
+  queued: { tone: "waiting", label: "Waiting for you" },
   held: { tone: "warning", label: "Held" },
-  shadow: { tone: "neutral", label: "Shadow", icon: Eye },
-  skipped: { tone: "neutral", label: "Skipped" },
+  shadow: { tone: "neutral", label: "Learning only", icon: Eye },
+  skipped: { tone: "neutral", label: "Not needed" },
   pending: { tone: "progress", label: "Pending" },
 };
 
@@ -41,12 +42,12 @@ const OUTCOME: Record<string, { tone: StatusTone; label: string; icon?: LucideIc
 const SHADES = ["bg-foreground", "bg-foreground/55", "bg-foreground/35", "bg-foreground/20", "bg-foreground/10"];
 const shade = (i: number) => SHADES[Math.min(i, SHADES.length - 1)];
 
-/** The whole distribution as one stacked bar. The tick sits at the threshold the leading answer had to reach. */
-function Distribution({ probabilities, answer, threshold }: Pick<Decision, "probabilities" | "answer" | "threshold">) {
+/** The whole spread of answers as one stacked bar. The tick sits at how sure Jev had to be to act on its own. */
+function Distribution({ question_id: qid, probabilities, answer, threshold }: Pick<Decision, "question_id" | "probabilities" | "answer" | "threshold">) {
   const opts = Object.entries(probabilities).sort((a, b) => b[1] - a[1]);
   return (
     <div>
-      <div role="img" aria-label={`${opts.map(([o, p]) => `${o} ${pct(p)}`).join(", ")}. Threshold ${pct(threshold)}.`} className="relative h-2 rounded-full bg-muted">
+      <div role="img" aria-label={`${opts.map(([o, p]) => `${answerText(qid, o)} ${pct(p)}`).join(", ")}. Acts on its own at ${pct(threshold)}.`} className="relative h-2 rounded-full bg-muted">
         <div className="flex size-full gap-px overflow-hidden rounded-full">
           {opts.map(([o, p], i) => (
             <div key={o} className={shade(i)} style={{ width: `${p * 100}%` }} />
@@ -58,7 +59,7 @@ function Distribution({ probabilities, answer, threshold }: Pick<Decision, "prob
         {opts.slice(0, 6).map(([o, p], i) => (
           <li key={o} className="inline-flex items-center gap-1.5">
             <span aria-hidden className={cn("size-2 rounded-full", shade(i))} />
-            <span className={cn(o === answer && "font-medium text-foreground")}>{o}</span>
+            <span className={cn(o === answer && "font-medium text-foreground")}>{answerText(qid, o)}</span>
             <span className="tabular-nums">{pct(p)}</span>
           </li>
         ))}
@@ -81,9 +82,9 @@ function DecisionRow({ x, last, canAct, reload }: { x: Decision; last?: Override
     setBusy(true);
     try {
       await toast.promise(api(`/api/decisions/${x.id}/override`, { method: "POST", body: { answer } }), {
-        loading: "Saving override",
-        success: `Overridden to ${answer}`,
-        error: (e) => `Could not override: ${errText(e)}`,
+        loading: "Saving your answer",
+        success: `Changed to "${answerText(x.question_id, answer)}"`,
+        error: (e) => `Could not save: ${errText(e)}`,
       });
       reload();
     } catch {
@@ -97,22 +98,23 @@ function DecisionRow({ x, last, canAct, reload }: { x: Decision; last?: Override
     <li className="grid gap-4 py-4 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_13rem]">
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="font-mono text-[13px]">{x.question_id}</span>
-          <span className="text-sm">
-            <span className="font-medium">{x.answer}</span> <span className="tabular-nums">{pct(x.confidence, 1)}</span>
-            <span className="text-muted-foreground tabular-nums"> · threshold {pct(x.threshold)}</span>
-          </span>
+          <span className="text-[13px] font-medium">{questionLabel(x.question_id)}</span>
+          <span className="font-mono text-[11px] text-muted-foreground">{x.question_id}</span>
           <Status tone={o.tone} icon={o.icon}>{o.label}</Status>
         </div>
-        <Distribution probabilities={x.probabilities} answer={x.answer} threshold={x.threshold} />
+        <p className="text-sm">
+          <span className="font-medium">{answerText(x.question_id, x.answer)}</span> <span className="tabular-nums">· {pct(x.confidence, 1)} sure</span>
+          <span className="text-muted-foreground tabular-nums"> · acts on its own at {pct(x.threshold)}</span>
+        </p>
+        <Distribution question_id={x.question_id} probabilities={x.probabilities} answer={x.answer} threshold={x.threshold} />
       </div>
       <div className="flex flex-col gap-1.5">
-        <span id={`ov-${x.id}`} className="text-xs text-muted-foreground">Override answer</span>
+        <span id={`ov-${x.id}`} className="text-xs text-muted-foreground">Change the answer</span>
         <Select size="sm" aria-labelledby={`ov-${x.id}`} value={value} onValueChange={override} disabled={!canAct || busy}>
-          {opts.map((a) => <option key={a} value={a}>{a}</option>)}
+          {opts.map((a) => <option key={a} value={a}>{answerText(x.question_id, a)}</option>)}
         </Select>
         {last ? (
-          <p className="text-xs text-muted-foreground">Set to {last.new_answer} by {last.user}</p>
+          <p className="text-xs text-muted-foreground">Set to {answerText(x.question_id, last.new_answer)} by {last.user}</p>
         ) : !canAct ? (
           <p className="text-xs text-muted-foreground">Maintainer access required</p>
         ) : null}
@@ -143,7 +145,7 @@ function Summary({ decisions }: { decisions: Decision[] }) {
 /** Latest run first, skipped decisions folded away; older runs fold too. Each decision is a row with its distribution and an inline override. */
 export function Decisions({ runs, overrides, canAct, reload }: { runs: Run[]; overrides: Override[]; canAct: boolean; reload: () => void }) {
   const withDecisions = runs.filter((r) => r.decisions.length);
-  if (!withDecisions.length) return <Muted>No decisions yet. They appear after Jev&apos;s first run on this item.</Muted>;
+  if (!withDecisions.length) return <Muted>Nothing yet. Answers show up after Jev first looks at this item.</Muted>;
   const list = (ds: Decision[]) => (
     <ul className="divide-y divide-border">
       {ds.map((x) => (
@@ -158,18 +160,18 @@ export function Decisions({ runs, overrides, canAct, reload }: { runs: Run[]; ov
     <div className="flex flex-col gap-4">
       <Summary decisions={latest.decisions} />
       <div className="rounded-lg border p-4">
-        <p className="mb-4 text-xs text-muted-foreground">Latest run #{latest.id} · {when(latest.created_at)}</p>
+        <p className="mb-4 text-xs text-muted-foreground">Latest check #{latest.id} · {when(latest.created_at)}</p>
         {rest.length > 0 && list(rest)}
         {skipped.length > 0 && (
           <details className={cn("group", rest.length > 0 && "mt-4 border-t pt-3")}>
-            <summary className={cn(FOLD, "w-fit rounded-md")}><Chevron />{skipped.length} skipped</summary>
+            <summary className={cn(FOLD, "w-fit rounded-md")}><Chevron />{skipped.length} not needed</summary>
             <div className="pt-4">{list(skipped)}</div>
           </details>
         )}
       </div>
       {older.map((r) => (
         <details key={r.id} className="group rounded-lg border">
-          <summary className={cn(FOLD, "px-4 py-3")}><Chevron />Run #{r.id} · {when(r.created_at)}</summary>
+          <summary className={cn(FOLD, "px-4 py-3")}><Chevron />Check #{r.id} · {when(r.created_at)}</summary>
           <div className="border-t p-4">{list(r.decisions)}</div>
         </details>
       ))}
@@ -184,7 +186,7 @@ export function Seen({ run }: { run?: Run }) {
       <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-md outline-none select-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <ChevronRight aria-hidden className="size-4 text-muted-foreground motion-safe:transition-transform motion-safe:duration-150 group-open:rotate-90" />
         <h2 className="text-lg font-semibold tracking-tight">What Jev saw</h2>
-        <span className="text-sm text-muted-foreground">Exact text sent to the model</span>
+        <span className="text-sm text-muted-foreground">The exact text Jev read</span>
       </summary>
       <div className="relative mt-3 rounded-lg border bg-muted/30">
         {run?.state_text ? (
@@ -193,7 +195,7 @@ export function Seen({ run }: { run?: Run }) {
             <pre tabIndex={0} aria-label="State text" className="max-h-96 overflow-auto p-4 pr-12 font-mono text-[13px] leading-6 break-words whitespace-pre-wrap outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">{run.state_text}</pre>
           </>
         ) : (
-          <p className="p-4 text-sm text-muted-foreground">{run ? "The text was purged after the retention period." : "Nothing was sent yet."}</p>
+          <p className="p-4 text-sm text-muted-foreground">{run ? "This text was deleted after a while." : "Jev hasn't read this yet."}</p>
         )}
       </div>
     </details>
@@ -241,14 +243,15 @@ export function ActionsTaken({ actions }: { actions: ItemDetail["actions"] }) {
 }
 
 export function OverridesHistory({ overrides, runs }: { overrides: Override[]; runs: Run[] }) {
-  if (!overrides.length) return <Muted>No one has overridden Jev here.</Muted>;
+  if (!overrides.length) return <Muted>No one has changed Jev&apos;s answers here.</Muted>;
   const question = new Map(runs.flatMap((r) => r.decisions.map((x) => [x.id, x.question_id] as const)));
+  const qid = (o: Override) => question.get(o.decision_id) ?? "";
   const list = [...overrides].reverse();
   return (
     <Responsive
       cards={list.map((o) => (
         <li key={o.id} className={CARD}>
-          <span><span className={mono}>{question.get(o.decision_id) ?? o.decision_id}</span> <span className="font-medium">{o.new_answer}</span></span>
+          <span><span className="text-muted-foreground">{questionLabel(qid(o))}</span> <span className="font-medium">{answerText(qid(o), o.new_answer)}</span></span>
           <span className="text-xs text-muted-foreground">{o.user} · <span className="tabular-nums">{when(o.created_at)}</span></span>
         </li>
       ))}
@@ -260,8 +263,8 @@ export function OverridesHistory({ overrides, runs }: { overrides: Override[]; r
             <TableRow key={o.id}>
               <TableCell className="text-muted-foreground tabular-nums">{when(o.created_at)}</TableCell>
               <TableCell>{o.user}</TableCell>
-              <TableCell className={mono}>{question.get(o.decision_id) ?? o.decision_id}</TableCell>
-              <TableCell className="font-medium">{o.new_answer}</TableCell>
+              <TableCell>{questionLabel(qid(o))}</TableCell>
+              <TableCell className="font-medium">{answerText(qid(o), o.new_answer)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -271,7 +274,7 @@ export function OverridesHistory({ overrides, runs }: { overrides: Override[]; r
 }
 
 export function RunsTable({ runs }: { runs: Run[] }) {
-  if (!runs.length) return <Muted>Jev has not evaluated this item yet.</Muted>;
+  if (!runs.length) return <Muted>Jev hasn&apos;t looked at this item yet.</Muted>;
   const calibration = (r: Run) => (r.calibrated ? <Badge variant="success">Calibrated</Badge> : <Badge variant="warning" title="Probabilities from this backend are not calibrated.">Uncalibrated</Badge>);
   return (
     <Responsive

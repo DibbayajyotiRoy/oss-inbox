@@ -14,7 +14,7 @@ const TrendChart = dynamic(() => import("./trend-chart").then((m) => m.TrendChar
 const label = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 /**
- * 30 days of acted / queued / shadow across the org's repos. Click a day: with one active repo it opens that
+ * 30 days of acted / needs review / learning across the org's repos. Click a day: with one active repo it opens that
  * repo's queue, otherwise the repos active that day are listed under the chart, each linking to its queue.
  */
 export function OrgTrend({ repos }: { repos: RepoCard[] }) {
@@ -44,7 +44,7 @@ export function OrgTrend({ repos }: { repos: RepoCard[] }) {
   return (
     <CardSection
       title="Last 30 days"
-      hint="Decisions per day across all repositories. Shadow decisions were made but never acted on. Click a day to open its queue."
+      hint="Decisions per day across all repositories. Learning decisions were made but never acted on. Click a day to open its Needs review page."
       footer={
         sel !== null && (
           <div className="w-full" aria-live="polite">
@@ -58,7 +58,7 @@ export function OrgTrend({ repos }: { repos: RepoCard[] }) {
                     <Link href={repoPath(r.id)} className="hover-pill relative -mx-2 flex items-center justify-between gap-4 rounded-md px-2 py-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
                       <span className="truncate font-medium">{r.full_name}</span>
                       <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                        {t.acted} acted · {t.queued} queued · {t.shadow} shadow
+                        {t.acted} acted · {t.queued} to review · {t.shadow} learning
                       </span>
                     </Link>
                   </li>

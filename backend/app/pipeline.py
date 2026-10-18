@@ -129,7 +129,8 @@ def process(repo: dict, kind: str, payload: dict, trigger: str, actions_enabled:
         repo, kind, payload["number"], payload.get("title") or "", payload.get("body") or "", user.get("login"),
         payload.get("author_association"), payload.get("html_url"), "backfill" if trigger == "backfill" else "webhook",
         "merged" if payload.get("merged_at") or payload.get("merged") else payload.get("state") or "open",
-        payload.get("created_at"), {"head_sha": sha} if sha else None)
+        payload.get("created_at"),
+        {k: v for k, v in {"head_sha": sha, "author_avatar": user.get("avatar_url")}.items() if v} or None)
     ctx = Ctx(repo, config, item, trigger, {"payload": payload}, actions_enabled=actions_enabled)
     if trigger == "release" and actions_enabled:
         label_name = config.label("held")

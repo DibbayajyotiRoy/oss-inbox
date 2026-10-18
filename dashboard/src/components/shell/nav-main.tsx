@@ -91,7 +91,7 @@ export function NavMain() {
       {orgId !== null ? (
         <SidebarGroup className="pb-0">
           <SidebarMenu>
-            <NavLink href={`/orgs/${orgId}`} label="Repositories" icon={LayoutGrid} active={pathname.startsWith("/orgs/")} onNavigate={close} />
+            <NavLink href={`/orgs/${orgId}`} label="All repositories" icon={LayoutGrid} active={pathname.startsWith("/orgs/")} onNavigate={close} />
           </SidebarMenu>
         </SidebarGroup>
       ) : null}

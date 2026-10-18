@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { pct } from "@/lib/fmt";
 import type { ConfigDoc, Rendered } from "@/lib/types";
+import { questionLabel } from "@/lib/questions";
 import { useApi } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +34,7 @@ function diff(a: string[], b: string[]): Line[] {
 }
 
 /**
- * Changed thresholds -> POST /config/render (debounced) -> a YAML diff to copy or commit on GitHub.
+ * Changed levels -> POST /config/render (debounced) -> a YAML diff to copy or commit on GitHub.
  * The dashboard only renders text; committing is always the user's own action.
  */
 export function PendingTray({ repoId, changes, onUndo, onClear }: { repoId: number; changes: Change[]; onUndo: (id: string) => void; onClear: () => void }) {
@@ -73,33 +74,33 @@ export function PendingTray({ repoId, changes, onUndo, onClear }: { repoId: numb
   return (
     <CardSection
       id="pending"
-      title="Pending changes"
-      description={`${changes.length} threshold${changes.length > 1 ? "s" : ""} edited, nothing saved yet`}
+      title="Changes to save"
+      description={`${changes.length} setting${changes.length > 1 ? "s" : ""} changed, nothing saved yet`}
       action={<Button variant="ghost" size="sm" onClick={onClear}>Discard all</Button>}
       footer={
         <div className="flex w-full flex-wrap items-center gap-2">
           {ready ? (
             <Button asChild>
               <a href={r.edit_url} target="_blank" rel="noreferrer">
-                Commit in GitHub <ExternalLink aria-hidden />
+                Save in GitHub <ExternalLink aria-hidden />
               </a>
             </Button>
           ) : (
-            <Button disabled>Commit in GitHub</Button>
+            <Button disabled>Save in GitHub</Button>
           )}
-          <CopyButton value={r?.yaml ?? ""} label="Copy YAML" variant="outline" size="md" />
-          <p className="text-xs text-muted-foreground sm:ml-auto">The dashboard never writes to your repo.</p>
+          <CopyButton value={r?.yaml ?? ""} label="Copy file text" variant="outline" size="md" />
+          <p className="text-xs text-muted-foreground sm:ml-auto">This page never changes your repo itself.</p>
         </div>
       }
     >
       <ul className="mb-4 divide-y divide-border">
         {changes.map((c) => (
           <li key={c.id} className="flex items-center gap-3 py-1.5 text-sm">
-            <span className="min-w-0 flex-1 truncate font-mono text-[13px]">{c.id}</span>
+            <span className="min-w-0 flex-1 truncate text-[13px]">{questionLabel(c.id)}</span>
             <span className="tabular-nums text-muted-foreground">{pct(c.from)}</span>
             <span aria-hidden className="text-muted-foreground">→</span>
             <span className="font-medium tabular-nums">{pct(c.to)}</span>
-            <Button variant="ghost" size="icon-sm" aria-label={`Undo ${c.id}`} onClick={() => onUndo(c.id)}>
+            <Button variant="ghost" size="icon-sm" aria-label={`Undo ${questionLabel(c.id)}`} onClick={() => onUndo(c.id)}>
               <RotateCcw />
             </Button>
           </li>
@@ -118,7 +119,7 @@ export function PendingTray({ repoId, changes, onUndo, onClear }: { repoId: numb
           )}
           <div aria-busy={busy} className={cn("overflow-hidden rounded-lg border border-border bg-muted/30 motion-safe:transition-opacity motion-safe:duration-150", busy && "opacity-60")}>
             <div className="flex h-9 items-center border-b border-border bg-muted/40 px-3 font-mono text-xs">.github/jev-triage.yml</div>
-            <pre tabIndex={0} aria-label="YAML changes" className="max-h-80 overflow-auto py-2 font-mono text-[13px] leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+            <pre tabIndex={0} aria-label="Changes to the file" className="max-h-80 overflow-auto py-2 font-mono text-[13px] leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
               <code className="grid min-w-max">
                 {lines.map((l, k) => (
                   <span key={k} className={cn("flex px-3", l.t === "+" && "bg-success/10 text-success", l.t === "-" && "bg-destructive/10 text-destructive", l.t === " " && "text-muted-foreground")}>

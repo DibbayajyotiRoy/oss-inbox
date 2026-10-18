@@ -13,17 +13,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
 import { toast } from "@/components/ui/toaster";
 import { api } from "@/lib/api";
-import { labelRows, type ConfigDoc, type LabelPlan, type Onboarding, type Repo } from "@/lib/types";
+import { labelRows, type ConfigDoc, type LabelPlan, type Me, type Onboarding, type Repo } from "@/lib/types";
 import { useAction, useApi } from "@/lib/use-api";
 import { Continue, Flow, FlowError, FlowSkeleton, Primary, useInterval } from "./flow";
 import { MeasureStep } from "./measure-step";
 import { ModesStep } from "./modes-step";
 import { Rows } from "./parts";
 
+// The server's step titles, in plain words.
+const STEP_TITLE: Record<string, string> = { enabled: "Turn on the repository", backfill: "Check Jev on your past issues", mode: "Let a feature act by itself" };
+
 /** Per-repo setup at /onboarding/[repoId]. Resumes at the first required step the server reports as not done. */
 export function RepoFlow({ repoId }: { repoId: number }) {
   const ob = useApi<Onboarding>(`/api/repos/${repoId}/onboarding`);
   const res = useApi<Repo>(`/api/repos/${repoId}`);
+  const me = useApi<Me>("/api/me").data;
   const error = ob.error ?? res.error;
   const repo = res.data;
   if (!repo || !ob.data) return error ? <FlowError error={error} retry={() => {
@@ -32,6 +36,8 @@ export function RepoFlow({ repoId }: { repoId: number }) {
         }} /> : <FlowSkeleton />;
 
   const done = (id: string) => ob.data!.steps.find((s) => s.id === id)?.done;
+  // "/" opens a repo, so with nothing turned on yet it would lead straight back here: leave to the org's list instead.
+  const org = me?.orgs.find((o) => repo.full_name.startsWith(`${o.login}/`));
   const initial = !done("enabled") ? 0 : !done("labels") ? 1 : !done("backfill") ? 3 : 4;
   return (
     <Flow
@@ -40,17 +46,17 @@ export function RepoFlow({ repoId }: { repoId: number }) {
         <div className="flex items-center gap-3">
           <span className="hidden font-mono text-xs text-muted-foreground sm:inline">{repo.full_name}</span>
           <Button asChild variant="ghost" size="sm">
-            <Link href="/">Exit setup</Link>
+            <Link href={org ? `/orgs/${org.id}` : "/"}>Exit setup</Link>
           </Button>
         </div>
       }
       steps={[
-        { id: "enable", name: "Enable", title: "Turn on this repository", subtitle: "It starts in shadow mode.", body: <EnableStep repo={repo} reload={res.reload} /> },
+        { id: "enable", name: "Turn on", title: "Turn on this repository", subtitle: "At first Jev only suggests, never acts.", body: <EnableStep repo={repo} reload={res.reload} /> },
         { id: "labels", name: "Labels", title: "Create the labels", subtitle: "Jev tags items with these.", body: <LabelsStep repoId={repoId} /> },
-        { id: "config", name: "Config", title: "Add a config file", subtitle: "Defaults work without it.", optional: true, body: <ConfigStep repo={repo} /> },
-        { id: "measure", name: "Measure", title: "Measure its accuracy", subtitle: "Replay your history before anything acts.", body: <MeasureStep repo={repo} reload={res.reload} /> },
-        { id: "modes", name: "Modes", title: "Choose what may act", subtitle: "Shadow suggests. Auto acts.", body: <ModesStep repo={repo} reload={res.reload} /> },
-        { id: "done", name: "Done", title: "Ready for live items", subtitle: "Watch the queue fill in shadow mode.", body: <DoneStep repo={repo} /> },
+        { id: "config", name: "Config file", title: "Add a config file", subtitle: "Defaults work without it.", optional: true, body: <ConfigStep repo={repo} /> },
+        { id: "measure", name: "Check", title: "Check Jev on your past issues", subtitle: "Try Jev on closed issues before it acts.", body: <MeasureStep repo={repo} reload={res.reload} /> },
+        { id: "modes", name: "Settings", title: "Choose what Jev may do", subtitle: "Learning suggests. On acts by itself.", body: <ModesStep repo={repo} reload={res.reload} /> },
+        { id: "done", name: "Done", title: "Ready for live items", subtitle: "Watch Needs review fill up.", body: <DoneStep repo={repo} /> },
       ]}
     />
   );
@@ -70,7 +76,7 @@ function EnableStep({ repo, reload }: { repo: Repo; reload: () => void }) {
       <Rows label="What turning it on does">
         {[
           { Icon: Eye, text: "Reads new issues and pull requests" },
-          { Icon: ListChecks, text: "Queues suggested answers for you to review" },
+          { Icon: ListChecks, text: "Suggests answers for you to review" },
           { Icon: ShieldCheck, text: "Never closes, deletes or locks anything" },
         ].map(({ Icon, text }) => (
           <li key={text} className="flex items-center gap-3 px-4 py-3 text-sm">
@@ -93,7 +99,7 @@ function EnableStep({ repo, reload }: { repo: Repo; reload: () => void }) {
             <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 text-sm">
               <Checkbox checked={ack} onCheckedChange={setAck} data-enter-continues className="mt-0.5" />
               <span>
-                This repository is private. I understand its issue and PR text is sent to the decision backend (<span className="font-mono">{repo.backend}</span>).
+                This repository is private. I understand its issue and PR text is sent to the model provider (<span className="font-mono">{repo.backend}</span>).
               </span>
             </label>
           ) : null}
@@ -185,7 +191,7 @@ function ConfigStep({ repo }: { repo: Repo }) {
   return (
     <div className="flex flex-col gap-6">
       {repo.config_error ? (
-        <Notice tone="warning" title="Your config could not be read, so defaults are in use">
+        <Notice tone="warning" title="Jev cannot read your config. It is using defaults.">
           <span className="font-mono text-xs break-words">{repo.config_error}</span>
         </Notice>
       ) : (
@@ -199,7 +205,7 @@ function ConfigStep({ repo }: { repo: Repo }) {
         <>
           <CodeBlock filename=".github/jev-triage.yml" code={d.yaml} className="[&_pre]:max-h-72 [&_pre]:overflow-y-auto" />
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[13px] text-muted-foreground">Nothing changes until you commit it on GitHub.</p>
+            <p className="text-[13px] text-muted-foreground">Nothing changes until you save it on GitHub.</p>
             <Button asChild variant="outline" size="sm">
               <a href={d.edit_url} target="_blank" rel="noreferrer">
                 {repo.config_source === "repo" ? "Edit in GitHub" : "Open in GitHub"}
@@ -234,7 +240,7 @@ function DoneStep({ repo }: { repo: Repo }) {
           {ob.data.steps.map((s) => (
             <li key={s.id} className="flex flex-col gap-0.5 px-4 py-3 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <span>{s.title}</span>
+                <span>{STEP_TITLE[s.id] ?? s.title}</span>
                 <Status tone={s.done ? "success" : s.optional ? "neutral" : "waiting"}>{s.done ? "Done" : s.optional ? "Optional" : "To do"}</Status>
               </div>
               {!s.done && !s.optional && s.detail ? <p className="text-[13px] text-muted-foreground">{s.detail}</p> : null}
@@ -242,14 +248,14 @@ function DoneStep({ repo }: { repo: Repo }) {
           ))}
         </Rows>
       )}
-      {acting ? null : <p className="text-[13px] text-muted-foreground">Everything is in shadow or off, so nothing on GitHub changes yet.</p>}
+      {acting ? null : <p className="text-[13px] text-muted-foreground">Everything is Learning or Off, so nothing on GitHub changes yet.</p>}
       <Primary variant="outline" asChild>
         <a href={`https://github.com/${repo.full_name}/issues/new`} target="_blank" rel="noreferrer">
           Open a test issue
           <ExternalLink />
         </a>
       </Primary>
-      <Primary onClick={() => router.push(`/repos/${repo.id}/queue`)}>Open the queue</Primary>
+      <Primary onClick={() => router.push(`/repos/${repo.id}/queue`)}>Open Needs review</Primary>
     </div>
   );
 }

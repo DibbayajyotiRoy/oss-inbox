@@ -6,25 +6,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { InfoHint } from "@/components/ui/info-hint";
-import { MODE_VARIANT } from "@/components/ui/mode-control";
+import { MODE_LABEL, MODE_VARIANT } from "@/components/ui/mode-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
-import { pct, repoPath } from "@/lib/fmt";
-import type { Repo, RepoCard } from "@/lib/types";
+import { answers, pct, repoPath } from "@/lib/fmt";
+import { featureName, type Repo, type RepoCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { labelled } from "./use-repo-details";
 
 // Recharts loads after first paint into a skeleton of the sparkline's exact size, so nothing shifts.
 const SparkChart = dynamic(() => import("./trend-chart").then((m) => m.Spark), { ssr: false, loading: () => <Skeleton className="h-12" /> });
 
-/** Where a card leads: the queue, or setup while the repo is off (admins only; others cannot enable it). */
+/** Where a card leads: Needs review, or setup while the repo is off (admins only; others cannot enable it). */
 export const cardHref = (r: RepoCard) => (r.enabled ? repoPath(r.id) : r.role === "admin" ? `/onboarding/${r.id}` : repoPath(r.id));
 
 function Spark({ r }: { r: RepoCard }) {
   const sum = (k: "acted" | "queued" | "shadow") => r.trend.reduce((a, d) => a + d[k], 0);
   const empty = sum("acted") + sum("queued") + sum("shadow") === 0;
   return (
-    <div role="img" aria-label={`Last ${r.trend.length} days: ${sum("acted")} auto-acted, ${sum("queued")} queued, ${sum("shadow")} shadow`} className="h-12">
+    <div role="img" aria-label={`Last ${r.trend.length} days: ${sum("acted")} acted by itself, ${sum("queued")} to review, ${sum("shadow")} learning`} className="h-12">
       {empty ? (
         <p className="grid h-full place-items-center rounded-md border border-dashed text-xs text-muted-foreground">No activity in 30 days</p>
       ) : (
@@ -44,12 +44,12 @@ function Metric({ label, value, detail }: { label: string; value: string; detail
   );
 }
 
-/** One enabled repository: sparkline, readings, modes and open counts. The whole card is the title's link; inner links sit above it. */
+/** One repository that is on: sparkline, readings, settings and open counts. The whole card is the title's link; inner links sit above it. */
 export function OrgRepoCard({ r, detail, detailsLoading }: { r: RepoCard; detail?: Repo; detailsLoading: boolean }) {
   const [owner, name] = r.full_name.split("/");
   const n = detail ? labelled(detail) : null;
   return (
-    <Card className="group relative gap-4 py-5 shadow-xs motion-safe:transition-[border-color,background-color,box-shadow,translate] motion-safe:duration-200 motion-safe:ease-settle focus-within:border-chart-4 hover:border-chart-4 hover:bg-[color-mix(in_oklab,var(--card)_62%,var(--accent))] hover:shadow-md motion-safe:hover:-translate-y-0.5">
+    <Card className="group relative gap-4 py-5 shadow-xs motion-safe:transition-[border-color,background-color,box-shadow,translate] motion-safe:duration-200 motion-safe:ease-settle focus-within:border-muted-foreground/40 hover:border-muted-foreground/40 hover:bg-[color-mix(in_oklab,var(--card)_62%,var(--accent))] hover:shadow-md motion-safe:hover:-translate-y-0.5">
       <div className="flex items-center justify-between gap-3 px-5">
         <h3 className="flex min-w-0 items-center gap-2 text-[15px] font-semibold">
           <Link href={cardHref(r)} className="min-w-0 truncate rounded-sm outline-none link-grow after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring">
@@ -75,21 +75,21 @@ export function OrgRepoCard({ r, detail, detailsLoading }: { r: RepoCard; detail
         </p>
       </div>
       <dl className="grid grid-cols-3 gap-3 px-5">
-        <Metric label="Accuracy" value={pct(r.accuracy)} detail={r.accuracy === null ? "not measured" : n ? `n=${n.toLocaleString()}` : "n …"} />
-        <Metric label="Overrides" value={pct(r.override_rate)} detail={r.override_rate === null ? "no decisions" : "of decisions"} />
-        <Metric label="Auto-acted" value={pct(r.acted_share)} detail={r.acted_share === null ? "no decisions" : "of items"} />
+        <Metric label="Right" value={pct(r.accuracy)} detail={r.accuracy === null ? "not checked yet" : n ? `out of ${answers(n)}` : "…"} />
+        <Metric label="Corrected" value={pct(r.override_rate)} detail={r.override_rate === null ? "no decisions" : "of decisions"} />
+        <Metric label="Acted by itself" value={pct(r.acted_share)} detail={r.acted_share === null ? "no decisions" : "of items"} />
       </dl>
-      <div className="flex min-h-5 flex-wrap gap-1.5 px-5" aria-label="Feature modes">
+      <div className="flex min-h-5 flex-wrap gap-1.5 px-5" aria-label="Features and their settings">
         {detailsLoading && <Skeleton className="h-5 w-40" />}
         {detail && Object.entries(detail.features).map(([f, m]) => (
-          <Badge key={f} variant={MODE_VARIANT[m]} title={`${f} is ${m}`}>
-            {f.replace(/_/g, " ")} <span className="font-normal">{m}</span>
+          <Badge key={f} variant={MODE_VARIANT[m]} title={`${featureName(f)} is ${MODE_LABEL[m].toLowerCase()}`}>
+            {featureName(f)} <span className="font-normal">{MODE_LABEL[m]}</span>
           </Badge>
         ))}
       </div>
       <div className="mt-auto flex items-center gap-2 border-t px-3 pt-3 text-[13px]">
-        <Count href={repoPath(r.id, "queue")} icon={<Inbox aria-hidden className="size-3.5" />} n={r.queued_open} label="in queue" />
-        <Count href={repoPath(r.id, "held")} icon={<CirclePause aria-hidden className="size-3.5" />} n={r.held_open} label="held" />
+        <Count href={repoPath(r.id, "queue")} icon={<Inbox aria-hidden className="size-3.5" />} n={r.queued_open} label="need review" />
+        <Count href={repoPath(r.id, "held")} icon={<CirclePause aria-hidden className="size-3.5" />} n={r.held_open} label="held for a check" />
       </div>
     </Card>
   );
@@ -112,10 +112,10 @@ export function OffRepoRow({ r }: { r: RepoCard }) {
             Private
           </Badge>
         )}
-        <Status tone="neutral" className="text-xs">Disabled</Status>
+        <Status tone="neutral" className="text-xs">Off</Status>
         {r.private && (
           <InfoHint className="relative z-10" label="Why is this repository off?">
-            Private repositories stay off until an admin acknowledges that their content goes to the decision backend.
+            Private repositories stay off until an admin agrees that their text is sent to the model provider.
           </InfoHint>
         )}
       </div>
@@ -124,7 +124,7 @@ export function OffRepoRow({ r }: { r: RepoCard }) {
           <Link href={cardHref(r)}>Finish setup</Link>
         </Button>
       ) : (
-        <span className="text-xs text-muted-foreground">An admin has to enable it</span>
+        <span className="text-xs text-muted-foreground">An admin has to turn it on</span>
       )}
     </li>
   );

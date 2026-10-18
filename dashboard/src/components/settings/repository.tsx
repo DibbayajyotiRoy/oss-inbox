@@ -25,7 +25,7 @@ export function Repository() {
       api<Repo>(`/api/repos/${repo.id}`, { method: "PATCH", body: { enabled, acknowledge_private: enabled && repo.private ? ack : undefined } }),
     );
     if (!r) return;
-    toast.success(enabled ? "Jev enabled" : "Jev disabled", { description: repo.full_name });
+    toast.success(enabled ? "Jev turned on" : "Jev turned off", { description: repo.full_name });
     setConfirming(false);
     setAck(false);
     reload();
@@ -33,11 +33,11 @@ export function Repository() {
   }
 
   const rows: [string, React.ReactNode][] = [
-    ["Status", repo.enabled ? <Status tone="success">Enabled</Status> : <Status tone="neutral">Disabled</Status>],
+    ["Status", repo.enabled ? <Status tone="success">On</Status> : <Status tone="neutral">Off</Status>],
     ["Visibility", repo.private ? "Private" : "Public"],
     ["Default branch", <span key="b" className="font-mono text-[13px]">{repo.default_branch}</span>],
-    ["Decision backend", <span key="d" className="font-mono text-[13px]">{repo.backend} · {repo.model}</span>],
-    ["Config source", SOURCE[repo.config_source]],
+    ["Model used", <span key="d" className="font-mono text-[13px]">{repo.backend} · {repo.model}</span>],
+    ["Settings come from", SOURCE[repo.config_source]],
   ];
   const needsAck = repo.private && !repo.enabled;
   return (
@@ -47,11 +47,11 @@ export function Repository() {
       footer={
         repo.enabled ? (
           <Gate reason={!isAdmin && NEED.admin}>
-            <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setConfirming(true)}>Disable Jev</Button>
+            <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setConfirming(true)}>Turn Jev off</Button>
           </Gate>
         ) : (
-          <Gate reason={!isAdmin ? NEED.admin : needsAck && !ack && "Acknowledge the notice above first"}>
-            <Button loading={busy} onClick={() => set(true)}>Enable Jev</Button>
+          <Gate reason={!isAdmin ? NEED.admin : needsAck && !ack && "Tick the box above first"}>
+            <Button loading={busy} onClick={() => set(true)}>Turn Jev on</Button>
           </Gate>
         )
       }
@@ -68,16 +68,16 @@ export function Repository() {
         <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-lg border p-4 text-sm">
           <Checkbox className="mt-0.5" checked={ack} disabled={!isAdmin} onCheckedChange={setAck} />
           <span>
-            I understand that the text of issues and pull requests in this private repository will be sent to the decision backend ({repo.backend}, model {repo.model}).
+            I understand that the text of issues and pull requests in this private repository will be sent to the model provider ({repo.backend}, model {repo.model}).
           </span>
         </label>
       )}
       <Confirm
         open={confirming}
         onOpenChange={setConfirming}
-        title={`Disable Jev on ${repo.full_name}?`}
+        title={`Turn Jev off on ${repo.full_name}?`}
         description="Jev stops reading new issues and pull requests. Existing decisions and history stay."
-        label="Disable Jev"
+        label="Turn Jev off"
         busy={busy}
         onConfirm={() => set(false)}
       />

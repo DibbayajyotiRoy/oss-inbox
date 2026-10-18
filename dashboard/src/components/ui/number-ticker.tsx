@@ -98,7 +98,7 @@ export function NumberTicker({
   }, [armed, entered, duration, stagger, glyphs.length]);
 
   return (
-    <span ref={containerRef} className={cn("whitespace-nowrap tabular-nums", className)}>
+    <span ref={containerRef} className={cn("whitespace-nowrap tabular-nums text-brand", className)}>
       <span className="sr-only">{readableText}</span>
       <span aria-hidden="true">
         {prefix ? <span>{prefix}</span> : null}

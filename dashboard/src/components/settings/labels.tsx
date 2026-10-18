@@ -30,7 +30,7 @@ export function Labels() {
   return (
     <CardSection
       title="Labels"
-      description="Configured labels versus GitHub."
+      description="Labels in your config and on GitHub."
       hint="Sync creates the labels your config names that are missing on GitHub. Existing labels are never changed."
       action={
         <Gate reason={!canAct ? NEED.maintainer : res.data ? missing === 0 && "Nothing to sync" : "Loading"}>

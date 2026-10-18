@@ -37,7 +37,7 @@ export function ConnectCi({ repoId, fullName }: { repoId: number; fullName: stri
   return (
     <CardSection
       title="Connect your CI"
-      description="Post failures here. Jev files, merges or ignores each one, and every report shows up with its outcome."
+      description="Send CI failures here. Jev opens an issue, adds to one, or ignores each."
       action={
         <Button asChild variant="outline" size="sm">
           <Link href={repoPath(repoId, "settings")}>
@@ -49,14 +49,14 @@ export function ConnectCi({ repoId, fullName }: { repoId: number; fullName: stri
     >
       <div className="flex flex-col gap-4">
         <Tabs
-          aria-label="Example"
+          aria-label="Example code"
           items={[{ id: "curl", label: "curl" }, { id: "actions", label: "GitHub Actions" }]}
           value={tab}
           onValueChange={setTab}
         />
         {tab === "curl" ? <CodeBlock code={curl} filename="Terminal" /> : <CodeBlock code={actions} filename=".github/workflows/ci.yml" />}
         <p className="text-[13px] text-muted-foreground">
-          Save a token from Settings as the secret <code className="font-mono text-foreground">JEV_CI_TOKEN</code>. Admins create tokens; each works for this repository only.
+          Create a token in Settings and save it in your CI as the secret <code className="font-mono text-foreground">JEV_CI_TOKEN</code>. Only admins can create tokens. Each works for this repository only.
         </p>
       </div>
     </CardSection>

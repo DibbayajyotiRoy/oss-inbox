@@ -29,9 +29,9 @@ export function TrendChart({ data, sel, onPick }: { data: TrendRow[]; sel: numbe
   const config = useMemo(
     () =>
       chartTheme({
-        acted: `Auto-acted ${sum(data, "acted").toLocaleString()}`,
-        queued: `Queued ${sum(data, "queued").toLocaleString()}`,
-        shadow: `Shadow ${sum(data, "shadow").toLocaleString()}`,
+        acted: `Acted by itself ${sum(data, "acted").toLocaleString()}`,
+        queued: `Needs review ${sum(data, "queued").toLocaleString()}`,
+        shadow: `Learning ${sum(data, "shadow").toLocaleString()}`,
       }),
     [data],
   );
@@ -54,7 +54,7 @@ export function TrendChart({ data, sel, onPick }: { data: TrendRow[]; sel: numbe
   );
 }
 
-const sparkConfig = chartTheme({ acted: "Auto-acted", queued: "Queued", shadow: "Shadow" });
+const sparkConfig = chartTheme({ acted: "Acted by itself", queued: "Needs review", shadow: "Learning" });
 
 /** A repository card's 30 days, same stack without axes. */
 export function Spark({ trend }: { trend: RepoCard["trend"] }) {

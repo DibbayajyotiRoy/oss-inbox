@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Check, ExternalLink, Undo2, X } from "lucide-react"
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Preview, PreviewSkeleton, optionsOf, type Act } from "@/components/review/preview";
-import { ROW_H, Row, RowSkeleton, featureName, itemRef } from "@/components/review/row";
+import { ROW_H, Row, RowSkeleton, itemRef } from "@/components/review/row";
 import { useCommands } from "@/components/shell/commands";
 import { useShell } from "@/components/shell/shell-context";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,13 +16,24 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toaster";
 import { api, errText } from "@/lib/api";
-import type { QueueEntry, Suggestion } from "@/lib/types";
+import { featureName, type QueueEntry, type Suggestion } from "@/lib/types";
 import { usePaged } from "@/lib/use-api";
 import { Busy } from "@/components/ui/skeleton";
 
 const ALL = "all";
 const UNDO_MS = 5000;
 const VERB: Record<Act, string> = { accept: "Accepted", dismiss: "Dismissed", release: "Released" };
+const KIND_NAME: Record<QueueEntry["item"]["kind"], [string, string]> = {
+  pr: ["pull request", "pull requests"], issue: ["issue", "issues"], ci_report: ["CI failure", "CI failures"], report: ["outside report", "outside reports"],
+};
+const HELD_ABOUT = "Reports from outside your team that look sensitive or invalid wait here before anyone sees them. Nothing was closed or posted.";
+
+/** "3 pull requests and 5 issues", counted from what is loaded. */
+function counted(es: QueueEntry[]) {
+  const n = Map.groupBy(es, (e) => e.item.kind);
+  const parts = (Object.keys(KIND_NAME) as (keyof typeof KIND_NAME)[]).filter((k) => n.has(k)).map((k) => `${n.get(k)?.length} ${KIND_NAME[k][n.get(k)?.length === 1 ? 0 : 1]}`);
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : (parts[0] ?? "");
+}
 const wide = () => matchMedia("(min-width: 1024px)").matches;
 
 type Cursor = { id: number; i: number }; // focused entry; `i` is where it sat, so removing it focuses its neighbour
@@ -73,7 +84,7 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
   const { reloadOverview } = useShell();
   const reduced = useReducedMotion();
   const held = bucket === "held";
-  const group = held ? "Held" : "Queue";
+  const group = held ? "Held" : "Needs review";
   const key = `jev:review:${repoId}:${bucket}`;
   const list = usePaged<QueueEntry>(`/api/repos/${repoId}/queue?bucket=${bucket}&limit=100`);
 
@@ -167,7 +178,7 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
     setSheet(false);
     if (action !== "dismiss") {
       void commit();
-      return void toast.success(`${VERB[action]} ${label}`, { duration: 2500 });
+      return void toast.success(held && action === "accept" ? `Confirmed hold on ${label}` : `${VERB[action]} ${label}`, { duration: 2500 });
     }
     const timer = window.setTimeout(() => (pending.current.delete(e.id), void commit()), UNDO_MS);
     const id = toast(`Dismissed ${label}`, { duration: UNDO_MS, action: { label: "Undo", onClick: () => undo(e.id) } });
@@ -179,9 +190,9 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
   useCommands([
     { id: "review:next", label: "Next item", group, icon: ArrowDown, keys: "j", run: () => move(1) },
     { id: "review:prev", label: "Previous item", group, icon: ArrowUp, keys: "k", run: () => move(-1) },
-    { id: "review:accept", label: "Accept", group, icon: Check, keys: "a", keywords: "confirm", run: () => act("accept") },
+    { id: "review:accept", label: held ? "Confirm hold" : "Accept", group, icon: Check, keys: "a", keywords: "confirm", run: () => act("accept") },
     { id: "review:dismiss", label: "Dismiss", group, icon: X, keys: "d", run: () => act("dismiss") },
-    ...(held ? [{ id: "review:release", label: "Release", group, keys: "r", keywords: "unhold", run: () => act("release") }] : []),
+    ...(held ? [{ id: "review:release", label: "Release to triage", group, keys: "r", keywords: "unhold release", run: () => act("release") }] : []),
     { id: "review:open", label: "Open item", group, keys: "e", run: openItem },
     { id: "review:github", label: "Open on GitHub", group, icon: ExternalLink, keys: "o", run: () => cur?.item.html_url && window.open(cur.item.html_url, "_blank", "noopener") },
     { id: "review:undo", label: "Undo dismiss", group, icon: Undo2, keys: "u", run: () => undo() },
@@ -211,7 +222,7 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const title = held ? "Held" : "Queue";
+  const title = held ? "Held" : "Needs review";
   const header = (filter?: ReactNode) => (
     <PageHeader
       className="mb-4"
@@ -226,7 +237,11 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
           )}
         </>
       }
-      description={held ? "Held as possibly sensitive. Nothing was closed." : "Oldest first. Accepting records your answer as truth."}
+      description={
+        held
+          ? HELD_ABOUT
+          : `${list.data && !list.more && live.length ? `${counted(live)} waiting for your call. ` : "Items waiting for your call. "}Oldest first. Jev learns from your answer.`
+      }
       actions={filter}
     />
   );
@@ -258,8 +273,8 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
         {header()}
         <EmptyState
           art="done"
-          title={held ? "Nothing is held" : "Queue is clear"}
-          description={held ? "Possible security reports wait here for you." : "Low-confidence and shadow-mode items land here."}
+          title={held ? "Nothing is held" : "Nothing to review"}
+          description={held ? "Risky reports wait here for you." : "Items Jev is unsure about land here."}
         />
       </>
     );
@@ -299,6 +314,7 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
                   e={rows[v.index]}
                   start={v.start}
                   focused={v.index === f}
+                  held={held}
                   onSelect={() => {
                     go(v.index);
                     if (!wide()) setSheet(true);

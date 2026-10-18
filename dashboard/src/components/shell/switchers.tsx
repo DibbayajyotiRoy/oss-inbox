@@ -49,7 +49,7 @@ export function Switchers() {
           <DropdownMenuContent side={side} align="start" className="min-w-56">
             <DropdownMenuLabel>Organizations</DropdownMenuLabel>
             {me.orgs.map((o) => (
-              <DropdownMenuItem key={o.id} onSelect={() => router.push(`/orgs/${o.id}`)}>
+              <DropdownMenuItem key={o.id} onSelect={() => router.push(`/orgs/${o.id}/open`)}>
                 <Avatar className="size-5 rounded-md">
                   <AvatarImage src={o.avatar_url} alt="" />
                   <AvatarFallback className="rounded-md text-[10px]">{o.login[0]?.toUpperCase()}</AvatarFallback>

@@ -17,15 +17,29 @@ Screenshot:  Thresholds page mid-drag: distribution, tick, counts, "would have b
 ```
 
 ## Tokens (Tailwind v4, `@theme inline`, `.dark` class via next-themes, default dark + system)
-Graphite monochrome from webora-ui (Radix Slate). Colour only when it carries meaning.
-- light: background #fcfcfd, foreground #1c2024, card #fff, muted #f0f0f3, muted-fg #60646c, accent #e8e8ec,
-  border #d9d9e0, input #cdced6, ring #80838d, sidebar #f9f9fb
-- dark: background #111113, foreground #edeef0, card #18191b, popover #212225, muted #212225, muted-fg #b0b4ba,
-  accent #272a2d, border #2e3135, input #363a3f, ring #777b84, sidebar #18191b
-- semantic: success (#1a6b46 / #3dd68c), warning (#7e5616 / #dcb36c), destructive (#a63636 / #e8817a),
-  info (#0b5fa9 / #70b8ff); each is >= 4.5:1 as text on its own 10% tint over background, card, muted and accent. **Threshold tick** uses `--warning`. Auto-acted = foreground, queued = muted-fg,
-  wrong = destructive. Shadow = dashed foreground/40.
-- chart ramp: --chart-1..5 graphite (foreground → border).
+Graphite surfaces from webora-ui (Radix Slate), one brand hue, and a semantic chart palette. Secondary, outline and ghost stay neutral.
+- light surfaces: background #fcfcfd, foreground #1c2024, card #fff, muted #f0f0f3, muted-fg #60646c, accent #e8e8ec,
+  border #d9d9e0, input #cdced6, sidebar #f9f9fb
+- dark surfaces: background #111113, foreground #edeef0, card #18191b, popover #212225, muted #212225, muted-fg #b0b4ba,
+  accent #272a2d, border #2e3135, input #363a3f, sidebar #18191b
+- **brand: indigo** (one flat hue, no gradient; blue stays reserved for "queued"/info). `--primary` is the solid fill, always with
+  `--primary-foreground` white: #5b5bd6 light (5.4:1), #6260dd dark (5.0:1); `--primary-hover` deepens it (#4d4dc6 / #5553cc).
+  `--brand` is the same hue as text or thin graphics: #4a49c6 light, #a5a3ff dark (>= 5.6:1 on background, card, muted, accent).
+  `--ring` is the focus tint: #5b5bd6 / #8f8dfa. Used by: primary button, default badge, checkbox, progress bar, step dots, focus ring,
+  `Button variant="link"` and inline `underline link-grow` links (`text-brand`), selected tab underline, sidebar active and hover pill
+  (`--sidebar-accent` = brand at 12%: #e6e6f7 / #282946, text `--brand`), `NumberTicker` digits (pass a text colour class to override).
+- semantic text: success (#1a6b46 / #3dd68c), warning (#7e5616 / #dcb36c), destructive (#a63636 / #e8817a), info (#0b5fa9 / #70b8ff);
+  each is >= 4.5:1 as text on its own 10% tint over background, card, muted and accent. Badge and Status tones are that tint:
+  10% fill, 30% border (Status uses an inset ring and cancels its padding with negative margins, so layout is unchanged).
+  `Badge variant="neutral"` / Status waiting and neutral are the slate version. Modes: auto = success, shadow = warning, off = neutral
+  (`MODE_VARIANT`, `ModeControl` fill); auto set but unmeasured = amber outline.
+- **chart roles** (graphics only, >= 3:1 on card; `chart-theme.ts` mirrors them as hex):
+  acted `--chart-acted` #1a9560 / #3dd68c (green), queued `--chart-queued` #2b7de6 / #5aaeff (blue), shadow `--chart-shadow` #b87d12 / #bf8f2e
+  (soft amber, always hatched or dashed), wrong `--chart-wrong` #d6393b / #f2777a (red), unlabeled `--chart-unlabeled` #8b8d98 (slate).
+  **Threshold tick** `--tick` #a65a00 / #ffc53d: a solid, deeper amber than shadow. Recommended line = `--chart-1` dashed.
+- chart ramp for multi-series: `--chart-1..5` = brand, teal, amber, rose, sky: #5b5bd6, #0f9e96, #c97f00, #d93a74, #1f93d6 light;
+  #8f8dfa, #3ecfc5, #f5b942, #f2709c, #5ec4f5 dark. Meter fill by state: acted green, queued blue, shadow amber stripes, tick `--tick`.
+  Confusion matrix: diagonal = acted green, off-diagonal = wrong red, intensity = share of the row.
 - radius 8px (cards rounded-xl=8px, controls rounded-md). Shadows: xs inputs, sm cards, md menus, lg dialogs.
 - Type: Geist + Geist Mono (next/font/google). Page title text-2xl semibold tracking-tight; section text-lg;
   body text-sm; label 13px medium; caption text-xs; numbers always `tabular-nums`. Mono only for ids, YAML, state text.
@@ -41,13 +55,13 @@ copy CI curl. Keyboard help on `?`.
 
 ## Components (shadcn new-york + radix-ui, cva, lucide 16px)
 button (press scale .98, 150ms), card, stat strip (unboxed dl), table (sticky header, row hover muted/40),
-status (icon+text, not pills), badge, input/select/switch/checkbox, tabs with sliding indicator, dialog/sheet,
+status (icon+text on a tinted chip, never colour alone), badge, input/select/switch/checkbox, tabs with sliding indicator, dialog/sheet,
 tooltip (inverted), toast stack (motion), skeleton mirroring layout, empty state (monochrome line art + ≤6-word title + one action),
 progress, kbd, code block with copy, **Meter** (horizontal confidence bar with threshold tick; the signature atom).
 
 ## Charts: Evil Charts (shadcn registry, recharts + motion)
 Install via `npx shadcn@latest add https://evilcharts.com/r/<name>.json` (area, bar, line, composed).
-Map ChartConfig colors to the graphite ramp + semantic colors (`colors: {light: [...], dark: [...]}`).
+Map ChartConfig colors to the semantic roles + the categorical ramp (`chartTheme`) (`colors: {light: [...], dark: [...]}`).
 `animationType="none"` in dense lists and under reduced motion. No scatter/heatmap in Evil Charts:
 calibration = composed/line (observed vs dashed diagonal); confusion matrix = CSS grid heat cells.
 Every chart point/cell links to the items behind it.

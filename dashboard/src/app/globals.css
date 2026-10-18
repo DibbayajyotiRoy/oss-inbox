@@ -5,8 +5,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Jev Triage tokens (DESIGN.md). Radix Slate graphite, monochrome: colour only when it carries meaning.
- * Auto-acted = foreground, queued = muted-foreground, wrong = destructive, threshold tick = warning.
+ * Jev Triage tokens (DESIGN.md). Radix Slate graphite surfaces + one brand hue (indigo) + a semantic chart palette.
+ * Brand: --primary is the solid fill (white text), --brand the text/graphic tone, --ring the focus tint.
+ * Charts: acted = green, queued = blue, shadow = soft amber (hatched), wrong = red, unlabeled = slate, threshold tick = deep amber;
+ * --chart-1..5 is the categorical ramp (brand, teal, amber, rose, sky). src/lib/chart-theme.ts mirrors these hexes.
  * Components use the Tailwind tokens below; never hard-code hex outside src/lib/chart-theme.ts.
  */
 :root {
@@ -18,8 +20,10 @@
   --card-foreground: var(--foreground);
   --popover: #ffffff;
   --popover-foreground: var(--foreground);
-  --primary: #1c2024;
+  --primary: #5b5bd6; /* brand indigo: solid fills, white text 5.4:1 */
   --primary-foreground: #ffffff;
+  --primary-hover: #4d4dc6;
+  --brand: #4a49c6; /* brand as text or thin graphics: >= 5.6:1 on every surface */
   --secondary: #f0f0f3;
   --secondary-foreground: var(--foreground);
   --muted: #f0f0f3;
@@ -29,24 +33,32 @@
   --destructive: #a63636;
   --border: #d9d9e0;
   --input: #cdced6;
-  --ring: #80838d;
+  --ring: #5b5bd6;
 
   --success: #1a6b46;
   --warning: #7e5616;
   --info: #0b5fa9;
 
-  --chart-1: #1c2024;
-  --chart-2: #60646c;
-  --chart-3: #8b8d98;
-  --chart-4: #b9bbc6;
-  --chart-5: #d9d9e0;
+  /* Categorical ramp (multi-series charts): brand, teal, amber, rose, sky. >= 3:1 on card. */
+  --chart-1: #5b5bd6;
+  --chart-2: #0f9e96;
+  --chart-3: #c97f00;
+  --chart-4: #d93a74;
+  --chart-5: #1f93d6;
+  /* Semantic chart roles (vivid, graphics only; text uses --success/--warning/--info/--destructive). */
+  --chart-acted: #1a9560;
+  --chart-queued: #2b7de6;
+  --chart-shadow: #b87d12;
+  --chart-wrong: #d6393b;
+  --chart-unlabeled: #8b8d98;
+  --tick: #a65a00; /* threshold tick: solid deep amber, apart from the softer, hatched shadow */
 
   --sidebar: #f9f9fb;
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #e8e8ec;
-  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-accent: #e6e6f7; /* brand at 12% on the sidebar: active and hover pill */
+  --sidebar-accent-foreground: var(--brand);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 
@@ -60,8 +72,10 @@
   --card-foreground: var(--foreground);
   --popover: #212225;
   --popover-foreground: var(--foreground);
-  --primary: #edeef0;
-  --primary-foreground: #111113;
+  --primary: #6260dd; /* white text 5.0:1 */
+  --primary-foreground: #ffffff;
+  --primary-hover: #5553cc;
+  --brand: #a5a3ff;
   --secondary: #212225;
   --secondary-foreground: var(--foreground);
   --muted: #212225;
@@ -71,20 +85,26 @@
   --destructive: #e8817a;
   --border: #2e3135;
   --input: #363a3f;
-  --ring: #777b84;
+  --ring: #8f8dfa;
 
   --success: #3dd68c;
   --warning: #dcb36c;
   --info: #70b8ff;
 
-  --chart-1: #edeef0;
-  --chart-2: #b0b4ba;
-  --chart-3: #777b84;
-  --chart-4: #5a6169;
-  --chart-5: #43484e;
+  --chart-1: #8f8dfa;
+  --chart-2: #3ecfc5;
+  --chart-3: #f5b942;
+  --chart-4: #f2709c;
+  --chart-5: #5ec4f5;
+  --chart-acted: #3dd68c;
+  --chart-queued: #5aaeff;
+  --chart-shadow: #bf8f2e;
+  --chart-wrong: #f2777a;
+  --chart-unlabeled: #8b8d98;
+  --tick: #ffc53d;
 
   --sidebar: #18191b;
-  --sidebar-accent: #272a2d;
+  --sidebar-accent: #282946;
 
   --scrollbar: #363a3f;
 }
@@ -103,6 +123,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-brand: var(--brand);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -122,6 +144,12 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-chart-acted: var(--chart-acted);
+  --color-chart-queued: var(--chart-queued);
+  --color-chart-shadow: var(--chart-shadow);
+  --color-chart-wrong: var(--chart-wrong);
+  --color-chart-unlabeled: var(--chart-unlabeled);
+  --color-tick: var(--tick);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -328,6 +356,7 @@ html[data-theme-wipe="down"]::view-transition-new(root) {
   }
   &.underline {
     background: none;
+    color: var(--brand); /* inline prose links read as links */
     text-decoration-thickness: 1px;
   }
   @media (hover: hover) {

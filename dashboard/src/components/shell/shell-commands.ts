@@ -19,7 +19,7 @@ export function useShellCommands({ onShortcuts }: { onShortcuts: () => void }) {
 
   useCommands([
     ...(orgId !== null
-      ? [{ id: "go:org", label: "Go to repositories", group: "Go to", icon: LayoutGrid, keys: "g o", run: () => router.push(`/orgs/${orgId}`) }]
+      ? [{ id: "go:org", label: "Go to all repositories", group: "Go to", icon: LayoutGrid, keys: "g o", run: () => router.push(`/orgs/${orgId}`) }]
       : []),
     ...(repoId !== null
       ? NAV_ITEMS.map((i) => ({ id: `go:${i.seg}`, label: `Go to ${i.label}`, group: "Go to", icon: i.icon, keys: i.keys, run: () => router.push(repoPath(repoId, i.seg)) }))

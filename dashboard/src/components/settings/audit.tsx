@@ -5,9 +5,23 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Load, LoadMore } from "@/components/ui/load";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { when } from "@/lib/fmt";
-import { type AuditRow, NEED } from "@/lib/types";
+import type { AuditRow } from "@/lib/types";
 import { usePaged } from "@/lib/use-api";
 import { RowsSkeleton } from "./parts";
+
+/** What each logged action means, in plain words (an unknown one prints as it is). */
+const ACTION: Record<string, string> = {
+  "queue.accept": "Accepted answers",
+  "queue.dismiss": "Dismissed an item",
+  "queue.release": "Let a held item through",
+  "decision.override": "Changed an answer",
+  "backfill.queue": "Started a check on past issues",
+  "ci_token.create": "Created a CI token",
+  "ci_token.revoke": "Revoked a CI token",
+  "labels.sync": "Created labels",
+  "repo.enable": "Turned Jev on",
+  "repo.disable": "Turned Jev off",
+};
 
 const detail = (d: unknown) =>
   d && typeof d === "object" ? Object.entries(d).map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`).join(", ") : "";
@@ -15,8 +29,8 @@ const detail = (d: unknown) =>
 export function Audit() {
   const { canAct } = useRepo();
   return (
-    <CardSection title="Audit log" description="Who changed what, newest first.">
-      {canAct ? <Rows /> : <EmptyState title="Maintainers see the audit log" description={`${NEED.maintainer}.`} />}
+    <CardSection title="Activity log" description="Who changed what, newest first.">
+      {canAct ? <Rows /> : <EmptyState title="Only maintainers see this log" description="Ask a maintainer for access." />}
     </CardSection>
   );
 }
@@ -29,16 +43,16 @@ function Rows() {
       res={list}
       fallback={<RowsSkeleton rows={6} />}
       isEmpty={(d) => d.length === 0}
-      empty={<EmptyState title="No audit entries yet" description="Enable, token and label changes appear here." />}
+      empty={<EmptyState title="Nothing logged yet" description="Changes to settings, tokens and labels appear here." />}
     >
       {(rows) => (
         <>
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead>Actor</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead className="max-sm:hidden">Target</TableHead>
+                <TableHead>Who</TableHead>
+                <TableHead>What</TableHead>
+                <TableHead className="max-sm:hidden">On</TableHead>
                 <TableHead className="text-right">When</TableHead>
               </TableRow>
             </TableHeader>
@@ -47,7 +61,7 @@ function Rows() {
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.actor}</TableCell>
                   <TableCell>
-                    <span className="font-mono text-[13px]">{r.action}</span>
+                    <span className="text-[13px]" title={r.action}>{ACTION[r.action] ?? r.action}</span>
                     {detail(r.details) && (
                       <span className="block max-w-[min(26rem,40vw)] max-sm:max-w-28 truncate font-mono text-xs text-muted-foreground" title={detail(r.details)}>
                         {detail(r.details)}

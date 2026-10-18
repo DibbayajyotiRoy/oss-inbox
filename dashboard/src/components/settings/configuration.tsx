@@ -20,7 +20,7 @@ import { YamlEditor } from "./yaml-editor";
 const SOURCE = {
   repo: ["Repo file", "Read from this repository's default branch."],
   org: ["Org defaults", "No file in this repo. Using the org-wide file in .github; a repo file overrides it."],
-  default: ["Defaults", "No file yet. Committing one is how you change anything."],
+  default: ["Defaults", "No file yet. Save one to change anything."],
 } as const;
 
 export function Configuration() {
@@ -28,9 +28,9 @@ export function Configuration() {
   const res = useApi<ConfigDoc>(`/api/repos/${repo.id}/config`);
   return (
     <CardSection
-      title="Configuration"
-      description="Edit the file, validate, then commit it on GitHub."
-      hint="Jev reads this file from your default branch. Unknown keys or bad values make the whole file invalid and defaults (which never act) apply until you fix it."
+      title="Config file"
+      description="Edit the file, check it, then save it on GitHub."
+      hint="Jev reads this file from your default branch. One bad line makes the whole file invalid, and Jev falls back to safe defaults (it never acts by itself) until you fix it."
     >
       <Load res={res} fallback={<RowsSkeleton rows={6} />}>{(doc) => <Editor doc={doc} />}</Load>
     </CardSection>
@@ -54,8 +54,8 @@ function Editor({ doc }: { doc: ConfigDoc }) {
     if (res) setCheck({ text, res });
   }
 
-  // Committing what was never validated is how a whole file ends up invalid.
-  const blocked = fresh ? fresh.errors.length > 0 && "Fix the errors first" : dirty && `Validate your edits first (${combo})`;
+  // Saving what was never checked is how a whole file ends up invalid.
+  const blocked = fresh ? fresh.errors.length > 0 && "Fix the errors first" : dirty && `Check your changes first (${combo})`;
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -67,7 +67,7 @@ function Editor({ doc }: { doc: ConfigDoc }) {
             </TooltipTrigger>
             <TooltipContent>{sourceTip}</TooltipContent>
           </Tooltip>
-          {dirty && <Badge variant="warning">Edited</Badge>}
+          {dirty && <Badge variant="warning">Changed</Badge>}
         </div>
         {dirty && (
           <Button variant="ghost" size="sm" onClick={() => { setText(doc.yaml); setCheck(undefined); }}>Reset</Button>
@@ -85,15 +85,15 @@ function Editor({ doc }: { doc: ConfigDoc }) {
             </ul>
           </div>
         ) : (
-          <Status tone="success" icon={Check}>Valid. Nothing is saved until you commit it.</Status>
+          <Status tone="success" icon={Check}>Looks good. Nothing is saved until you save it on GitHub.</Status>
         ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" loading={busy} onClick={validate}>
-          Validate <Kbd className="max-sm:hidden">{combo}</Kbd>
+          Check file <Kbd className="max-sm:hidden">{combo}</Kbd>
         </Button>
-        <CopyButton value={text} label="Copy YAML" variant="outline" size="md" />
+        <CopyButton value={text} label="Copy file text" variant="outline" size="md" />
         <div className="sm:ml-auto">
           <GithubLink
             href={fresh?.edit_url ?? doc.edit_url}
@@ -101,11 +101,11 @@ function Editor({ doc }: { doc: ConfigDoc }) {
             reason={blocked}
             variant={fresh && !fresh.errors.length && dirty ? "primary" : "outline"}
           >
-            {dirty ? "Commit in GitHub" : "Open in GitHub"}
+            {dirty ? "Save in GitHub" : "Open in GitHub"}
           </GithubLink>
         </div>
       </div>
-      <p id="cfg-keys" className="text-[13px] text-muted-foreground">Tab indents. Esc, then Tab, leaves the editor. Changes apply after you commit to {repo.default_branch}.</p>
+      <p id="cfg-keys" className="text-[13px] text-muted-foreground">Tab indents. Esc, then Tab, leaves the editor. Changes apply after you save to {repo.default_branch}.</p>
     </div>
   );
 }

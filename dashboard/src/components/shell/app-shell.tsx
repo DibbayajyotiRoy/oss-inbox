@@ -29,6 +29,7 @@ const lastRepo = () => {
 const rememberRepo = (id: number) => {
   try {
     localStorage.setItem(LAST_REPO, String(id))
+    document.cookie = `jev_repo=${id}; path=/; max-age=31536000; samesite=lax` // the server reads it so `/` can reopen this repo (landing.ts)
     listeners.forEach((l) => l())
   } catch {}
 }

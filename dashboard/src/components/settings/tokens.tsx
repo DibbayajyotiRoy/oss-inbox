@@ -46,8 +46,8 @@ export function Tokens() {
   return (
     <CardSection
       title="CI tokens"
-      description="Let your CI report failures to the CI gate."
-      hint="Tokens are per repository and shown once; only a SHA-256 hash is stored. Revoking one stops its CI jobs immediately."
+      description="Let your CI send failures to Jev."
+      hint="Each token works for one repository and is shown once. Jev keeps only a scrambled copy. Revoking one stops its CI jobs right away."
       action={create}
     >
       {!isAdmin ? (

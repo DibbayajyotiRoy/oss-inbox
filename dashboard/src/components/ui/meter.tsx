@@ -1,12 +1,12 @@
 import { cn } from "@/lib/utils"
 
 const STATES = {
-  acted: { name: "auto-acted", fill: "bg-foreground" },
-  queued: { name: "queued", fill: "bg-muted-foreground" },
-  // Shadow = dashed foreground/40: a hatched fill that reads as "would have, didn't".
+  acted: { name: "Jev acts", fill: "bg-chart-acted" },
+  queued: { name: "needs review", fill: "bg-chart-queued" },
+  // Shadow = soft amber stripes: a hatched fill that reads as "would have, didn't" (the tick is a solid, deeper amber).
   shadow: {
-    name: "shadow",
-    fill: "bg-[repeating-linear-gradient(90deg,color-mix(in_oklab,var(--foreground)_40%,transparent)_0_3px,transparent_3px_6px)]",
+    name: "learning",
+    fill: "bg-[repeating-linear-gradient(90deg,color-mix(in_oklab,var(--chart-shadow)_75%,transparent)_0_3px,transparent_3px_6px)]",
   },
 } as const
 
@@ -16,7 +16,7 @@ const clamp = (n: number) => Math.min(1, Math.max(0, n))
 const pct = (n: number) => `${Math.round(clamp(n) * 100)}%`
 
 /**
- * The signature atom: a confidence reading (0..1) against its threshold tick (--warning).
+ * The signature atom: a confidence reading (0..1) against its threshold tick (--tick).
  * Fill and tick settle like a needle (250ms spring, ~2% overshoot) when `value` or `threshold` change.
  * `state` defaults to acted when value >= threshold, else queued; pass `shadow` for a would-have-acted reading.
  * `value: null` is an unmeasured reading: empty track, "–".
@@ -50,11 +50,11 @@ export function Meter({
   const track = (
     <div
       role="meter"
-      aria-label={label ?? "Confidence"}
+      aria-label={label ?? "How sure"}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={value === null ? undefined : Math.round(clamp(value) * 100)}
-      aria-valuetext={`${value === null ? "not measured" : `${text}, ${STATES[s].name}`}${threshold !== undefined ? `, threshold ${pct(threshold)}` : ""}`}
+      aria-valuetext={`${value === null ? "not checked yet" : `${text}, ${STATES[s].name}`}${threshold !== undefined ? `, needs ${pct(threshold)}` : ""}`}
       data-slot="meter"
       data-state={s}
       className={cn("relative rounded-full bg-muted", md ? "h-2 w-full" : "h-1.5 min-w-16 flex-1")}
@@ -70,7 +70,7 @@ export function Meter({
           aria-hidden
           data-slot="meter-threshold"
           className={cn(
-            "absolute w-0.5 -translate-x-1/2 rounded-full bg-warning motion-safe:transition-[left] motion-safe:duration-250 motion-safe:ease-needle",
+            "absolute w-0.5 -translate-x-1/2 rounded-full bg-tick motion-safe:transition-[left] motion-safe:duration-250 motion-safe:ease-needle",
             md ? "-inset-y-1" : "-inset-y-0.5"
           )}
           style={{ left: `${clamp(threshold) * 100}%` }}
@@ -91,10 +91,10 @@ export function Meter({
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <div className="flex items-baseline justify-between gap-3 text-[13px]">
-        {hideLabel ? null : <span className="truncate text-muted-foreground">{label ?? "Confidence"}</span>}
+        {hideLabel ? null : <span className="truncate text-muted-foreground">{label ?? "How sure"}</span>}
         <span className="ml-auto shrink-0 tabular-nums">
           <span className="text-sm font-medium">{text}</span>
-          {threshold !== undefined ? <span className="text-muted-foreground"> · threshold {pct(threshold)}</span> : null}
+          {threshold !== undefined ? <span className="text-muted-foreground"> · needs {pct(threshold)}</span> : null}
         </span>
       </div>
       {track}

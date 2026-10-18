@@ -42,11 +42,11 @@ export function RepoGate({ children }: { children: ReactNode }) {
 /** The only place this app links to onboarding. */
 const onboardingHref = (id: number) => `/onboarding/${id}`;
 
-/** Every lane and its mode in one chip ("7 lanes · 4 auto · 3 shadow"); the list behind it links to Settings. */
+/** Every feature and its mode in one chip ("7 features · 4 on · 3 learning"); the list behind it links to Settings. */
 function Lanes({ repo }: { repo: Repo }) {
   const lanes = featureModes(repo).map(([f, m]) => ({ f, m: m === "auto" && autoReason(repo.questions.filter((q) => q.feature === f)) ? ("waiting" as const) : m }));
   const count = (m: string) => lanes.filter((l) => l.m === m).length;
-  const parts = [`${lanes.length} lanes`, ...(["auto", "waiting", "shadow", "off"] as const).filter(count).map((m) => `${count(m)} ${m}`)];
+  const parts = [`${lanes.length} features`, ...(["auto", "waiting", "shadow", "off"] as const).filter(count).map((m) => `${count(m)} ${(m === "waiting" ? "not ready yet" : MODE_LABEL[m]).toLowerCase()}`)];
   const waiting = count("waiting") > 0;
   return (
     <DropdownMenu>
@@ -60,7 +60,7 @@ function Lanes({ repo }: { repo: Repo }) {
         </Badge>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80">
-        <DropdownMenuLabel>Lanes</DropdownMenuLabel>
+        <DropdownMenuLabel>Features</DropdownMenuLabel>
         {lanes.map(({ f, m }) => (
           <DropdownMenuItem key={f} asChild>
             <Link href={`${repoPath(repo.id, "settings")}?s=automation`}>
@@ -76,7 +76,7 @@ function Lanes({ repo }: { repo: Repo }) {
   );
 }
 
-/** A compact identity strip, one line: name, backend, role and a lanes summary; then the two states worth interrupting for, a config that failed to parse and setup not finished. */
+/** A compact identity strip, one line: name, model, role and a features summary; then the two states worth interrupting for, a config that failed to parse and setup not finished. */
 export function RepoHeader({ repo }: { repo: Repo }) {
   const settings = repoPath(repo.id, "settings");
   return (
@@ -93,12 +93,12 @@ export function RepoHeader({ repo }: { repo: Repo }) {
         )}
         {!repo.enabled && (
           <li>
-            <Status tone="neutral">Disabled</Status>
+            <Status tone="neutral">Not set up yet</Status>
           </li>
         )}
         <li>
           <Badge variant="outline" className="font-mono">
-            <span className="sr-only">Decision backend and model: </span>
+            <span className="sr-only">Model used: </span>
             {repo.backend} · {repo.model}
           </Badge>
         </li>
@@ -106,10 +106,10 @@ export function RepoHeader({ repo }: { repo: Repo }) {
           <li className="flex items-center gap-1">
             <Badge variant="warning">
               <TriangleAlert aria-hidden />
-              Uncalibrated backend
+              Unreliable sure-scores
             </Badge>
-            <InfoHint label="About the uncalibrated backend">
-              This backend does not return calibrated probabilities. Confidence ranks answers; trust measured accuracy, not thresholds alone.
+            <InfoHint label="About unreliable sure-scores">
+              This model cannot tell how sure it really is. A score like 91% sure only ranks answers. Trust how often Jev was right, not the score alone.
             </InfoHint>
           </li>
         )}
@@ -127,7 +127,7 @@ export function RepoHeader({ repo }: { repo: Repo }) {
         <Notice
           tone="destructive"
           className="mt-4"
-          title={`Your ${CONFIG_PATH} failed to parse; defaults in use`}
+          title={`Jev cannot read your ${CONFIG_PATH}. It is using the default settings.`}
           action={
             <Link href={`${settings}?s=config`} className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-destructive link-grow">
               Fix in settings <ArrowRight aria-hidden className="size-3.5" />

@@ -17,13 +17,13 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: `${lift} bg-primary text-primary-foreground hover:bg-primary/90`,
+        primary: `${lift} bg-primary text-primary-foreground hover:bg-primary-hover`,
         secondary: `${lift} bg-secondary text-secondary-foreground hover:bg-accent`,
         outline: `${lift} border border-border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-transparent`,
         ghost: `${lift} text-muted-foreground hover:bg-accent hover:text-accent-foreground`,
         destructive:
           `${lift} bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/60 dark:bg-destructive/60 dark:hover:bg-destructive/70`,
-        link: "text-foreground underline-offset-4 link-grow",
+        link: "text-brand underline-offset-4 link-grow",
       },
       size: {
         sm: "h-8 gap-1.5 px-3 text-[13px] has-[>svg]:px-2.5",

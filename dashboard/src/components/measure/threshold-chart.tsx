@@ -14,7 +14,7 @@ const THUMB = 40; // transparent hit area of the native thumb (a finger-sized co
 const SPAN = (MAX - MIN) / (1 - MIN); // share of the plot the slider travels
 const MARGIN = { top: 30, right: PAD, bottom: 0, left: PAD };
 const TICKS = [0.5, 0.6, 0.7, 0.8, 0.9, 1];
-const config = chartTheme({ wrong: "Wrong", correct: { role: "series2", label: "Correct" }, unlabeled: { role: "series4", label: "Unlabeled" } });
+const config = chartTheme({ wrong: "Wrong", correct: { role: "acted", label: "Right" }, unlabeled: { role: "unlabeled", label: "No answer yet" } });
 let introPlayed = false; // the wipe-in plays once per visit, not on every question switch
 
 /** The tick's displayed position: a short spring (~2% overshoot, ~250ms) for keys and buttons, direct while dragging. */
@@ -31,7 +31,7 @@ function useNeedle(value: number, dragging: boolean) {
 }
 
 /**
- * The signature: the confidence distribution (Evil area, stacked wrong / correct / unlabeled) with the threshold as a
+ * The signature: the sureness distribution (Evil area, stacked wrong / right / no answer yet) with the threshold as a
  * Recharts ReferenceLine. A transparent native range input covers the plot, so dragging anywhere, touch, and the arrow
  * keys (Shift or Page keys = 5 points) all work and are announced for free.
  */
@@ -85,12 +85,12 @@ export const ThresholdChart = memo(function ThresholdChart({
       >
         <EvilAreaChart.Grid />
         <EvilAreaChart.XAxis dataKey="x" type="number" domain={[MIN, 1]} ticks={TICKS} tickFormatter={(v: number) => `${Math.round(v * 100)}%`} />
-        <ReferenceArea x1={shown} x2={1} fill="var(--foreground)" fillOpacity={0.05} stroke="none" />
+        <ReferenceArea x1={shown} x2={1} fill="var(--chart-acted)" fillOpacity={0.07} stroke="none" />
         <EvilAreaChart.Area dataKey="wrong" variant="solid" strokeVariant="solid" strokeWidth={1.5} />
         <EvilAreaChart.Area dataKey="correct" variant="lines" strokeVariant="solid" strokeWidth={1.5} />
         <EvilAreaChart.Area dataKey="unlabeled" variant="hatched" strokeVariant="dashed" />
-        {recommended != null && <ReferenceLine x={recommended} stroke="var(--warning)" strokeDasharray="4 4" strokeOpacity={peek ? 1 : 0.7} strokeWidth={peek ? 2 : 1} />}
-        <ReferenceLine x={shown} stroke="var(--warning)" strokeWidth={2} />
+        {recommended != null && <ReferenceLine x={recommended} stroke="var(--chart-1)" strokeDasharray="4 4" strokeOpacity={peek ? 1 : 0.7} strokeWidth={peek ? 2 : 1} />}
+        <ReferenceLine x={shown} stroke="var(--tick)" strokeWidth={2} />
       </EvilAreaChart>
 
       <input
@@ -118,12 +118,12 @@ export const ThresholdChart = memo(function ThresholdChart({
       <div
         aria-hidden
         style={{ left: at }}
-        className="pointer-events-none absolute top-1 flex -translate-x-1/2 items-center gap-1 rounded-md bg-warning px-1.5 py-0.5 text-xs font-semibold text-primary-foreground tabular-nums shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card"
+        className="pointer-events-none absolute top-1 flex -translate-x-1/2 items-center gap-1 rounded-md bg-tick px-1.5 py-0.5 text-xs font-semibold text-background tabular-nums shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card"
       >
         <ChevronsLeftRight className="size-3" />
         {Math.round(shown * 100)}%
-        <span className={cn("absolute right-full mr-2 whitespace-nowrap font-normal text-muted-foreground motion-safe:transition-opacity motion-safe:duration-150", frac < 0.18 && "opacity-0")}>Queued</span>
-        <span className={cn("absolute left-full ml-2 whitespace-nowrap font-normal text-muted-foreground motion-safe:transition-opacity motion-safe:duration-150", frac > 0.82 && "opacity-0")}>Auto-acted</span>
+        <span className={cn("absolute right-full mr-2 whitespace-nowrap font-normal text-muted-foreground motion-safe:transition-opacity motion-safe:duration-150", frac < 0.18 && "opacity-0")}>Needs review</span>
+        <span className={cn("absolute left-full ml-2 whitespace-nowrap font-normal text-muted-foreground motion-safe:transition-opacity motion-safe:duration-150", frac > 0.82 && "opacity-0")}>Jev acts</span>
       </div>
     </div>
   );

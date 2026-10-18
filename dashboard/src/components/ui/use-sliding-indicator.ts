@@ -106,7 +106,7 @@ export const indicatorMotion =
 
 /**
  * The tab selected state, drawn by one element: a soft `muted` pill behind the
- * active tab's content, 5px above a 2px `foreground` underline that sits on the
+ * active tab's content, 5px above a 2px `brand` underline that sits on the
  * track and overhangs the pill by 3px each side. Put the span first inside a
  * `tabPillList` whose items use `tabPillTrigger` (h-7).
  */
@@ -114,7 +114,7 @@ export const tabPillIndicator = [
   indicatorMotion,
   "inset-y-0",
   "before:absolute before:inset-x-0 before:top-0.5 before:bottom-[7px] before:rounded-md before:bg-muted",
-  "after:absolute after:-inset-x-[3px] after:bottom-0 after:h-0.5 after:rounded-full after:bg-foreground",
+  "after:absolute after:-inset-x-[3px] after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand",
 ].join(" ")
 
 /**

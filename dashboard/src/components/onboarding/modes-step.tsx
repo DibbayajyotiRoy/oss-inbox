@@ -7,16 +7,17 @@ import { CodeBlock } from "@/components/ui/code-block";
 import { ModeControl, autoReason } from "@/components/ui/mode-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
-import { pct } from "@/lib/fmt";
+import { rightOf } from "@/lib/fmt";
 import { CONFIG_PATH, FEATURES, featureModes, type Repo } from "@/lib/types";
+import { questionLabel } from "@/lib/questions";
 import { cn } from "@/lib/utils";
 import { useModeEdits } from "@/lib/use-mode-edits";
 import { Continue, useInterval } from "./flow";
 import { Rows } from "./parts";
 
 /**
- * Per-feature mode: off, shadow (suggest only) or auto. Auto is open only where every question of that feature is
- * measured. Changes are collected into one rendered file, because Jev never writes to the repo.
+ * Per-feature setting: Off, Learning (suggest only) or On. On is open only where every question of that feature is
+ * checked. Changes are collected into one rendered file, because Jev never writes to the repo.
  */
 export function ModesStep({ repo, reload }: { repo: Repo; reload: () => void }) {
   const { mode, pick, edits, out, busy } = useModeEdits(repo);
@@ -37,24 +38,24 @@ export function ModesStep({ repo, reload }: { repo: Repo; reload: () => void }) 
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   {name}
-                  {value !== repo.features[f] ? <Badge variant="warning">Not committed</Badge> : null}
+                  {value !== repo.features[f] ? <Badge variant="warning">Not saved yet</Badge> : null}
                 </div>
                 <p className="text-[13px] text-muted-foreground">{about}</p>
                 {best && (
-                  <p className="mt-1 text-xs text-muted-foreground tabular-nums">Measured: {best.id} {pct(best.accuracy)}, n={best.n.toLocaleString()}</p>
+                  <p className="mt-1 text-xs text-muted-foreground tabular-nums">Checked on &ldquo;{questionLabel(best.id)}&rdquo;: {rightOf(best.accuracy, best.n)}</p>
                 )}
                 {block && <p className={cn("text-xs", !best && "mt-1", value === "auto" ? "text-warning" : "text-muted-foreground")}>{block}</p>}
               </div>
-              <ModeControl label={`${name} mode`} value={value} busy={busy} onChange={(m) => pick(f, m)} autoReason={block} />
+              <ModeControl label={`${name} setting`} value={value} busy={busy} onChange={(m) => pick(f, m)} autoReason={block} />
             </li>
           );
         })}
       </Rows>
 
       {edits.length ? (
-        <section aria-label="Commit your changes" className="flex flex-col gap-3 rounded-lg border p-4">
-          <h2 className="text-sm font-medium">Commit this file to apply it</h2>
-          <p className="text-[13px] text-muted-foreground">Nothing acts until it is committed on GitHub. Jev never writes to your repository.</p>
+        <section aria-label="Save your changes" className="flex flex-col gap-3 rounded-lg border p-4">
+          <h2 className="text-sm font-medium">Save this file to apply it</h2>
+          <p className="text-[13px] text-muted-foreground">Nothing changes until you save it on GitHub. Jev never edits your repository itself.</p>
           {out ? (
             <>
               <CodeBlock filename={CONFIG_PATH} code={out.yaml} className="[&_pre]:max-h-64 [&_pre]:overflow-y-auto" />
@@ -64,7 +65,7 @@ export function ModesStep({ repo, reload }: { repo: Repo; reload: () => void }) 
                 </p>
               ) : null}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <Status tone="progress">Waiting for your commit</Status>
+                <Status tone="progress">Waiting for you to save it</Status>
                 <Button asChild variant="outline" size="sm">
                   <a href={out.edit_url} target="_blank" rel="noreferrer">
                     Open in GitHub
@@ -78,7 +79,7 @@ export function ModesStep({ repo, reload }: { repo: Repo; reload: () => void }) 
           )}
         </section>
       ) : (
-        <p className="text-[13px] text-muted-foreground">Shadow is the default: Jev suggests, and nothing on GitHub changes.</p>
+        <p className="text-[13px] text-muted-foreground">Learning is the default: Jev suggests, and nothing on GitHub changes.</p>
       )}
       <Continue />
     </div>

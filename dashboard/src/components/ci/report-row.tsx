@@ -27,7 +27,7 @@ export function ReportRow({ r, repoId, fullName, grouped }: { r: CiReport; repoI
   const time = <time dateTime={r.created_at} title={when(r.created_at)}>{ago(r.created_at)}</time>;
   return (
     <li className="px-4 py-3.5 hover:bg-muted/40 sm:px-5">
-      <div className="grid gap-x-4 gap-y-1 sm:grid-cols-[8rem_minmax(0,1fr)_auto]">
+      <div className="grid gap-x-4 gap-y-1 sm:grid-cols-[11rem_minmax(0,1fr)_auto]">
         <OutcomeStatus outcome={r.outcome} className="self-start" />
         {grouped ? (
           <p className="min-w-0 text-sm font-medium">{time}</p>
@@ -41,8 +41,8 @@ export function ReportRow({ r, repoId, fullName, grouped }: { r: CiReport; repoI
           {r.issue_number !== null && <Ext href={issueUrl(fullName, r.issue_number)}>Filed as #{r.issue_number}</Ext>}
           {r.merged_into !== null && <Ext href={issueUrl(fullName, r.merged_into)}>Merged into #{r.merged_into}</Ext>}
           {r.run_url && <Ext href={r.run_url}>CI run</Ext>}
-          {r.outcome === "held" && <Link href={repoPath(repoId, "held")} className={link}>Review in Held</Link>}
-          {r.outcome === "queued" && <Link href={repoPath(repoId, "queue")} className={link}>Review in Queue</Link>}
+          {r.outcome === "held" && <Link href={repoPath(repoId, "held")} className={link}>Open in Held for a check</Link>}
+          {r.outcome === "queued" && <Link href={repoPath(repoId, "queue")} className={link}>Open in Needs review</Link>}
           {n > 0 && (
             <button
               type="button"
@@ -52,25 +52,25 @@ export function ReportRow({ r, repoId, fullName, grouped }: { r: CiReport; repoI
               className="inline-flex items-center gap-1 rounded-sm link-grow hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               <ChevronRight aria-hidden className={cn("size-3.5 motion-safe:transition-transform motion-safe:duration-150 motion-safe:ease-settle", open && "rotate-90")} />
-              {n} similar {n === 1 ? "issue" : "issues"} considered
+              Jev compared {n} similar {n === 1 ? "issue" : "issues"}
             </button>
           )}
         </div>
       </div>
       {n > 0 && (
         <div id={id} inert={!open} className={cn("grid motion-safe:transition-[grid-template-rows] motion-safe:duration-250 motion-safe:ease-settle", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
-          <ul className="min-h-0 overflow-hidden sm:ml-36">
+          <ul className="min-h-0 overflow-hidden sm:ml-48">
             {r.candidates.map((c) => (
               <li key={c.item_id} className="grid gap-x-6 gap-y-1.5 border-t py-2.5 first:mt-3 md:grid-cols-[minmax(0,1fr)_13rem_13rem] md:items-center">
                 <Link href={`/items/${c.item_id}`} className="inline-block max-w-full min-w-0 truncate align-top text-sm link-grow focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" title={c.title}>
                   {c.number ? <span className="text-muted-foreground tabular-nums">#{c.number} </span> : null}
                   {c.title}
                 </Link>
-                <span title={`Retrieval score ${c.retrieval_score.toFixed(3)}`}>
-                  <Meter value={c.retrieval_score} state="queued" label="Retrieval" />
+                <span title={`Match score ${c.retrieval_score.toFixed(3)}`}>
+                  <Meter value={c.retrieval_score} state="queued" label="Looks similar" />
                 </span>
                 {c.same_as_probability === null ? (
-                  <span className="text-xs text-muted-foreground">Same problem: not asked</span>
+                  <span className="text-xs text-muted-foreground">Same problem: not checked</span>
                 ) : (
                   <Meter value={c.same_as_probability} state="acted" label="Same problem" />
                 )}

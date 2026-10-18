@@ -8,14 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
 import type { SetupStatus } from "@/lib/types";
+import { questionLabel } from "@/lib/questions";
 import { useApi } from "@/lib/use-api";
 import { Brand } from "./flow";
+
 import { GitHubMark, SettleMeter } from "./parts";
 
 const READINGS = [
-  { label: "issue.type", valueText: "94% · n=212", value: 0.94, threshold: 0.85 },
-  { label: "priority", valueText: "88% · n=148", value: 0.88, threshold: 0.9 },
-  { label: "spam", valueText: "97% · n=301", value: 0.97, threshold: 0.95 },
+  { label: questionLabel("issue.type"), valueText: "94% · 212 answers", value: 0.94, threshold: 0.85 },
+  { label: questionLabel("priority"), valueText: "88% · 148 answers", value: 0.88, threshold: 0.9 },
+  { label: questionLabel("spam"), valueText: "97% · 301 answers", value: 0.97, threshold: 0.95 },
 ];
 
 /** Sign in. Sends a fresh instance to /welcome; offers sample data when the server runs in demo mode. */
@@ -38,7 +40,7 @@ export function LoginPanel() {
           <div className="w-full max-w-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-250">
             <h1 className="text-2xl font-semibold tracking-tight">Triage that earns trust</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              It starts in shadow mode, never closes or deletes anything, and shows its measured accuracy before it acts on its own.
+              At first it only suggests. It never closes or deletes anything, and it shows how often it is right before it acts by itself.
             </p>
 
             <div className="mt-8 flex flex-col gap-3">
@@ -82,16 +84,16 @@ export function LoginPanel() {
         </main>
       </div>
 
-      <aside aria-label="Example readings" className="flex flex-col justify-center border-t bg-muted/20 lg:border-t-0 lg:border-l">
+      <aside aria-label="Example results" className="flex flex-col justify-center border-t bg-muted/20 lg:border-t-0 lg:border-l">
         <div className="mx-auto w-full max-w-md px-5 py-10 sm:px-10 lg:py-16">
-          <p className="text-[13px] text-muted-foreground">Example readings</p>
+          <p className="text-[13px] text-muted-foreground">Example results</p>
           <div className="mt-6 flex flex-col gap-7">
             {READINGS.map((r, i) => (
               <SettleMeter key={r.label} i={i + 2} {...r} />
             ))}
           </div>
           <p className="mt-8 text-sm text-muted-foreground">
-            Every answer carries its confidence, a threshold you set, and the sample size behind it. Yours come from your own repository history.
+            Every answer shows how sure Jev is, how sure it must be, and how many answers that rests on. Yours come from your own repository history.
           </p>
         </div>
       </aside>

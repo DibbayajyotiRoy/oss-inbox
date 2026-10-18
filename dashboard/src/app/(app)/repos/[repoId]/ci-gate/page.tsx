@@ -31,7 +31,7 @@ export default function CiGate() {
   return (
     <>
       <PageHeader
-        title="CI gate"
+        title="CI failures"
         description="What Jev did with each CI failure."
         actions={
           <Button asChild variant="outline" size="sm">
@@ -45,11 +45,11 @@ export default function CiGate() {
           return (
             <div className="flex flex-col gap-6">
               <CardSection
-                title="Outcomes"
+                title="What Jev did"
                 description={
                   only
                     ? `Showing ${shown.length} of ${reports.length}. Pick ${outcomeMeta(only).label.toLowerCase()} again to clear.`
-                    : `${list.more ? "Newest " : ""}${reports.length} ${reports.length === 1 ? "report" : "reports"}${list.more ? ", more below" : ""}. Pick an outcome to filter.`
+                    : `${list.more ? "Newest " : ""}${reports.length} ${reports.length === 1 ? "report" : "reports"}${list.more ? ", more below" : ""}. Pick one to filter.`
                 }
               >
                 <OutcomeBar reports={reports} onSelect={setOnly} />
@@ -58,10 +58,10 @@ export default function CiGate() {
                 <EmptyState
                   art="inbox"
                   title="No matching reports"
-                  description={list.more ? "Load more to look further back." : "None in the loaded window."}
+                  description={list.more ? "Load more to look further back." : "None in the reports shown."}
                 />
               ) : (
-                <ul className="divide-y overflow-hidden rounded-xl border bg-card shadow-sm" aria-label="CI reports">
+                <ul className="divide-y overflow-hidden rounded-xl border bg-card shadow-sm" aria-label="CI failure reports">
                   {groupReports(shown).map(({ key, reports: rs }) =>
                     rs.length === 1 ? (
                       <ReportRow key={key} r={rs[0]} repoId={repo.id} fullName={repo.full_name} />

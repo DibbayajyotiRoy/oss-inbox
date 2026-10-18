@@ -117,8 +117,8 @@ const STATUS_ICON: Record<ToastStatus, LucideIcon> = {
 
 const STATUS_CLASS: Record<ToastStatus, string> = {
   neutral: "text-muted-foreground bg-muted/60",
-  info: "text-primary bg-muted",
-  loading: "text-primary bg-muted",
+  info: "text-brand bg-muted",
+  loading: "text-brand bg-muted",
   success: "text-emerald-600 bg-emerald-500/10 dark:text-emerald-400",
   error: "text-destructive bg-destructive/10",
 };

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { EvilComposedChart } from "@/components/evilcharts/charts/recharts-composed-chart";
 import { ChartTooltip, ChartTooltipContent } from "@/components/evilcharts/ui/recharts-tooltip";
 import { chartTheme } from "@/lib/chart-theme";
-import { pct } from "@/lib/fmt";
+import { answers, pct, rightOf } from "@/lib/fmt";
 import type { Calibration } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { LOW_N } from "./reliability-spark";
@@ -14,9 +14,9 @@ type Seen = Bin & { mean_confidence: number; accuracy: number }; // buckets with
 type Row = { x: number; solid: number | null; ghost: number | null; perfect: number; n: number; lo: number; hi: number };
 
 const config = chartTheme({
-  solid: { role: "series1", label: "Observed accuracy" },
-  ghost: { role: "series2", label: "Fewer than 5 decisions" },
-  perfect: { role: "shadow", label: "Perfect calibration" },
+  solid: { role: "series1", label: "How often Jev was right" },
+  ghost: { role: "unlabeled", label: "Fewer than 5 answers" },
+  perfect: { role: "unlabeled", label: "Perfectly honest" },
 });
 const TICKS = [0, 0.25, 0.5, 0.75, 1];
 const MARGIN = { top: 8, right: 16, bottom: 0, left: 0 };
@@ -41,7 +41,7 @@ export function ReliabilityChart({ bins, href, className }: { bins: Bin[]; href:
     if (!b || typeof d.cx !== "number" || typeof d.cy !== "number" || (b.n < LOW_N) !== ghost) return <g key={d.payload.lo} />;
     const r = 3.5 + 6 * Math.sqrt(b.n / nmax);
     return (
-      <Link key={b.lo} href={href(b)} aria-label={`Confidence ${pct(b.lo)} to ${pct(b.hi)}: accuracy ${pct(b.accuracy, 1)}, n=${b.n}. See the misses.`} className="group cursor-pointer outline-none">
+      <Link key={b.lo} href={href(b)} aria-label={`When Jev was ${pct(b.lo)} to ${pct(b.hi)} sure: ${rightOf(b.accuracy, b.n, 1)}. See the misses.`} className="group cursor-pointer outline-none">
         <circle cx={d.cx} cy={d.cy} r={Math.max(r, 12)} className="fill-transparent" />
         <circle
           cx={d.cx}
@@ -50,7 +50,7 @@ export function ReliabilityChart({ bins, href, className }: { bins: Bin[]; href:
           strokeWidth={1.5}
           className={cn(
             "origin-center [transform-box:fill-box] group-hover:scale-125 group-focus-visible:scale-125 group-focus-visible:stroke-ring motion-safe:transition-transform motion-safe:duration-150 motion-safe:ease-settle",
-            ghost ? "fill-card stroke-muted-foreground" : "fill-foreground stroke-background",
+            ghost ? "fill-card stroke-chart-unlabeled" : "fill-chart-1 stroke-background",
           )}
         />
       </Link>
@@ -72,11 +72,11 @@ export function ReliabilityChart({ bins, href, className }: { bins: Bin[]; href:
               {...p}
               content={undefined} // Recharts passes its own `content` prop through; the div type wants a string
               hideIndicator
-              labelFormatter={() => `Confidence ${pct(row.lo)} to ${pct(row.hi)}${row.n < LOW_N ? ", too few to trust" : ""}`}
+              labelFormatter={() => `When Jev was ${pct(row.lo)} to ${pct(row.hi)} sure${row.n < LOW_N ? " (too few to trust)" : ""}`}
               formatter={(v) => (
                 <div className="flex w-full justify-between gap-4">
-                  <span className="text-muted-foreground">Accuracy</span>
-                  <span className="font-mono font-medium tabular-nums">{pct(Number(v), 1)} · n={row.n}</span>
+                  <span className="text-muted-foreground">Right</span>
+                  <span className="font-mono font-medium tabular-nums">{pct(Number(v), 1)} of {answers(row.n)}</span>
                 </div>
               )}
             />

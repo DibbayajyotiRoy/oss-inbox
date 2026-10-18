@@ -258,7 +258,7 @@ GET /api/repos/:id -> {id, full_name, private, enabled, role, default_branch, ba
 PATCH /api/repos/:id {enabled, acknowledge_private?} (admin; enabling private needs ack) -> same as GET
 GET /api/repos/:id/queue?bucket=review|held -> Page<QueueEntry>
  QueueEntry={id, item:ItemSummary, feature, reason, bucket, created_at, age_hours, suggestions:Suggestion[]}
- ItemSummary={id, kind:"issue"|"pr"|"ci_report"|"report", number:number|null, title, html_url:string|null, author:string|null, created_at}
+ ItemSummary={id, kind:"issue"|"pr"|"ci_report"|"report", number:number|null, title, html_url:string|null, author:string|null, created_at, author_avatar_url:string|null, author_url:string|null}
  Suggestion={decision_id, question_id, answer, confidence, threshold, options:string[], probabilities:Record<string,number>}
 POST /api/queue/:qid/resolve {action:"accept"|"dismiss"|"release", answers?:Record<decision_id,string>} -> {ok:true}
    accept: ground truth for each suggestion (answers override), applies label actions for changed/confirmed answers.

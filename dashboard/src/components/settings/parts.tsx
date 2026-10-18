@@ -26,7 +26,7 @@ export function Gate({ reason, children }: { reason: string | false | undefined;
   );
 }
 
-/** Opens GitHub's editor. Copies the YAML first when the file exists, because that editor URL cannot prefill it. */
+/** Opens GitHub's editor. Copies the file text first when the file exists, because that editor URL cannot prefill it. */
 export function GithubLink({ href, yaml, reason, variant = "primary", children }: {
   href: string;
   yaml: string;
@@ -37,7 +37,7 @@ export function GithubLink({ href, yaml, reason, variant = "primary", children }
   const icon = <ExternalLink aria-hidden />;
   const copy = () => {
     if (!href.includes("/edit/")) return;
-    navigator.clipboard?.writeText(yaml).then(() => toast.success("YAML copied", { description: "Paste it into the GitHub editor." }), () => {});
+    navigator.clipboard?.writeText(yaml).then(() => toast.success("File text copied", { description: "Paste it into the GitHub editor." }), () => {});
   };
   return (
     <Gate reason={reason}>

@@ -33,8 +33,8 @@ function Repos({ d }: { d: Overview }) {
         <PageHeader title={d.org.login} />
         <EmptyState
           title="No repositories yet"
-          description="Install the GitHub App on a repository to see it here."
-          action={<InstallLink variant="primary" setup>Install on GitHub</InstallLink>}
+          description="Add the GitHub App to a repository to see it here."
+          action={<InstallLink variant="primary" setup>Add on GitHub</InstallLink>}
         />
       </>
     );
@@ -65,7 +65,7 @@ function Repos({ d }: { d: Overview }) {
       {off.length > 0 && (
         <section aria-labelledby="off-h" className="flex flex-col gap-4">
           <h2 id="off-h" className="text-lg font-semibold tracking-tight">
-            Not enabled
+            Not turned on
           </h2>
           <ul className="divide-y overflow-hidden rounded-xl border border-dashed">
             {off.map((r) => (

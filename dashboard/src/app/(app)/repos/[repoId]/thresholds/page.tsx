@@ -18,8 +18,9 @@ import { Select } from "@/components/ui/select";
 import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Stat, StatStrip } from "@/components/ui/stat-strip";
 import { Status } from "@/components/ui/status";
-import { pct, repoPath } from "@/lib/fmt";
-import type { Evaluation, QuestionInfo, Repo } from "@/lib/types";
+import { answers, pct, repoPath, rightOf } from "@/lib/fmt";
+import { featureName, type Evaluation, type QuestionInfo, type Repo } from "@/lib/types";
+import { questionLabel } from "@/lib/questions";
 import { useApi } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 import { PendingTray, type Change } from "./pending-tray";
@@ -55,20 +56,20 @@ export default function Thresholds() {
   if (!q)
     return (
       <>
-        <PageHeader title="Thresholds" />
-        <EmptyState art="chart" title="No questions yet" description="They appear once a feature has processed an item." />
+        <PageHeader title="How sure Jev must be" />
+        <EmptyState art="chart" title="Nothing to set yet" description="These appear after Jev handles its first item." />
       </>
     );
   const ev = evaluation.data?.questions.find((x) => x.id === q.id);
   return (
     <>
       <PageHeader
-        title="Thresholds"
-        description="Preview each threshold on measured history."
+        title="How sure Jev must be"
+        description="Try each level on your past answers."
         actions={
           changes.length > 0 && (
             <Button asChild variant="outline" size="sm">
-              <a href="#pending">{changes.length} pending</a>
+              <a href="#pending">{changes.length} unsaved</a>
             </Button>
           )
         }
@@ -102,7 +103,7 @@ function Picker({ questions, sel, onPick, value, edited }: {
     <>
       <Select wrapperClassName="lg:hidden" aria-label="Question" value={sel} onValueChange={onPick}>
         {questions.map((q) => (
-          <option key={q.id} value={q.id}>{q.id} · {pct(value(q))}</option>
+          <option key={q.id} value={q.id}>{questionLabel(q.id)} · {pct(value(q))}</option>
         ))}
       </Select>
       <nav aria-label="Questions" className="hidden lg:sticky lg:top-0 lg:block lg:max-h-[calc(100dvh-10rem)] lg:overflow-y-auto">
@@ -121,14 +122,14 @@ function Picker({ questions, sel, onPick, value, edited }: {
                   )}
                 >
                   <span className="flex items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate font-mono text-[13px] font-medium">{q.id}</span>
-                    {edited(q) && <span className="size-1.5 rounded-full bg-warning"><span className="sr-only">edited</span></span>}
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{questionLabel(q.id)}</span>
+                    {edited(q) && <span className="size-1.5 rounded-full bg-warning"><span className="sr-only">changed</span></span>}
                     <span className="text-[13px] font-medium tabular-nums">{pct(value(q))}</span>
                   </span>
-                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">{q.feature} · default {pct(q.default_threshold)}</span>
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">{featureName(q.feature)} · default {pct(q.default_threshold)}</span>
                   <span className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="tabular-nums">{pct(q.accuracy, 1)} · n={q.n}</span>
-                    <Badge variant={q.measured ? "outline" : "warning"}>{q.measured ? "Measured" : "Not measured"}</Badge>
+                    <span className="tabular-nums">{q.accuracy == null ? "No answers yet" : `${pct(q.accuracy, 1)} right, ${answers(q.n)}`}</span>
+                    <Badge variant={q.measured ? "outline" : "warning"}>{q.measured ? "Ready to act" : "Not ready yet"}</Badge>
                   </span>
                 </button>
               </li>
@@ -149,12 +150,12 @@ function Panel({ repo, q, value, edited, recommended, evalN, set }: {
   useEffect(() => void loadChart(), []);
   return (
     <CardSection
-      title={<span className="font-mono">{q.id}</span>}
-      hint="Drag the tick, or focus it and use the arrow keys (Shift for 5 points). Counts come from this repo's labeled history."
+      title={questionLabel(q.id)}
+      hint="Drag the line, or use the arrow keys (Shift for 5 points). Counts come from your past answers for this repo."
       description={
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <Badge variant="outline">{q.feature}</Badge>
-          <span className="tabular-nums">{q.measured ? `Accuracy ${pct(q.accuracy, 1)}, n=${q.n}` : `Not measured, n=${q.n}`}</span>
+          <Badge variant="outline">{featureName(q.feature)}</Badge>
+          <span className="tabular-nums">{q.accuracy == null ? `No answers yet` : `Jev was ${rightOf(q.accuracy, q.n, 1)}`}</span>
         </span>
       }
       action={
@@ -167,16 +168,16 @@ function Panel({ repo, q, value, edited, recommended, evalN, set }: {
       }
     >
       <div className="flex flex-col gap-5">
-        {!q.measured && <Status tone="warning">Not measured yet: auto mode will not act on this question.</Status>}
-        {!repo.calibrated && <Status tone="warning">Uncalibrated backend: confidence is a ranking, not a probability.</Status>}
+        {!q.measured && <Status tone="warning">Not ready yet. Jev will not act on its own here.</Status>}
+        {!repo.calibrated && <Status tone="warning">The model&apos;s sure-scores are only a ranking, not real odds.</Status>}
         {res.error ? (
           <ErrorState error={res.error} retry={res.reload} />
         ) : empty ? (
           <EmptyState
             art="chart"
-            title="No labeled history yet"
-            description="Run a backfill to measure this question."
-            action={<Button asChild variant="outline"><Link href={repoPath(repo.id, "evaluation")}>Run backfill</Link></Button>}
+            title="No past answers yet"
+            description="Check Jev on your past issues first."
+            action={<Button asChild variant="outline"><Link href={repoPath(repo.id, "evaluation")}>Check Jev on your past issues</Link></Button>}
           />
         ) : !bins || !counts ? (
           <Busy><Skeleton className="h-[26rem] w-full" /></Busy>
@@ -192,54 +193,54 @@ function Body({ repoId, q, value, edited, recommended, evalN, bins, counts: c, o
   repoId: number; q: QuestionInfo; value: number; edited: boolean; recommended: number | null; evalN?: number; reading: string;
   bins: Bin[]; counts: Counts; onChange: (v: number) => void;
 }) {
-  const labeled = c.acted - c.unmeasured; // auto-acted with a known answer
+  const labeled = c.acted - c.unmeasured; // acted on its own, and you gave an answer
   const [peek, setPeek] = useState(false); // hovering or focusing "Use recommended" lights its line on the chart
-  const roll = (n: number, cls?: string) => <span className={cn("text-3xl sm:text-4xl", cls)}><NumberTicker value={n} locale animateOnMount={false} duration={0.4} /></span>;
+  const roll = (n: number, cls?: string) => <span className="text-3xl sm:text-4xl"><NumberTicker value={n} locale animateOnMount={false} duration={0.4} className={cls} /></span>;
   return (
     <>
       <div>
         <ul className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <li className="flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-destructive" />Wrong</li>
-          <li className="flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-muted-foreground" />Correct</li>
-          <li className="flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-chart-4" />Unlabeled</li>
-          <li className="flex items-center gap-1.5"><i className="h-3 w-0.5 rounded-full bg-warning" />Threshold</li>
-          {recommended != null && <li className="flex items-center gap-1.5"><i className="h-3 w-0 border-l-2 border-dashed border-warning/70" />Recommended {pct(recommended)}</li>}
+          <li className="flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-chart-wrong" />Wrong</li>
+          <li className="flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-chart-acted" />Right</li>
+          <li className="flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-chart-unlabeled" />No answer yet</li>
+          <li className="flex items-center gap-1.5"><i className="h-3 w-0.5 rounded-full bg-tick" />Must be this sure</li>
+          {recommended != null && <li className="flex items-center gap-1.5"><i className="h-3 w-0 border-l-2 border-dashed border-chart-1" />Recommended {pct(recommended)}</li>}
         </ul>
-        <ThresholdChart bins={bins} value={value} onChange={onChange} recommended={recommended} peek={peek} label={`Threshold for ${q.id}`} describedBy={reading} />
+        <ThresholdChart bins={bins} value={value} onChange={onChange} recommended={recommended} peek={peek} label={`How sure Jev must be for ${questionLabel(q.id)}`} describedBy={reading} />
       </div>
 
       <StatStrip className="grid-cols-3 gap-x-4 sm:gap-x-8 lg:grid-cols-3">
         <Stat
-          label={<span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-foreground" />Auto-acted</span>}
+          label={<span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-chart-acted" />Jev acts</span>}
           value={roll(c.acted)}
           detail={`${pct(c.acted / c.n)} of ${c.n.toLocaleString()}`}
         />
         <Stat
-          label={<span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-muted-foreground" />Queued</span>}
+          label={<span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-chart-queued" />Needs review</span>}
           value={roll(c.queued)}
           detail={`${pct(c.queued / c.n)} of ${c.n.toLocaleString()}`}
         />
         <Stat
-          label={<span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-destructive" /><span className="sm:hidden">Wrong</span><span className="max-sm:hidden">Would be wrong</span></span>}
-          hint="Auto-acted decisions whose known answer differs from Jev's."
+          label={<span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-[2px] bg-chart-wrong" /><span className="sm:hidden">Wrong</span><span className="max-sm:hidden">Would be wrong</span></span>}
+          hint="Times Jev would have acted and your answer was different."
           value={roll(c.wrong, c.wrong > 0 ? "text-destructive" : undefined)}
-          detail={`of ${labeled.toLocaleString()} with a known answer`}
+          detail={`of ${labeled.toLocaleString()} with your answer`}
         />
       </StatStrip>
 
       <p id={reading} className="text-sm text-pretty">
         {c.acted === 0 ? (
-          <>At {pct(value)} nothing would be auto-acted. All <b className="tabular-nums">{c.n.toLocaleString()}</b> would be queued.</>
+          <>At {pct(value)} sure, Jev would not act on anything by itself. All <b className="tabular-nums">{c.n.toLocaleString()}</b> would need review.</>
         ) : labeled === 0 ? (
-          <>At {pct(value)}, <b className="tabular-nums">{c.acted.toLocaleString()}</b> would be auto-acted, none with a known answer yet.</>
+          <>At {pct(value)} sure, Jev would act on <b className="tabular-nums">{c.acted.toLocaleString()}</b> by itself. None have your answer yet.</>
         ) : (
           <>
-            At {pct(value)} it would have been wrong <b className="tabular-nums">{c.wrong.toLocaleString()}</b> of <b className="tabular-nums">{labeled.toLocaleString()}</b> times it acted on a known answer
-            ({pct(1 - c.wrong / labeled, 1)} accurate).
+            At {pct(value)} sure, Jev would have been wrong <b className="tabular-nums">{c.wrong.toLocaleString()}</b> of <b className="tabular-nums">{labeled.toLocaleString()}</b> times it acted by itself and you gave an answer
+            ({pct(1 - c.wrong / labeled, 1)} right).
             {c.wrong > 0 && (
               <> <Link className="underline underline-offset-4 link-grow" href={`${repoPath(repoId, "evaluation")}?q=${encodeURIComponent(q.id)}&lo=${value}`}>See them</Link>.</>
             )}
-            {c.unmeasured > 0 && <> {c.unmeasured.toLocaleString()} more have no known answer.</>}
+            {c.unmeasured > 0 && <> {c.unmeasured.toLocaleString()} more have no answer from you yet.</>}
           </>
         )}
       </p>
@@ -269,7 +270,7 @@ function Body({ repoId, q, value, edited, recommended, evalN, bins, counts: c, o
           </Button>
         )}
         <p className="text-xs text-muted-foreground sm:ml-auto">
-          {recommended != null ? `Recommended keeps wrong answers under 5%${evalN ? `, n=${evalN}` : ""}.` : "Not enough labeled history to recommend."}
+          {recommended != null ? `Recommended keeps wrong answers under 5%${evalN ? `, out of ${answers(evalN)}` : ""}.` : "Not enough past answers to recommend one."}
         </p>
       </div>
     </>

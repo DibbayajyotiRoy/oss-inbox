@@ -1,19 +1,23 @@
 "use client";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InlineCode } from "@/components/ui/inline-code";
 import { Kbd } from "@/components/ui/kbd";
-import { Meter } from "@/components/ui/meter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { age, pct } from "@/lib/fmt";
-import type { ItemDetail, QueueEntry, Suggestion } from "@/lib/types";
+import { answerText, isWorry, questionLabel } from "@/lib/questions";
+import { featureName, type ItemDetail, type QueueEntry, type Run, type Suggestion } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
+import { OpenedBy } from "./author";
 import { Markdown } from "./markdown";
-import { featureName, itemRef } from "./row";
+import { itemRef, kindName, reasonText } from "./row";
+import { Verdict } from "./verdict";
+import { OpenInVSCode } from "./vscode";
 
 export type Act = "accept" | "dismiss" | "release";
 
@@ -35,47 +39,98 @@ function useDebounced<T>(value: T, ms: number) {
 
 const keycap = "max-lg:hidden";
 
-/** Dismiss / Release / Open / Accept, under the preview. Accept says what it records ("Accept p2", on phones "Accept p2 on #685"). */
+const Tip = ({ tip, children }: { tip: string; children: ReactNode }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>{children}</TooltipTrigger>
+    <TooltipContent side="top" className="max-w-64 text-pretty">{tip}</TooltipContent>
+  </Tooltip>
+);
+
+const OPEN = "See everything Jev found about this item.";
+const HELP = {
+  review: [
+    ["Accept", "Jev was right. Your answer is saved and Jev learns from it."],
+    ["Dismiss", "Skip it. Nothing is saved and Jev learns nothing."],
+    ["Open", OPEN],
+  ],
+  held: [
+    ["Release to triage", "It's fine. It goes to normal triage, like any other item."],
+    ["Confirm hold", "The hold was right. Jev learns from it."],
+    ["Dismiss", "Close it. Jev learns nothing."],
+  ],
+} as const;
+
+/** Dismiss / Open / Accept (Confirm hold and Release to triage when held). Accept says what it saves ("Accept: Not breaking"). */
 export function Actions({ e, held, picks, onAct }: { e: QueueEntry; held: boolean; picks: Record<number, string>; onAct: (a: Act) => void }) {
   const n = e.suggestions.length;
   const ans = (s: Suggestion) => picks[s.decision_id] ?? s.answer;
   const changed = e.suggestions.filter((s) => ans(s) !== s.answer).length;
-  const what = n === 1 ? ` ${ans(e.suggestions[0])}` : n ? ` ${n} answers${changed ? ` (${changed} changed)` : ""}` : "";
-  const accept = (
-    <Button variant={held ? "outline" : "primary"} size="sm" onClick={() => onAct("accept")}>
-      <span className="truncate">Accept{what}<span className="lg:hidden"> on {itemRef(e.item)}</span></span>
-      <Kbd className={cn(keycap, !held && "border-primary-foreground/25 bg-transparent text-primary-foreground/70")}>A</Kbd>
-    </Button>
-  );
+  const what = n === 1 ? `: ${answerText(e.suggestions[0].question_id, ans(e.suggestions[0]))}` : n ? ` ${n} answers${changed ? ` (${changed} changed)` : ""}` : "";
+  const dim = "border-primary-foreground/25 bg-transparent text-primary-foreground/70";
+  const help = HELP[held ? "held" : "review"];
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button variant="outline" size="sm" onClick={() => onAct("dismiss")}>
-        Dismiss<Kbd className={keycap}>D</Kbd>
-      </Button>
-      <span className="flex-1" />
-      <Button asChild variant="ghost" size="sm">
-        <Link href={`/items/${e.item.id}`}>Open</Link>
-      </Button>
+      <Tip tip={help[held ? 2 : 1][1]}>
+        <Button variant="outline" size="sm" onClick={() => onAct("dismiss")}>
+          Dismiss<Kbd className={keycap}>D</Kbd>
+        </Button>
+      </Tip>
+      <div className="flex flex-1 basis-24 items-center">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button type="button" className="rounded-sm text-xs text-muted-foreground outline-none link-grow hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">What do these do?</button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-72 text-pretty">
+            <ul className="flex flex-col gap-1">
+              {help.map(([name, text]) => (
+                <li key={name}><span className="font-medium">{name}:</span> {text}</li>
+              ))}
+            </ul>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      <Tip tip={OPEN}>
+        <Button asChild variant="ghost" size="sm">
+          <Link href={`/items/${e.item.id}`}>Open</Link>
+        </Button>
+      </Tip>
       {held ? (
         <>
-          {accept}
-          <Button size="sm" onClick={() => onAct("release")}>
-            Release<Kbd className={cn(keycap, "border-primary-foreground/25 bg-transparent text-primary-foreground/70")}>R</Kbd>
-          </Button>
+          <Tip tip={help[1][1]}>
+            <Button variant="outline" size="sm" onClick={() => onAct("accept")}>
+              Confirm hold<Kbd className={keycap}>A</Kbd>
+            </Button>
+          </Tip>
+          <Tip tip={help[0][1]}>
+            <Button size="sm" onClick={() => onAct("release")}>
+              Release to triage<Kbd className={cn(keycap, dim)}>R</Kbd>
+            </Button>
+          </Tip>
         </>
       ) : (
-        accept
+        <Tip tip={help[0][1]}>
+          <Button size="sm" onClick={() => onAct("accept")}>
+            <span className="truncate">Accept{what}<span className="lg:hidden"> on {itemRef(e.item)}</span></span>
+            <Kbd className={cn(keycap, dim)}>A</Kbd>
+          </Button>
+        </Tip>
       )}
     </div>
   );
 }
 
 function SuggestionCard({ s, chosen, active, onPick }: { s: Suggestion; chosen: string; active: boolean; onPick: (o: string) => void }) {
+  const label = questionLabel(s.question_id);
   return (
-    <section aria-label={s.question_id} className={cn("rounded-lg border p-3 motion-safe:transition-colors motion-safe:duration-150", active && "border-ring")}>
-      <p className="mb-2 font-mono text-xs text-muted-foreground">{s.question_id}</p>
-      <Meter size="md" value={s.confidence} threshold={s.threshold} label={`Jev says ${s.answer}`} />
-      <div role="group" aria-label={`Answer for ${s.question_id}`} className="mt-3 flex flex-wrap gap-1.5">
+    <section aria-label={label} className={cn("rounded-lg border p-3 motion-safe:transition-colors motion-safe:duration-150", active && "border-ring")}>
+      <p className="mb-2 flex items-baseline justify-between gap-3">
+        <span className="text-[13px] font-medium">{label}</span>
+        <span className="truncate font-mono text-[11px] text-muted-foreground">{s.question_id}</span>
+      </p>
+      <Verdict id={s.question_id} answer={s.answer} confidence={s.confidence} threshold={s.threshold} />
+      <p className="mt-1 text-xs text-muted-foreground tabular-nums">Jev acts on its own at {pct(s.threshold)} sure</p>
+      <p className="mt-3 text-xs text-muted-foreground">Your answer</p>
+      <div role="group" aria-label={`Answer for ${label}`} className="mt-1.5 flex flex-wrap gap-1.5">
         {optionsOf(s).map((o, j) => (
           <button
             key={o}
@@ -89,12 +144,47 @@ function SuggestionCard({ s, chosen, active, onPick }: { s: Suggestion; chosen: 
           >
             <Kbd className={keycap}>{j + 1}</Kbd>
             {o === chosen && <Check aria-hidden className="size-3.5 lg:hidden" />}
-            {o}
+            {answerText(s.question_id, o)}
             <span className="text-muted-foreground tabular-nums">{pct(s.probabilities[o] ?? 0)}</span>
             {o === s.answer && <span className="sr-only">(Jev&apos;s answer)</span>}
           </button>
         ))}
       </div>
+    </section>
+  );
+}
+
+/** Held items: why, then every answer Jev gave at the gate (worrying ones first), or a note that a rule held it. */
+function WhyHeld({ e, runs, failed }: { e: QueueEntry; runs?: Run[]; failed: boolean }) {
+  const latest = runs && [...runs].sort((a, b) => b.id - a.id).find((r) => r.decisions.length);
+  const gates = (latest?.decisions ?? [])
+    .filter((x) => x.question_id.startsWith("gate."))
+    .sort((a, b) => +isWorry(b.question_id, b.answer) - +isWorry(a.question_id, a.answer));
+  return (
+    <section aria-label="Why it's held" className="rounded-lg border p-3">
+      <h3 className="text-[13px] font-medium">Why it&apos;s held</h3>
+      <p className="mt-1 text-sm text-pretty">{reasonText(e)}</p>
+      {!runs ? (
+        !failed && (
+          <div className="mt-3 flex flex-col gap-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+          </div>
+        )
+      ) : gates.length ? (
+        <>
+          <p className="mt-3 text-xs text-muted-foreground">What Jev found</p>
+          <ul className="mt-1.5 flex flex-col gap-2.5">
+            {gates.map((x) => (
+              <li key={x.id} className={cn(!isWorry(x.question_id, x.answer) && "text-muted-foreground")}>
+                <Verdict id={x.question_id} answer={x.answer} confidence={x.confidence} threshold={x.threshold} />
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="mt-2 text-sm text-muted-foreground">Held by a rule, not a model answer.</p>
+      )}
     </section>
   );
 }
@@ -125,14 +215,15 @@ function Body({ text }: { text: string }) {
   );
 }
 
-/** The focused entry: header, why it is here, every decision with its option chips, then the description and actions. */
+/** The focused entry: header, why it is here, every answer with its option chips, then the description and actions. */
 export function Preview({ e, held, picks, active, onPick, onAct, className }: {
   e: QueueEntry; held: boolean; picks: Record<number, string>; active: number;
   onPick: (s: Suggestion, o: string) => void; onAct: (a: Act) => void; className?: string;
 }) {
   const id = useDebounced(e.item.id, 150);
   const detail = useApi<ItemDetail>(`/api/items/${id}`);
-  const d = detail.data?.item.id === e.item.id ? detail.data.item : undefined;
+  const full = detail.data?.item.id === e.item.id ? detail.data : undefined;
+  const d = full?.item;
   const text = d?.body?.trim().slice(0, 4000);
   return (
     <div className={cn("flex min-h-0 w-full flex-col overflow-hidden rounded-lg border bg-card", className)}>
@@ -142,7 +233,7 @@ export function Preview({ e, held, picks, active, onPick, onAct, className }: {
             <Link href={`/items/${e.item.id}`} className="outline-none link-grow"><InlineCode text={e.item.title} /></Link>
           </h2>
           <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted-foreground">
-            <Badge variant="outline">{e.item.kind.replace("_", " ")}</Badge>
+            <Badge variant="outline">{kindName(e.item.kind)}</Badge>
             {e.item.html_url ? (
               <a href={e.item.html_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 tabular-nums link-grow hover:text-foreground">
                 {itemRef(e.item)}<ExternalLink aria-hidden className="size-3" /><span className="sr-only">Open on GitHub</span>
@@ -150,22 +241,32 @@ export function Preview({ e, held, picks, active, onPick, onAct, className }: {
             ) : (
               <span className="tabular-nums">{itemRef(e.item)}</span>
             )}
-            <span>{e.item.author ?? "unknown author"}</span>
+            <OpenedBy who={e.item} at={e.item.created_at} />
             <span className="tabular-nums">waiting {age(e.age_hours)}</span>
           </p>
+          {e.item.kind === "pr" && (
+            <div className="mt-3">
+              <OpenInVSCode item={e.item} />
+            </div>
+          )}
         </header>
 
-        <div className="flex items-start gap-2 text-sm">
-          <Badge className="mt-0.5">{featureName(e.feature)}</Badge>
-          <p className="min-w-0 text-pretty">{e.reason}</p>
-        </div>
+        {held ? (
+          <WhyHeld e={e} runs={full?.runs} failed={!!detail.error} />
+        ) : (
+          <div className="flex items-start gap-2 text-sm">
+            <Badge className="mt-0.5">{featureName(e.feature)}</Badge>
+            <p className="min-w-0 text-pretty">{reasonText(e)}</p>
+          </div>
+        )}
 
-        <div className="flex flex-col gap-3">
-          {e.suggestions.length === 0 && <p className="text-sm text-muted-foreground">Jev made no suggestion for this one.</p>}
-          {e.suggestions.map((s, i) => (
-            <SuggestionCard key={s.decision_id} s={s} chosen={picks[s.decision_id] ?? s.answer} active={e.suggestions.length > 1 && i === active} onPick={(o) => onPick(s, o)} />
-          ))}
-        </div>
+        {e.suggestions.length > 0 && (
+          <div className="flex flex-col gap-3">
+            {e.suggestions.map((s, i) => (
+              <SuggestionCard key={s.decision_id} s={s} chosen={picks[s.decision_id] ?? s.answer} active={e.suggestions.length > 1 && i === active} onPick={(o) => onPick(s, o)} />
+            ))}
+          </div>
+        )}
 
         <div className="min-h-16">
           {text ? (

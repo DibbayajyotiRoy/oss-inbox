@@ -18,11 +18,11 @@ import { cn } from "@/lib/utils";
 // `?s=<id>` picks the section, so every section is linkable (the repo header links to automation and config).
 const SECTIONS: { id: string; label: string; icon: LucideIcon; View: ComponentType; need?: Role }[] = [
   { id: "automation", label: "Automation", icon: Workflow, View: Automation },
-  { id: "config", label: "Configuration", icon: FileCode2, View: Configuration },
+  { id: "config", label: "Config file", icon: FileCode2, View: Configuration },
   { id: "labels", label: "Labels", icon: Tag, View: Labels },
   { id: "tokens", label: "CI tokens", icon: KeyRound, View: Tokens, need: "admin" },
   { id: "repository", label: "Repository", icon: GitBranch, View: Repository },
-  { id: "audit", label: "Audit log", icon: ScrollText, View: Audit, need: "maintainer" },
+  { id: "audit", label: "Activity log", icon: ScrollText, View: Audit, need: "maintainer" },
 ];
 
 export default function Settings() {
@@ -31,7 +31,7 @@ export default function Settings() {
   const cur = SECTIONS.find((x) => x.id === s) ?? SECTIONS[0];
   return (
     <>
-      <PageHeader title="Settings" description="Automation, config, CI tokens and access." />
+      <PageHeader title="Settings" description="Automation, config file, CI tokens, access." />
       <div className="grid gap-6 lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-10">
         <nav
           aria-label="Settings sections"

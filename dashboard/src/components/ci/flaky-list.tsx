@@ -6,18 +6,18 @@ import { TestName } from "./test-name";
 
 const COLS = "md:grid-cols-[2rem_minmax(0,1fr)_11rem_6rem_6rem_5rem]";
 
-/** Ranked flaky tests as a table on md+ and stacked rows on phones (one markup, grid areas change). The count is the reading; its bar is graphite so it never outshines the test name. */
+/** Tests that fail at random, ranked, as a table on md+ and stacked rows on phones (one markup, grid areas change). The count is the reading; its bar is the quiet brand ramp colour so it never outshines the test name. */
 export function FlakyList({ tests }: { tests: FlakyTest[] }) {
   const ranked = [...tests].sort((a, b) => b.occurrences - a.occurrences || a.test_id.localeCompare(b.test_id));
   const max = ranked[0]?.occurrences ?? 1;
   return (
-    <div className="rounded-xl border bg-card shadow-sm" role="table" aria-label="Flaky tests, most frequent first">
+    <div className="rounded-xl border bg-card shadow-sm" role="table" aria-label="Tests that fail at random, most often first">
       <div role="row" className={`hidden gap-x-4 border-b px-5 py-2.5 text-[13px] font-medium text-muted-foreground md:grid ${COLS}`}>
         <span role="columnheader">#</span>
         <span role="columnheader">Test</span>
-        <span role="columnheader">Occurrences</span>
-        <span role="columnheader">First seen</span>
-        <span role="columnheader">Last seen</span>
+        <span role="columnheader">Times failed</span>
+        <span role="columnheader">First failed</span>
+        <span role="columnheader">Last failed</span>
         <span role="columnheader">Last run</span>
       </div>
       <ul role="rowgroup" className="divide-y">
@@ -29,17 +29,17 @@ export function FlakyList({ tests }: { tests: FlakyTest[] }) {
             </span>
             <span role="cell" className="col-start-2 flex items-center gap-3 md:col-start-auto">
               <span aria-hidden className="h-1.5 flex-1 rounded-full bg-muted">
-                <span className="block h-full min-w-1 rounded-full bg-chart-4" style={{ width: `${(t.occurrences / max) * 100}%` }} />
+                <span className="block h-full min-w-1 rounded-full bg-chart-1" style={{ width: `${(t.occurrences / max) * 100}%` }} />
               </span>
               <span className="w-8 text-right text-base font-semibold tabular-nums">{t.occurrences}</span>
             </span>
             <div className="col-start-2 flex flex-wrap items-center gap-x-4 gap-y-1 md:contents">
               <span role="cell" className="text-[13px] text-muted-foreground">
-                <span className="md:hidden">First seen </span>
+                <span className="md:hidden">First failed </span>
                 <time dateTime={t.first_seen} title={when(t.first_seen)}>{ago(t.first_seen)}</time>
               </span>
               <span role="cell" className="text-[13px] text-muted-foreground">
-                <span className="md:hidden">Last seen </span>
+                <span className="md:hidden">Last failed </span>
                 <time dateTime={t.last_seen} title={when(t.last_seen)}>{ago(t.last_seen)}</time>
               </span>
               <span role="cell" className="text-[13px]">

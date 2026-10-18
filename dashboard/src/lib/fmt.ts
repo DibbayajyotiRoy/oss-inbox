@@ -1,4 +1,8 @@
 export const pct = (x: number | null | undefined, d = 0) => (x == null ? "–" : `${(x * 100).toFixed(d)}%`);
+/** "85 answers": a sample size in plain words ("your answers" are the known right answers Jev is checked against). */
+export const answers = (n: number) => `${n.toLocaleString()} ${n === 1 ? "answer" : "answers"}`;
+/** "right 81% of the time, out of 85 answers": an accuracy with its sample size. */
+export const rightOf = (acc: number | null | undefined, n: number, d = 0) => (acc == null ? "No answers yet" : `right ${pct(acc, d)} of the time, out of ${answers(n)}`);
 /** A number to `d` decimals (ECE and the like), "–" when unmeasured. */
 export const fixed = (x: number | null | undefined, d = 3) => (x == null ? "–" : x.toFixed(d));
 export const when = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });

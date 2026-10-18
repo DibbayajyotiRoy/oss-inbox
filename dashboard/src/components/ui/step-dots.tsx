@@ -10,7 +10,7 @@ export function StepDots({ step, total, name, className }: { step: number; total
             key={i}
             className={cn(
               "h-1.5 rounded-full motion-safe:transition-[width,background-color] motion-safe:duration-250 motion-safe:ease-settle",
-              i + 1 === step ? "w-5 bg-foreground" : i + 1 < step ? "w-1.5 bg-foreground/60" : "w-1.5 bg-border"
+              i + 1 === step ? "w-5 bg-primary" : i + 1 < step ? "w-1.5 bg-primary/60" : "w-1.5 bg-border"
             )}
           />
         ))}

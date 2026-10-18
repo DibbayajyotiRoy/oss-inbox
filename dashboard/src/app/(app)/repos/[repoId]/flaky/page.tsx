@@ -31,7 +31,7 @@ export default function Flaky() {
   const res = useApi<{ items: FlakyTest[] }>(`/api/repos/${repo.id}/flaky-tests`);
   return (
     <>
-      <PageHeader title="Flaky tests" description="Tests that fail intermittently, worst first." />
+      <PageHeader title="Random test failures" description="Tests that fail at random, worst first." />
       <Load
         res={res}
         fallback={skeleton}
@@ -39,11 +39,11 @@ export default function Flaky() {
         empty={
           <EmptyState
             art="chart"
-            title="No flaky tests yet"
-            description="Tests show up after repeated flaky CI failures."
+            title="No random failures yet"
+            description="Tests show up here after they fail at random."
             action={
               <Button asChild variant="outline">
-                <Link href={repoPath(repo.id, "ci-gate")}>Open CI gate</Link>
+                <Link href={repoPath(repo.id, "ci-gate")}>Open CI failures</Link>
               </Button>
             }
           />

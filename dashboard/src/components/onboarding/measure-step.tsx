@@ -11,17 +11,18 @@ import { Status } from "@/components/ui/status";
 import { ErrorState } from "@/components/ui/load";
 import { toast } from "@/components/ui/toaster";
 import { api } from "@/lib/api";
-import { pct } from "@/lib/fmt";
+import { answers, pct } from "@/lib/fmt";
 import type { Backfill, Repo } from "@/lib/types";
+import { questionLabel } from "@/lib/questions";
 import { useAction } from "@/lib/use-api";
 import { Continue, Primary, useFlow, useInterval } from "./flow";
 import { SettleMeter } from "./parts";
 
-const PREVIEW = ["issue.type", "priority", "route.area", "spam"]; // what a backfill can measure
+const PREVIEW = ["issue.type", "priority", "route.area", "spam"]; // what the check on past issues can measure
 
 /**
- * The onboarding signature. Run the backfill, watch the processed count roll, and see each question's accuracy
- * settle in against its threshold as the comparison completes. Always labelled an upper bound, always with n.
+ * The onboarding signature. Check Jev on your past issues (the backfill), watch the count roll, and see each question's
+ * accuracy settle in against how sure Jev must be. Always marked "probably a bit lower in real use", always with its answer count.
  */
 export function MeasureStep({ repo, reload }: { repo: Repo; reload: () => void }) {
   const [b, setB] = useState<Backfill>();
@@ -59,7 +60,7 @@ export function MeasureStep({ repo, reload }: { repo: Repo; reload: () => void }
       await api(path, { method: "POST" });
       const now = await api<Backfill>(path);
       setB(now);
-      if (now.status === "idle") toast.info("Backfill not started", { description: "Demo mode has no worker. Open a seeded repository to see results." });
+      if (now.status === "idle") toast.info("Check not started", { description: "Demo mode cannot run this. Open a repository with sample data to see results." });
     });
 
   return (
@@ -78,7 +79,7 @@ export function MeasureStep({ repo, reload }: { repo: Repo; reload: () => void }
             {repo.questions
               .filter((q) => PREVIEW.includes(q.id))
               .map((q) => (
-                <Meter key={q.id} size="md" value={null} threshold={q.threshold} label={q.id} />
+                <Meter key={q.id} size="md" value={null} threshold={q.threshold} label={questionLabel(q.id)} />
               ))}
           </div>
           <p className="text-xs text-muted-foreground">Each fills in as items are compared, with its sample size.</p>
@@ -88,21 +89,21 @@ export function MeasureStep({ repo, reload }: { repo: Repo; reload: () => void }
           <div className="flex items-center justify-between gap-3">
             <h2 id="acc" className="inline-flex items-center gap-1.5 text-sm font-medium">
               Accuracy by question
-              <InfoHint label="About backfill accuracy">
-                An upper bound. The model may have seen these public issues in training, and closed work is a survivor sample. Truth is the first
-                label a maintainer applied. Expect live accuracy to be lower; shadow mode measures it on new items.
+              <InfoHint label="About these numbers">
+                Probably a bit lower in real use. The model may have seen these public issues while it was trained, and closed issues are the easier ones.
+                Your answer is the first label a maintainer applied. Learning mode measures new issues as they arrive.
               </InfoHint>
             </h2>
-            <span className="text-xs text-muted-foreground">Upper bound</span>
+            <span className="text-xs text-muted-foreground">Probably a bit lower in real use</span>
           </div>
           {rows.length > 0 ? (
             <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
               {rows.map((q, i) => (
-                <SettleMeter key={q.id} i={i} value={q.accuracy} threshold={q.threshold} label={q.id} valueText={`${pct(q.accuracy)} · n=${q.n.toLocaleString()}${q.measured ? "" : " (low)"}`} />
+                <SettleMeter key={q.id} i={i} value={q.accuracy} threshold={q.threshold} label={questionLabel(q.id)} valueText={`${pct(q.accuracy)} · ${answers(q.n)}${q.measured ? "" : " (not ready yet)"}`} />
               ))}
             </div>
           ) : b.status === "done" ? (
-            <p className="text-sm text-muted-foreground">No past labels matched, so nothing is measured yet. Shadow mode will measure live items.</p>
+            <p className="text-sm text-muted-foreground">No past labels matched, so nothing is checked yet. Learning mode will check new items.</p>
           ) : (
             <div role="status" className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
               <Skeleton className="h-9" />
@@ -110,7 +111,7 @@ export function MeasureStep({ repo, reload }: { repo: Repo; reload: () => void }
               <span className="sr-only">Accuracy appears as items are compared</span>
             </div>
           )}
-          {rows.length > 0 ? <p className="text-xs text-muted-foreground">Live accuracy will be lower. Questions without past labels stay unmeasured.</p> : null}
+          {rows.length > 0 ? <p className="text-xs text-muted-foreground">Real use will probably be a bit lower. Questions without past labels stay unchecked.</p> : null}
         </section>
       )}
 
@@ -122,13 +123,13 @@ export function MeasureStep({ repo, reload }: { repo: Repo; reload: () => void }
             Continue without waiting
           </Primary>
           <Primary disabled loading>
-            Measuring
+            Checking
           </Primary>
         </>
       ) : (
         <Primary loading={act.busy} onClick={start}>
           <Play />
-          {b.status === "error" ? "Retry backfill" : "Run backfill"}
+          {b.status === "error" ? "Try again" : "Check Jev on your past issues"}
         </Primary>
       )}
     </div>
@@ -139,15 +140,15 @@ function Reading({ b }: { b: Backfill }) {
   if (b.status === "idle")
     return (
       <p className="max-w-[60ch] text-sm text-muted-foreground">
-        Jev replays your closed issues and merged PRs without acting, then compares its answers with the labels your maintainers applied. It runs on
-        the server, so you can leave this page.
+        Jev looks again at your closed issues and merged PRs without acting. Then it compares its answers with the labels your maintainers applied.
+        You can leave this page while it runs.
       </p>
     );
   if (b.status === "error")
     return (
       <div role="alert" className="flex flex-col gap-1 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
         <Status tone="danger" className="text-sm">
-          Backfill failed
+          The check failed
         </Status>
         <p className="font-mono text-xs break-words text-muted-foreground">{b.error}</p>
       </div>
@@ -158,18 +159,18 @@ function Reading({ b }: { b: Backfill }) {
       <div className="flex items-baseline gap-2">
         <NumberTicker value={b.processed} animateOnMount={false} locale className="text-4xl font-semibold tracking-tight" />
         <span className="text-sm text-muted-foreground" aria-live="off">
-          {b.status === "done" ? "items replayed" : total ? `of up to ${total.toLocaleString("en-US")} items` : "items replayed so far"}
+          {b.status === "done" ? "items checked" : total ? `of up to ${total.toLocaleString("en-US")} items` : "items checked so far"}
         </span>
       </div>
-      {total ? <Progress value={b.status === "done" ? 100 : (b.processed / total) * 100} label="Backfill progress" /> : null}
+      {total ? <Progress value={b.status === "done" ? 100 : (b.processed / total) * 100} label="Check progress" /> : null}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px] text-muted-foreground">
         {b.status === "done" ? (
           <Status tone="success">Done</Status>
         ) : (
-          <Status tone={b.status === "queued" ? "waiting" : "progress"}>{b.status === "queued" ? "Queued, waiting for a worker" : "Replaying history"}</Status>
+          <Status tone={b.status === "queued" ? "waiting" : "progress"}>{b.status === "queued" ? "Waiting to start" : "Checking past issues"}</Status>
         )}
         <span className="tabular-nums">
-          <NumberTicker value={b.with_truth} animateOnMount={false} locale /> with a maintainer label
+          <NumberTicker value={b.with_truth} animateOnMount={false} locale /> with your answer
         </span>
         {b.errors > 0 ? <span className="tabular-nums">{b.errors} skipped</span> : null}
       </div>

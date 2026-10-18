@@ -1,23 +1,25 @@
 import type { ChartConfig } from "@/components/evilcharts/ui/recharts-chart";
 
 /**
- * Semantic chart roles -> light/dark hex (DESIGN.md palette). Evil Charts needs literal colours per theme, so
- * these mirror the CSS tokens: acted = foreground, queued = muted-foreground, wrong = destructive,
- * threshold = warning, series1..5 = the graphite ramp (--chart-1..5). Shadow is foreground at 40%:
- * draw it dashed too (`strokeDasharray` / dashed variant) so it never relies on tint alone.
- * For SVG strokes outside the config (a threshold ReferenceLine) use the CSS var: `stroke="var(--warning)"`.
+ * Semantic chart roles -> light/dark hex. Evil Charts needs literal colours per theme, so these mirror the CSS tokens in
+ * globals.css (--chart-acted etc.): acted = green, queued = blue, shadow = soft amber, wrong = red, unlabeled = slate,
+ * threshold = the tick's deep amber (--tick), series1..5 = the categorical ramp (--chart-1..5: brand, teal, amber, rose, sky).
+ * Shadow is a softer amber than the tick: draw it hatched or dashed too (`variant="hatched"`, `strokeVariant="dashed"`)
+ * so it never relies on hue alone. Every hex is >= 3:1 on the card in its theme.
+ * For SVG strokes outside the config (a threshold ReferenceLine) use the CSS var: `stroke="var(--tick)"`.
  */
 const ROLES = {
-  acted: { light: "#1c2024", dark: "#edeef0" },
-  queued: { light: "#60646c", dark: "#b0b4ba" },
-  shadow: { light: "#1c202466", dark: "#edeef066" },
-  wrong: { light: "#a63636", dark: "#e8817a" },
-  threshold: { light: "#7e5616", dark: "#dcb36c" },
-  series1: { light: "#1c2024", dark: "#edeef0" },
-  series2: { light: "#60646c", dark: "#b0b4ba" },
-  series3: { light: "#8b8d98", dark: "#777b84" },
-  series4: { light: "#b9bbc6", dark: "#5a6169" },
-  series5: { light: "#d9d9e0", dark: "#43484e" },
+  acted: { light: "#1a9560", dark: "#3dd68c" },
+  queued: { light: "#2b7de6", dark: "#5aaeff" },
+  shadow: { light: "#b87d12", dark: "#bf8f2e" },
+  wrong: { light: "#d6393b", dark: "#f2777a" },
+  unlabeled: { light: "#8b8d98", dark: "#8b8d98" },
+  threshold: { light: "#a65a00", dark: "#ffc53d" },
+  series1: { light: "#5b5bd6", dark: "#8f8dfa" },
+  series2: { light: "#0f9e96", dark: "#3ecfc5" },
+  series3: { light: "#c97f00", dark: "#f5b942" },
+  series4: { light: "#d93a74", dark: "#f2709c" },
+  series5: { light: "#1f93d6", dark: "#5ec4f5" },
 } as const;
 
 export type ChartRole = keyof typeof ROLES;
@@ -36,7 +38,7 @@ type Spec = string | { role: ChartRole; label: string };
 /**
  * ChartConfig for Evil Charts from a `{ dataKey: label }` map. The result keeps the keys you pass, so Evil Charts can
  * check them against the data rows. A key that is a role name gets that role's
- * colour; any other key takes the next graphite series colour, or pass `{ role, label }` to choose.
+ * colour; any other key takes the next categorical series colour, or pass `{ role, label }` to choose.
  *
  *   chartTheme({ acted: "Auto-acted", queued: "Queued", wrong: "Wrong" })
  *   chartTheme({ score: "Score", baseline: { role: "series3", label: "Baseline" } })

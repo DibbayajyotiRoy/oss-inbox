@@ -16,9 +16,9 @@ export function ReliabilitySpark({ bins, className }: { bins: Calibration["bins"
     <svg aria-hidden viewBox={`0 0 ${S} ${S}`} className={cn("size-8 shrink-0", className)}>
       <rect x={P} y={P} width={S - 2 * P} height={S - 2 * P} rx={1} className="fill-none stroke-border" />
       <path d={`M${P} ${S - P}L${S - P} ${P}`} strokeDasharray="2 2" className="fill-none stroke-muted-foreground" />
-      <polyline points={pts.filter((p) => p.n >= LOW_N).map((p) => `${p.x},${p.y}`).join(" ")} strokeWidth={1.25} strokeLinejoin="round" className="fill-none stroke-foreground" />
+      <polyline points={pts.filter((p) => p.n >= LOW_N).map((p) => `${p.x},${p.y}`).join(" ")} strokeWidth={1.25} strokeLinejoin="round" className="fill-none stroke-chart-1" />
       {pts.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={1.2 + 1.6 * Math.sqrt(p.n / nmax)} className={cn("stroke-foreground", p.n >= LOW_N ? "fill-foreground" : "fill-card")} />
+        <circle key={i} cx={p.x} cy={p.y} r={1.2 + 1.6 * Math.sqrt(p.n / nmax)} className={cn("stroke-chart-1", p.n >= LOW_N ? "fill-chart-1" : "fill-card")} />
       ))}
     </svg>
   );
