@@ -27,8 +27,8 @@ export function Row({ e, start, focused, onSelect }: { e: QueueEntry; start: num
       onClick={onSelect}
       style={{ height: ROW_H, transform: `translateY(${start}px)` }}
       className={cn(
-        "absolute inset-x-0 top-0 flex cursor-default flex-col justify-center gap-1 border-b px-4 motion-safe:transition-[background-color,box-shadow] motion-safe:duration-150 motion-safe:ease-settle",
-        focused ? "bg-accent ring-1 ring-ring ring-inset" : "hover:bg-muted/50",
+        "hover-pill absolute inset-x-0 top-0 flex cursor-default flex-col justify-center gap-1 border-b px-4 [--pill-from:1] motion-safe:transition-[background-color,box-shadow] motion-safe:duration-150 motion-safe:ease-settle",
+        focused && "bg-accent ring-1 ring-ring ring-inset",
       )}
     >
       <div className="flex items-baseline gap-3">

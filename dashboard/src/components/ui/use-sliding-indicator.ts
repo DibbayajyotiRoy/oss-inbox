@@ -125,6 +125,6 @@ export const tabPillIndicator = [
 export const tabPillTrack = "shadow-[inset_0_-1px_0_var(--border)]"
 export const tabPillList = `relative isolate flex items-center gap-1 px-[3px] pt-0.5 pb-[7px] ${tabPillTrack}`
 
-/** Tab trigger box plus the 150ms label colour crossfade (the caller adds active/inactive colours). */
+/** Tab trigger box, the hover pill and the 150ms label colour crossfade (the caller adds active/inactive colours). */
 export const tabPillTrigger =
-  "relative inline-flex h-7 shrink-0 items-center gap-2 rounded-md px-2.5 text-sm font-medium whitespace-nowrap outline-none transition-[color] duration-150 focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-4 [&_svg]:shrink-0"
+  "hover-pill relative inline-flex h-7 shrink-0 items-center gap-2 rounded-md px-2.5 text-sm font-medium whitespace-nowrap outline-none transition-[color] duration-150 focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-4 [&_svg]:shrink-0"

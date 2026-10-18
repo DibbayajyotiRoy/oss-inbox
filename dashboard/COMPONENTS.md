@@ -48,8 +48,24 @@ Copy rules (DESIGN.md): sentence case, no em dashes (a missing value prints "–
 shows its n as `n=212`. Every page renders one `PageHeader` (the only h1), including its error state. Loading, empty and error
 states are always `Busy` + `Skeleton`, `EmptyState` and `ErrorState`.
 
+## Hover roles
+
+One treatment per role, 150ms `ease-settle`, only on pointers that hover. Use the primitive; do not hand-roll a hover per screen.
+
+| Role | Treatment | Where it lives |
+|---|---|---|
+| Button | fill deepens + 1px lift (press sinks to 98%) | `Button` (every variant except `link` and the icon sizes) |
+| Icon button, segment, row | a pill fades and grows in behind the content | `hover-pill` utility (`Button` icon sizes, `InfoHint`, `Tabs`, `ModeControl`, sidebar buttons, list rows). Needs a positioned element; `--pill` is its colour, `--pill-inset` grows it, `--pill-from: 1` = fade only |
+| Chip (a `Badge` that is a link) | lifts 1px | `Badge` |
+| Text link | underline draws in from the left; an `underline` link thickens instead | `link-grow` utility (`Button variant="link"`) |
+
 ## Libraries (`@/lib/*`)
 
+- First-paint data: wrap a layout or page in `<Preloaded paths={[...]}>` (`@/lib/server-api`, server only; forwards the visitor's cookie to `API_URL`).
+  Every `useApi`/`usePaged` with a listed path then starts from that data in the HTML (SSR + hydration only; later mounts fetch fresh), so nothing
+  waits on hydration plus a request. A segment `layout.tsx` with `params` is the cheapest place (the page stays a client component). Paths must match
+  the client's exactly. `preload(path)` is the raw call (a 401 redirects to `/login`; any other failure is `undefined` and the client fetches).
+- `useScrollable<T>(label)` (`use-scrollable`): spread on any `overflow-auto` container; it becomes a labelled, focusable region only while it overflows, so keyboards can scroll it (`Table` and `Dialog` bodies already do).
 - `api<T>(path, {method?, body?})` throws `ApiError {status, detail}`. `detail` is the `{detail}` message, or the short plain
   text body, or `Request failed (HTTP 500)` for HTML / empty error pages. A 401 sends the browser to `/login`.
 - `useApi`, `usePaged`, `useAction` (`use-api`). `fmt`: `pct`, `fixed`, `when` (absolute), `ago` (relative: put `when(iso)` in the

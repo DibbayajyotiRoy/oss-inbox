@@ -84,7 +84,7 @@ function Results({ d, repoId, thresholds }: { d: Evaluation; repoId: number; thr
             {d.questions.map((x) => (
               <TableRow key={x.id} data-state={x.id === sel.id ? "selected" : undefined}>
                 <TableCell className="py-3 align-middle">
-                  <Link href={here(`q=${encodeURIComponent(x.id)}`)} scroll={false} aria-current={x.id === sel.id || undefined} className="font-mono text-[13px] font-medium underline-offset-4 hover:underline max-sm:text-xs">
+                  <Link href={here(`q=${encodeURIComponent(x.id)}`)} scroll={false} aria-current={x.id === sel.id || undefined} className="font-mono text-[13px] font-medium underline-offset-4 link-grow max-sm:text-xs">
                     {x.id}
                   </Link>
                   <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums sm:hidden">ECE {fixed(x.ece)} · rec. {pct(x.recommended_threshold)}</span>
@@ -104,7 +104,7 @@ function Results({ d, repoId, thresholds }: { d: Evaluation; repoId: number; thr
                   ) : (
                     <>
                       {pct(x.recommended_threshold)} <span className="text-xs text-muted-foreground">now {pct(thresholds.get(x.id))} · </span>
-                      <Link className="text-xs underline underline-offset-4" href={`${repoPath(repoId, "thresholds")}?q=${encodeURIComponent(x.id)}`}>Adjust</Link>
+                      <Link className="text-xs underline underline-offset-4 link-grow" href={`${repoPath(repoId, "thresholds")}?q=${encodeURIComponent(x.id)}`}>Adjust</Link>
                     </>
                   )}
                 </TableCell>
@@ -174,13 +174,13 @@ function Detail({ x, here, sp, threshold }: { x: EvalQuestion; here: (qs: string
             {misses.map((m) => (
               <li key={m.item_id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-6">
                 <div className="min-w-0 flex-1">
-                  <Link href={`/items/${m.item_id}`} className="block truncate text-sm font-medium underline-offset-4 hover:underline">
+                  <Link href={`/items/${m.item_id}`} className="inline-block max-w-full truncate align-top text-sm font-medium underline-offset-4 link-grow">
                     {m.number ? `#${m.number} ` : ""}{m.title}
                   </Link>
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
                     Jev said <b className="font-medium text-foreground">{m.answer}</b> · decided <b className="font-medium text-foreground">{m.truth}</b>
                     {m.html_url && (
-                      <a href={m.html_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 underline-offset-4 hover:text-foreground hover:underline">
+                      <a href={m.html_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 underline-offset-4 hover:text-foreground link-grow">
                         GitHub <ExternalLink aria-hidden className="size-3" /><span className="sr-only">(opens in a new tab)</span>
                       </a>
                     )}

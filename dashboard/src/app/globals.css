@@ -26,14 +26,14 @@
   --muted-foreground: #60646c;
   --accent: #e8e8ec;
   --accent-foreground: var(--foreground);
-  --destructive: #b23a3a;
+  --destructive: #a63636;
   --border: #d9d9e0;
   --input: #cdced6;
   --ring: #80838d;
 
-  --success: #1d7a50;
-  --warning: #93641a;
-  --info: #0d74ce;
+  --success: #1a6b46;
+  --warning: #7e5616;
+  --info: #0b5fa9;
 
   --chart-1: #1c2024;
   --chart-2: #60646c;
@@ -68,7 +68,7 @@
   --muted-foreground: #b0b4ba;
   --accent: #272a2d;
   --accent-foreground: var(--foreground);
-  --destructive: #e5736b;
+  --destructive: #e8817a;
   --border: #2e3135;
   --input: #363a3f;
   --ring: #777b84;
@@ -286,6 +286,56 @@ html[data-theme-wipe="down"]::view-transition-new(root) {
     .nav-hover-pill {
       transition: none;
       filter: none;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Hover roles: one treatment per role, 150ms ease-settle, still on touch.   */
+/*   buttons (ui/button): fill deepens + 1px lift.   chips (ui/badge): lift. */
+/*   hover-pill  icons, segments, rows: a pill fades and grows in behind.    */
+/*   link-grow   text links: the underline draws in from the left.           */
+/* ------------------------------------------------------------------------- */
+/* The element must be positioned. `--pill` is the colour (default: foreground at 10%, readable on any surface, selected ones included), `--pill-inset` grows it past the box, `--pill-from` the scale it grows from (1 = fade only). */
+@utility hover-pill {
+  isolation: isolate;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: var(--pill-inset, 0);
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--pill, color-mix(in oklab, var(--foreground) 10%, transparent));
+    opacity: 0;
+    scale: var(--pill-from, 0.9);
+    pointer-events: none;
+    transition: opacity 150ms var(--ease-settle), scale 150ms var(--ease-settle);
+  }
+  @media (hover: hover) {
+    &:hover::before {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+}
+
+/* Links that already carry an `underline` thicken it instead (a second line would double up). */
+@utility link-grow {
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+  transition: background-size 150ms var(--ease-settle), text-decoration-thickness 150ms var(--ease-settle);
+  &:focus-visible {
+    background-size: 100% 1px;
+  }
+  &.underline {
+    background: none;
+    text-decoration-thickness: 1px;
+  }
+  @media (hover: hover) {
+    &:hover {
+      background-size: 100% 1px;
+    }
+    &.underline:hover {
+      text-decoration-thickness: 2px;
     }
   }
 }

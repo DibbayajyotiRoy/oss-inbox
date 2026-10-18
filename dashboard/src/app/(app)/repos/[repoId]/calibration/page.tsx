@@ -89,9 +89,9 @@ function QuestionCard({ repoId, q }: { repoId: number; q: QuestionInfo }) {
                 {d.bins.map((b) => {
                   const gap = b.accuracy === null || b.mean_confidence === null ? null : (b.accuracy - b.mean_confidence) * 100;
                   return (
-                    <TableRow key={b.lo} className={cn(!b.n && "text-muted-foreground/50")}>
+                    <TableRow key={b.lo} className={cn(!b.n && "text-muted-foreground")}>
                       <TableCell className="px-2 py-2">
-                        {b.n ? <Link className="underline-offset-4 hover:underline" href={evaluation(b.lo, b.hi)}>{range(b)}</Link> : range(b)}
+                        {b.n ? <Link className="underline-offset-4 link-grow" href={evaluation(b.lo, b.hi)}>{range(b)}</Link> : range(b)}
                       </TableCell>
                       <TableCell className="px-2 py-2 text-right tabular-nums">{b.n}</TableCell>
                       <TableCell className="px-2 py-2 text-right tabular-nums">{pct(b.mean_confidence)}</TableCell>

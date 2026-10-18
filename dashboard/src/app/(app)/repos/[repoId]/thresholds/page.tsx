@@ -108,7 +108,7 @@ function Picker({ questions, sel, onPick, value, edited }: {
                   aria-current={on || undefined}
                   onClick={() => onPick(q.id)}
                   className={cn(
-                    "w-full rounded-lg px-3 py-2.5 text-left ring-1 ring-transparent outline-none ring-inset hover:bg-accent/60 focus-visible:ring-ring motion-safe:transition-[background-color,box-shadow] motion-safe:duration-150 motion-safe:ease-settle",
+                    "hover-pill relative w-full rounded-lg px-3 py-2.5 text-left ring-1 ring-transparent outline-none ring-inset [--pill-from:0.96] focus-visible:ring-ring motion-safe:transition-[background-color,box-shadow] motion-safe:duration-150 motion-safe:ease-settle",
                     on && "bg-accent ring-border",
                   )}
                 >
@@ -227,7 +227,7 @@ function Body({ repoId, q, value, edited, recommended, evalN, bins, counts: c, o
             At {pct(value)} it would have been wrong <b className="tabular-nums">{c.wrong.toLocaleString()}</b> of <b className="tabular-nums">{labeled.toLocaleString()}</b> times it acted on a known answer
             ({pct(1 - c.wrong / labeled, 1)} accurate).
             {c.wrong > 0 && (
-              <> <Link className="underline underline-offset-4" href={`${repoPath(repoId, "evaluation")}?q=${encodeURIComponent(q.id)}&lo=${value}`}>See them</Link>.</>
+              <> <Link className="underline underline-offset-4 link-grow" href={`${repoPath(repoId, "evaluation")}?q=${encodeURIComponent(q.id)}&lo=${value}`}>See them</Link>.</>
             )}
             {c.unmeasured > 0 && <> {c.unmeasured.toLocaleString()} more have no known answer.</>}
           </>

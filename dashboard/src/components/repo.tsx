@@ -1,15 +1,19 @@
 "use client";
 import Link from "next/link";
-import { createContext, useContext, type ReactElement, type ReactNode } from "react";
+import { useParams } from "next/navigation";
+import { createContext, Suspense, useContext, type ReactElement, type ReactNode } from "react";
 import { ArrowRight, Lock, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { InfoHint } from "@/components/ui/info-hint";
 import { MODE_VARIANT } from "@/components/ui/mode-control";
+import { Load } from "@/components/ui/load";
 import { Notice } from "@/components/ui/notice";
 import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Status } from "@/components/ui/status";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { repoPath } from "@/lib/fmt";
 import { CONFIG_PATH, featureModes, type Mode, type Repo } from "@/lib/types";
+import { useApi } from "@/lib/use-api";
 
 const Ctx = createContext<{ repo: Repo; reload: () => void } | null>(null);
 export const RepoProvider = Ctx.Provider;
@@ -24,6 +28,22 @@ const MODE_TIP: Record<Mode, string> = {
   shadow: "Records decisions and queues suggestions. Never acts.",
   auto: "Acts on confident answers from measured questions.",
 };
+
+/** Loads the repo in the URL (server data when the page shipped with it), then renders its identity strip and the page under it. */
+export function RepoGate({ children }: { children: ReactNode }) {
+  const { repoId } = useParams<{ repoId: string }>();
+  const res = useApi<Repo>(`/api/repos/${repoId}`);
+  return (
+    <Load res={res} fallback={<RepoHeaderSkeleton />} errorTitle="Repository">
+      {(repo) => (
+        <RepoProvider value={{ repo, reload: res.reload }}>
+          <RepoHeader repo={repo} />
+          <Suspense fallback={<Busy><Skeleton className="h-64 w-full" /></Busy>}>{children}</Suspense>
+        </RepoProvider>
+      )}
+    </Load>
+  );
+}
 
 /** The only place this app links to onboarding. */
 const onboardingHref = (id: number) => `/onboarding/${id}`;
@@ -57,28 +77,27 @@ export function RepoHeader({ repo }: { repo: Repo }) {
         )}
         <li aria-hidden className="mx-1 h-4 w-px bg-border" />
         <li>
-          <Tip tip="Decision backend and model">
-            <Badge variant="outline" tabIndex={0} className="font-mono">
-              {repo.backend} · {repo.model}
-            </Badge>
-          </Tip>
+          <Badge variant="outline" className="font-mono">
+            <span className="sr-only">Decision backend and model: </span>
+            {repo.backend} · {repo.model}
+          </Badge>
         </li>
         {!repo.calibrated && (
-          <li>
-            <Tip tip="This backend does not return calibrated probabilities. Confidence ranks answers; trust measured accuracy, not thresholds alone.">
-              <Badge variant="warning" tabIndex={0}>
-                <TriangleAlert aria-hidden />
-                Uncalibrated backend
-              </Badge>
-            </Tip>
+          <li className="flex items-center gap-1">
+            <Badge variant="warning">
+              <TriangleAlert aria-hidden />
+              Uncalibrated backend
+            </Badge>
+            <InfoHint label="About the uncalibrated backend">
+              This backend does not return calibrated probabilities. Confidence ranks answers; trust measured accuracy, not thresholds alone.
+            </InfoHint>
           </li>
         )}
         <li>
-          <Tip tip="Your role on this repository">
-            <Badge variant="outline" tabIndex={0} className="capitalize">
-              {repo.role}
-            </Badge>
-          </Tip>
+          <Badge variant="outline" className="capitalize">
+            <span className="sr-only">Your role: </span>
+            {repo.role}
+          </Badge>
         </li>
         <li aria-hidden className="mx-1 h-4 w-px bg-border" />
         {featureModes(repo).map(([f, m]) => (
@@ -99,7 +118,7 @@ export function RepoHeader({ repo }: { repo: Repo }) {
           className="mt-4"
           title={`Your ${CONFIG_PATH} failed to parse; defaults in use`}
           action={
-            <Link href={`${settings}?s=config`} className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-destructive hover:underline">
+            <Link href={`${settings}?s=config`} className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-destructive link-grow">
               Fix in settings <ArrowRight aria-hidden className="size-3.5" />
             </Link>
           }
@@ -113,7 +132,7 @@ export function RepoHeader({ repo }: { repo: Repo }) {
           title="Jev is not reading this repository yet"
           action={
             repo.role === "admin" ? (
-              <Link href={onboardingHref(repo.id)} className="inline-flex shrink-0 items-center gap-1 text-sm font-medium hover:underline">
+              <Link href={onboardingHref(repo.id)} className="inline-flex shrink-0 items-center gap-1 text-sm font-medium link-grow">
                 Finish setup <ArrowRight aria-hidden className="size-3.5" />
               </Link>
             ) : (

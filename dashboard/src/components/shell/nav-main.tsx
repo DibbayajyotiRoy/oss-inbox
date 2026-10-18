@@ -156,7 +156,7 @@ function NavLink({
           "transition-[width,height,padding,color,transform] motion-safe:active:scale-[0.98]",
           // Once the indicator / hover pill are live, items stop painting their own fills.
           "in-data-[nav-indicator=ready]:data-[active=true]:bg-transparent!",
-          "in-data-[nav-hover=ready]:hover:bg-transparent! in-data-[nav-hover=ready]:active:bg-transparent!",
+          "in-data-[nav-hover=ready]:hover:bg-transparent! in-data-[nav-hover=ready]:active:bg-transparent! before:hidden",
           !active && "text-muted-foreground hover:text-sidebar-accent-foreground"
         )}
       >

@@ -5,22 +5,25 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 import { Spinner } from "./spinner"
 
+// Hover role "button": the fill deepens and the button lifts 1px; press sinks it to 98%. Icon buttons use a pill instead.
+const lift = "motion-safe:hover:-translate-y-px motion-safe:active:translate-y-0"
+
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap outline-none select-none " +
-    "motion-safe:transition-[transform,background-color,color] motion-safe:duration-150 motion-safe:ease-settle motion-safe:active:scale-[0.98] " +
+  "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap outline-none select-none " +
+    "motion-safe:transition-[translate,scale,background-color,color,box-shadow] motion-safe:duration-150 motion-safe:ease-settle motion-safe:active:scale-[0.98] " +
     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
     "disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 " +
     "aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-foreground hover:bg-primary/90",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-accent",
-        outline: "border border-border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-transparent",
-        ghost: "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+        primary: `${lift} bg-primary text-primary-foreground hover:bg-primary/90`,
+        secondary: `${lift} bg-secondary text-secondary-foreground hover:bg-accent`,
+        outline: `${lift} border border-border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-transparent`,
+        ghost: `${lift} text-muted-foreground hover:bg-accent hover:text-accent-foreground`,
         destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/60 dark:bg-destructive/60 dark:hover:bg-destructive/70",
-        link: "text-foreground underline-offset-4 hover:underline",
+          `${lift} bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/60 dark:bg-destructive/60 dark:hover:bg-destructive/70`,
+        link: "text-foreground underline-offset-4 link-grow",
       },
       size: {
         sm: "h-8 gap-1.5 px-3 text-[13px] has-[>svg]:px-2.5",
@@ -30,7 +33,11 @@ const buttonVariants = cva(
         "icon-sm": "size-8",
       },
     },
-    compoundVariants: [{ variant: "link", className: "h-auto px-0 has-[>svg]:px-0" }],
+    compoundVariants: [
+      { variant: "link", className: "h-auto px-0 has-[>svg]:px-0" },
+      // Hover role "icon button": no lift or fill swap, a pill fades in behind the glyph.
+      { size: ["icon", "icon-sm"], className: "hover-pill motion-safe:hover:translate-y-0 hover:bg-transparent dark:hover:bg-transparent" },
+    ],
     defaultVariants: { variant: "primary", size: "md" },
   }
 )

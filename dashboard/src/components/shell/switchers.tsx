@@ -29,18 +29,20 @@ export function Switchers() {
   const repo = overview?.repos.find((r) => r.id === repoId)
   // Switching repos keeps you on the same page (Thresholds stays Thresholds).
   const seg = segOf(pathname) ?? "queue"
+  const orgName = org?.login ?? "Choose organization"
+  const repoName = repo?.full_name.split("/")[1] ?? (repoId === null ? "Choose repository" : `Repository ${repoId}`)
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton tooltip="Organization" aria-label="Switch organization">
+            <SidebarMenuButton tooltip="Organization" aria-label={`${orgName}, switch organization`}>
               <Avatar className="size-5 rounded-md">
                 <AvatarImage src={org?.avatar_url} alt="" />
                 <AvatarFallback className="rounded-md text-[10px]">{org?.login[0]?.toUpperCase() ?? "?"}</AvatarFallback>
               </Avatar>
-              <span className="truncate font-medium">{org?.login ?? "Choose organization"}</span>
+              <span className="truncate font-medium">{orgName}</span>
               <ChevronsUpDown className="ml-auto opacity-60" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
@@ -64,9 +66,9 @@ export function Switchers() {
         <SidebarMenuItem>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <SidebarMenuButton tooltip="Repository" aria-label="Switch repository">
+              <SidebarMenuButton tooltip="Repository" aria-label={`${repoName}, switch repository`}>
                 <FolderGit2 />
-                <span className="truncate">{repo?.full_name.split("/")[1] ?? (repoId === null ? "Choose repository" : `Repository ${repoId}`)}</span>
+                <span className="truncate">{repoName}</span>
                 <ChevronsUpDown className="ml-auto opacity-60" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>

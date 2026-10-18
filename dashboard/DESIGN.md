@@ -22,8 +22,8 @@ Graphite monochrome from webora-ui (Radix Slate). Colour only when it carries me
   border #d9d9e0, input #cdced6, ring #80838d, sidebar #f9f9fb
 - dark: background #111113, foreground #edeef0, card #18191b, popover #212225, muted #212225, muted-fg #b0b4ba,
   accent #272a2d, border #2e3135, input #363a3f, ring #777b84, sidebar #18191b
-- semantic: success (#1d7a50 / #3dd68c), warning (#93641a / #dcb36c), destructive (#b23a3a / #e5736b),
-  info (#0d74ce / #70b8ff). **Threshold tick** uses `--warning`. Auto-acted = foreground, queued = muted-fg,
+- semantic: success (#1a6b46 / #3dd68c), warning (#7e5616 / #dcb36c), destructive (#a63636 / #e8817a),
+  info (#0b5fa9 / #70b8ff); each is >= 4.5:1 as text on its own 10% tint over background, card, muted and accent. **Threshold tick** uses `--warning`. Auto-acted = foreground, queued = muted-fg,
   wrong = destructive. Shadow = dashed foreground/40.
 - chart ramp: --chart-1..5 graphite (foreground → border).
 - radius 8px (cards rounded-xl=8px, controls rounded-md). Shadows: xs inputs, sm cards, md menus, lg dialogs.
@@ -69,3 +69,5 @@ Every accuracy number shows its n. "Upper bound" note wherever backfill accuracy
 ## Motion
 One easing `cubic-bezier(.2,.8,.2,1)`; 150ms micro, 250ms indicators, 180/120ms dialogs; counts roll with motion.
 List explicit properties (never `transition: all`). `motion-safe:` everywhere; reduced motion = instant.
+Hover is a movement, not only a colour swap: buttons fill + lift 1px, icon buttons / segments / rows fade a pill in, chips lift,
+text links draw their underline in (see COMPONENTS.md, Hover roles).

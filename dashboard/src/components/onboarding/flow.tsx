@@ -24,7 +24,7 @@ export function useInterval(fn: () => void, ms: number | null) {
 
 export function Brand() {
   return (
-    <Link href="/" className="inline-flex items-center gap-2 rounded-md font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring">
+    <Link href="/" className="hover-pill relative inline-flex items-center gap-2 rounded-md font-semibold outline-none [--pill-inset:-4px_-8px] focus-visible:ring-2 focus-visible:ring-ring">
       <svg aria-hidden viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-5">
         <path d="M2.5 11.5a6 6 0 1 1 11 0" />
         <path d="m8 9 2.5-3.5" />

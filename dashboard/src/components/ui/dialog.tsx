@@ -6,6 +6,7 @@ import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { Button } from "@/components/ui/button"
+import { useScrollable } from "@/lib/use-scrollable"
 
 function DialogRoot({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -49,15 +50,29 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  // Radix returns focus to the trigger; a dialog opened by a shortcut (⌘K, ?) has none, so remember who had it.
+  const from = React.useRef<Element | null>(null)
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        onOpenAutoFocus={(e) => {
+          from.current = document.activeElement
+          onOpenAutoFocus?.(e)
+        }}
+        onCloseAutoFocus={(e) => {
+          onCloseAutoFocus?.(e)
+          if (e.defaultPrevented || !(from.current instanceof HTMLElement) || !from.current.isConnected) return
+          e.preventDefault()
+          from.current.focus()
+        }}
         className={cn(
           "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-popover p-6 text-popover-foreground shadow-lg outline-none data-[state=closed]:animate-out data-[state=closed]:duration-120 data-[state=closed]:ease-in data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-97 data-[state=open]:animate-in data-[state=open]:duration-180 data-[state=open]:ease-out data-[state=open]:fade-in-0 data-[state=open]:zoom-in-97 sm:max-w-lg",
           className
@@ -158,6 +173,7 @@ export interface DialogProps {
 }
 
 function Dialog({ open, onOpenChange, title, description, children, footer, className }: DialogProps) {
+  const scroll = useScrollable<HTMLDivElement>(typeof title === "string" ? title : "Content")
   return (
     <DialogRoot open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -168,7 +184,7 @@ function Dialog({ open, onOpenChange, title, description, children, footer, clas
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}
         </DialogHeader>
-        {children ? <div className="min-h-0 overflow-y-auto px-6 pb-6 text-sm">{children}</div> : null}
+        {children ? <div {...scroll} className="min-h-0 overflow-y-auto px-6 pb-6 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">{children}</div> : null}
         {footer ? <DialogFooter className="border-t border-border px-6 py-4">{footer}</DialogFooter> : null}
       </DialogContent>
     </DialogRoot>

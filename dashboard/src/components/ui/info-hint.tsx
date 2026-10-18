@@ -29,7 +29,7 @@ export function InfoHint({ children, label = "More info", side = "top", classNam
           type="button"
           aria-label={label}
           className={cn(
-            "relative inline-flex size-4 shrink-0 translate-y-[-1px] items-center justify-center rounded-sm align-middle text-muted-foreground outline-none after:absolute after:-inset-1.5 hover:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150",
+            "hover-pill relative inline-flex size-4 shrink-0 translate-y-[-1px] items-center justify-center rounded-full align-middle text-muted-foreground outline-none [--pill-inset:-4px] after:absolute after:-inset-1.5 hover:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150",
             className,
           )}
         >

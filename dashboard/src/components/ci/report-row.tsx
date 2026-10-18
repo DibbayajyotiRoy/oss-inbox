@@ -8,7 +8,7 @@ import type { CiReport } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { OutcomeStatus } from "./outcome";
 
-const link = "inline-flex items-center gap-0.5 rounded-sm text-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+const link = "inline-flex items-center gap-0.5 rounded-sm text-foreground underline-offset-4 link-grow focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 const Ext = ({ href, children }: { href: string; children: React.ReactNode }) => (
   <a href={href} target="_blank" rel="noreferrer" className={link}>
     {children}
@@ -42,7 +42,7 @@ export function ReportRow({ r, repoId, fullName }: { r: CiReport; repoId: number
               aria-expanded={open}
               aria-controls={id}
               onClick={() => setOpen(!open)}
-              className="inline-flex items-center gap-1 rounded-sm hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              className="inline-flex items-center gap-1 rounded-sm link-grow hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               <ChevronRight aria-hidden className={cn("size-3.5 motion-safe:transition-transform motion-safe:duration-150 motion-safe:ease-settle", open && "rotate-90")} />
               {n} similar {n === 1 ? "issue" : "issues"} considered
@@ -55,7 +55,7 @@ export function ReportRow({ r, repoId, fullName }: { r: CiReport; repoId: number
           <ul className="min-h-0 overflow-hidden sm:ml-36">
             {r.candidates.map((c) => (
               <li key={c.item_id} className="grid gap-x-6 gap-y-1.5 border-t py-2.5 first:mt-3 md:grid-cols-[minmax(0,1fr)_13rem_13rem] md:items-center">
-                <Link href={`/items/${c.item_id}`} className="min-w-0 truncate text-sm hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" title={c.title}>
+                <Link href={`/items/${c.item_id}`} className="inline-block max-w-full min-w-0 truncate align-top text-sm link-grow focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" title={c.title}>
                   {c.number ? <span className="text-muted-foreground tabular-nums">#{c.number} </span> : null}
                   {c.title}
                 </Link>

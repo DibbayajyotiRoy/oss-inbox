@@ -49,8 +49,8 @@ export function ConfusionMatrix({
                 const tint = c === 0 ? 0 : right ? Math.round(share * 32) : Math.round(14 + share * 46);
                 const cell = (
                   <>
-                    <span className={cn("text-base font-semibold tabular-nums", c === 0 && "font-normal text-muted-foreground/50")}>{c.toLocaleString()}</span>
-                    {c > 0 && <span className="text-[11px] text-muted-foreground tabular-nums">{pct(share)}</span>}
+                    <span className={cn("text-base font-semibold tabular-nums", c === 0 && "font-normal text-muted-foreground")}>{c.toLocaleString()}</span>
+                    {c > 0 && <span className="text-[11px] text-foreground tabular-nums">{pct(share)}</span>}
                   </>
                 );
                 const cls = "flex min-h-14 flex-col items-center justify-center rounded-md border border-border/50";

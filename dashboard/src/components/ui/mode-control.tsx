@@ -62,7 +62,7 @@ export function ModeControl({ value, onChange, label, busy, disabled = {} }: {
             onClick={() => !reason && !busy && onChange(m)}
             onKeyDown={(e) => onKey(e, i)}
             className={cn(
-              "relative h-8 rounded-md px-3 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150",
+              "hover-pill relative h-8 rounded-md px-3 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150",
               on ? "text-foreground" : "text-muted-foreground",
               reason ? cn("cursor-not-allowed", !on && "opacity-50") : !on && "hover:text-foreground",
             )}

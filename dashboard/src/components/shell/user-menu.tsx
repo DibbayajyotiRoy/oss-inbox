@@ -38,7 +38,7 @@ export function UserMenu({ onShortcuts }: { onShortcuts: () => void }) {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton tooltip={me.login} aria-label="Account menu">
+            <SidebarMenuButton tooltip={me.login} aria-label={`${me.login}, account menu`}>
               <Avatar className="size-5">
                 <AvatarImage src={me.avatar_url} alt="" />
                 <AvatarFallback className="text-[10px]">{me.login[0]?.toUpperCase()}</AvatarFallback>

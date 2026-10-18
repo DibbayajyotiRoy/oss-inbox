@@ -47,8 +47,8 @@ export default function Settings() {
                 scroll={false}
                 aria-current={on ? "page" : undefined}
                 className={cn(
-                  "inline-flex h-8 shrink-0 items-center gap-2 rounded-md px-2.5 text-[13px] font-medium whitespace-nowrap outline-none motion-safe:transition-colors motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-ring",
-                  on ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                  "hover-pill relative inline-flex h-8 shrink-0 items-center gap-2 rounded-md px-2.5 text-[13px] font-medium whitespace-nowrap outline-none motion-safe:transition-colors motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-ring",
+                  on ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Icon aria-hidden className="size-4" />

@@ -31,7 +31,7 @@ export function CodeBlock({
           {lines.map((line, i) => (
             <span key={i} className={cn("flex pr-12", !lineNumbers && "pl-4")}>
               {lineNumbers ? (
-                <span aria-hidden className="w-10 shrink-0 pr-4 text-right text-muted-foreground/45 select-none">
+                <span aria-hidden className="w-10 shrink-0 pr-4 text-right text-muted-foreground select-none">
                   {i + 1}
                 </span>
               ) : null}

@@ -6,7 +6,9 @@ import { cn } from "@/lib/utils"
 
 /** Small label for counts, roles and modes. For a state with meaning use `Status` (icon + text) instead. */
 const badgeVariants = cva(
-  "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-md border border-transparent px-1.5 py-0.5 text-xs font-medium whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3",
+  "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-md border border-transparent px-1.5 py-0.5 text-xs font-medium whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 " +
+    // Hover role "chip" (a badge that is a link): lifts 1px and gains a hairline shadow.
+    "[a&]:motion-safe:transition-[translate,box-shadow] [a&]:motion-safe:duration-150 [a&]:motion-safe:ease-settle [a&]:motion-safe:hover:-translate-y-px [a&]:hover:shadow-sm",
   {
     variants: {
       variant: {

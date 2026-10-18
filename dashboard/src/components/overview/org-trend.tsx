@@ -53,7 +53,7 @@ export function OrgTrend({ repos }: { repos: RepoCard[] }) {
               <ul className="divide-y text-sm">
                 {rows.map(({ r, t }) => (
                   <li key={r.id}>
-                    <Link href={repoPath(r.id)} className="flex items-center justify-between gap-4 rounded-sm py-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                    <Link href={repoPath(r.id)} className="hover-pill relative -mx-2 flex items-center justify-between gap-4 rounded-md px-2 py-2 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
                       <span className="truncate font-medium">{r.full_name}</span>
                       <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                         {t.acted} acted · {t.queued} queued · {t.shadow} shadow

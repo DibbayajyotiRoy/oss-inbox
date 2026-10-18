@@ -79,8 +79,8 @@ function SuggestionCard({ s, chosen, active, onPick }: { s: Suggestion; chosen: 
             aria-pressed={o === chosen}
             onClick={() => onPick(o)}
             className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-md border pr-2.5 pl-1.5 text-[13px] outline-none motion-safe:transition-[background-color,border-color] motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-ring max-lg:h-10",
-              o === chosen ? "border-foreground/40 bg-accent font-medium" : "hover:bg-muted",
+              "hover-pill relative inline-flex h-8 items-center gap-1.5 rounded-md border pr-2.5 pl-1.5 text-[13px] outline-none motion-safe:transition-[background-color,border-color] motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-ring max-lg:h-10",
+              o === chosen && "border-foreground/40 bg-accent font-medium",
             )}
           >
             <Kbd className={keycap}>{j + 1}</Kbd>
@@ -111,12 +111,12 @@ export function Preview({ e, held, picks, active, onPick, onAct, className }: {
       <div key={e.id} className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5 motion-safe:animate-in motion-safe:duration-150 motion-safe:fade-in-0">
         <header>
           <h2 className="text-base leading-snug font-semibold text-balance">
-            <Link href={`/items/${e.item.id}`} className="outline-none hover:underline focus-visible:underline">{e.item.title}</Link>
+            <Link href={`/items/${e.item.id}`} className="outline-none link-grow">{e.item.title}</Link>
           </h2>
           <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted-foreground">
             <Badge variant="outline">{e.item.kind.replace("_", " ")}</Badge>
             {e.item.html_url ? (
-              <a href={e.item.html_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 tabular-nums hover:text-foreground">
+              <a href={e.item.html_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 tabular-nums link-grow hover:text-foreground">
                 {itemRef(e.item)}<ExternalLink aria-hidden className="size-3" /><span className="sr-only">Open on GitHub</span>
               </a>
             ) : (

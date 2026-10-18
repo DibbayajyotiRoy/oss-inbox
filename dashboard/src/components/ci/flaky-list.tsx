@@ -59,7 +59,7 @@ export function FlakyList({ tests }: { tests: FlakyTest[] }) {
               </span>
               <span role="cell" className="text-[13px]">
                 {t.last_run_url ? (
-                  <a href={t.last_run_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 rounded-sm underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                  <a href={t.last_run_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 rounded-sm underline-offset-4 link-grow focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
                     CI run
                     <ArrowUpRight aria-hidden className="size-3" />
                     <span className="sr-only"> (opens in a new tab)</span>

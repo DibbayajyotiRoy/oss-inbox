@@ -171,7 +171,7 @@ function Created({ made, repoName }: { made: Made; repoName: string }) {
           ))}
         </dl>
         <a
-          className="mt-2 inline-block text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          className="mt-2 inline-block text-[13px] text-muted-foreground underline underline-offset-4 link-grow hover:text-foreground"
           href={`https://github.com/${repoName}/settings/secrets/actions`}
           target="_blank"
           rel="noreferrer noopener"

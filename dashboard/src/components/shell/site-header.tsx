@@ -22,9 +22,9 @@ export function SiteHeader({ onSearch }: { onSearch: () => void }) {
       <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
       <p className="min-w-0 truncate text-sm font-medium text-foreground">{title}</p>
       <div className="ml-auto flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={onSearch} aria-label="Search and commands" className="text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={onSearch} className="text-muted-foreground">
           <Search aria-hidden />
-          <span className="hidden sm:inline">Search</span>
+          <span className="max-sm:sr-only">Search</span>
           <Kbd className="hidden sm:inline-flex">{mod === "Ctrl" ? "Ctrl K" : `${mod}K`}</Kbd>
         </Button>
         <Button asChild variant="outline" size="sm">

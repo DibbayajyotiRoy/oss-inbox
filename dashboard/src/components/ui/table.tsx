@@ -1,4 +1,7 @@
+"use client"
+
 import * as React from "react"
+import { useScrollable } from "@/lib/use-scrollable"
 import { cn } from "@/lib/utils"
 
 /**
@@ -6,9 +9,11 @@ import { cn } from "@/lib/utils"
  * so a sticky table clips instead of scrolling sideways; keep it for tables that fit.
  */
 function Table({ className, sticky, ...props }: React.ComponentProps<"table"> & { sticky?: boolean }) {
+  const scroll = useScrollable<HTMLDivElement>(props["aria-label"] ?? "Table")
   return (
     <div
       data-slot="table-container"
+      {...scroll}
       className={cn("relative w-full", sticky ? "overflow-x-clip" : "overflow-x-auto")}
     >
       <table

@@ -71,7 +71,7 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
     <div className="flex flex-col gap-10">
       <div>
         <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-          <Link href={list} className="rounded-sm outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+          <Link href={list} className="rounded-sm outline-none link-grow hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
             {list.endsWith("/held") ? "Held" : "Queue"}
           </Link>
           <span aria-hidden>/</span>
@@ -86,7 +86,7 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <Badge variant="outline">{item.kind.replace("_", " ")}</Badge>
               {item.html_url ? (
-                <a href={item.html_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 tabular-nums hover:text-foreground">
+                <a href={item.html_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 tabular-nums link-grow hover:text-foreground">
                   {ref}<ExternalLink aria-hidden className="size-3" /><span className="sr-only">Open on GitHub</span>
                 </a>
               ) : (

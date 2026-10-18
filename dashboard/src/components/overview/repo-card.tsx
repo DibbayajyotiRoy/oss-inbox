@@ -56,7 +56,7 @@ export function OrgRepoCard({ r, detail, detailsLoading }: { r: RepoCard; detail
     <Card className="group relative gap-4 py-5 shadow-xs motion-safe:transition-[border-color,background-color] motion-safe:duration-200 motion-safe:ease-settle focus-within:border-chart-4 hover:border-chart-4 hover:bg-[color-mix(in_oklab,var(--card)_62%,var(--accent))]">
       <div className="flex items-center justify-between gap-3 px-5">
         <h3 className="flex min-w-0 items-center gap-2 text-[15px] font-semibold">
-          <Link href={cardHref(r)} className="min-w-0 truncate rounded-sm outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring">
+          <Link href={cardHref(r)} className="min-w-0 truncate rounded-sm outline-none link-grow after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring">
             <span className="font-normal text-muted-foreground">{owner}/</span>
             {name}
           </Link>
@@ -87,7 +87,7 @@ export function OrgRepoCard({ r, detail, detailsLoading }: { r: RepoCard; detail
         {detailsLoading && <Skeleton className="h-5 w-40" />}
         {detail && Object.entries(detail.features).map(([f, m]) => (
           <Badge key={f} variant={MODE_VARIANT[m]} title={`${f} is ${m}`}>
-            {f.replace(/_/g, " ")} <span className="opacity-70">{m}</span>
+            {f.replace(/_/g, " ")} <span className="font-normal">{m}</span>
           </Badge>
         ))}
       </div>
@@ -106,7 +106,7 @@ export function OffRepoRow({ r }: { r: RepoCard }) {
   return (
     <li className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 hover:bg-muted/40 sm:px-5">
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-        <Link href={cardHref(r)} className="truncate rounded-sm text-sm font-medium outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset">
+        <Link href={cardHref(r)} className="truncate rounded-sm text-sm font-medium outline-none link-grow after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset">
           <span className="font-normal text-muted-foreground">{owner}/</span>
           {name}
         </Link>
@@ -136,7 +136,7 @@ export function OffRepoRow({ r }: { r: RepoCard }) {
 
 function Count({ href, icon, n, label }: { href: string; icon: React.ReactNode; n: number; label: string }) {
   return (
-    <Link href={href} className={cn("relative z-10 inline-flex items-center gap-1.5 rounded-sm hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none", n ? "text-foreground" : "text-muted-foreground")}>
+    <Link href={href} className={cn("relative z-10 inline-flex items-center gap-1.5 rounded-sm link-grow hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none", n ? "text-foreground" : "text-muted-foreground")}>
       {icon}
       <span className="font-medium tabular-nums">{n}</span> {label}
     </Link>

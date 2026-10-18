@@ -1,17 +1,22 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "./api";
+import { useSeeded } from "./seed";
 import type { Page } from "./types";
 
 export type Res<T> = { data?: T; error?: ApiError | Error; loading: boolean; reload: () => void };
 
-/** GET `path` (null = skip). A path change shows loading (never another path's data); reload() keeps old data while refetching. */
+/** GET `path` (null = skip). A path change shows loading (never another path's data); reload() keeps old data while refetching. Starts from server data (`Seed`) when the page shipped with it. */
 export function useApi<T>(path: string | null): Res<T> {
+  const seeded = useSeeded();
   const [tick, setTick] = useState(0);
   const key = path === null ? null : `${tick}:${path}`;
-  const [res, setRes] = useState<{ key: string; path: string; data?: T; error?: Error }>();
+  const [res, setRes] = useState<{ key: string; path: string; data?: T; error?: Error } | undefined>(() => {
+    const data = path === null ? undefined : seeded(path);
+    return path === null || data === undefined ? undefined : { key: `0:${path}`, path, data: data as T };
+  });
   useEffect(() => {
-    if (key === null || path === null) return;
+    if (key === null || path === null || res?.key === key) return;
     let live = true;
     api<T>(path).then(
       (data) => live && setRes({ key, path, data }),
@@ -20,7 +25,7 @@ export function useApi<T>(path: string | null): Res<T> {
     return () => {
       live = false;
     };
-  }, [key, path]);
+  }, [key, path, res]);
   // Same path, older tick = a reload: keep showing the previous data (children must not unmount).
   const same = res && res.path === path ? res : undefined;
   const fresh = same !== undefined && same.key === key;
