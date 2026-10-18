@@ -8,13 +8,13 @@ import { LOW_N, ReliabilitySpark } from "@/components/measure/reliability-spark"
 import { useRepo } from "@/components/repo";
 import { Button } from "@/components/ui/button";
 import { CardSection } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Load } from "@/components/ui/load";
 import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Stat, StatStrip } from "@/components/ui/stat-strip";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { answers, fixed, pct, repoPath } from "@/lib/fmt";
 import { featureName, type Calibration, type EvalQuestion, type Evaluation } from "@/lib/types";
 import { questionLabel } from "@/lib/questions";
@@ -168,33 +168,33 @@ function Detail({ repoId, x, feature }: { repoId: number; x: EvalQuestion; featu
                   <ChevronRight aria-hidden className="size-4 motion-safe:transition-transform motion-safe:duration-150 group-open:rotate-90" />
                   Groups <span className="tabular-nums">({seen.length} with answers)</span>
                 </summary>
-                <Table className="mt-3 text-xs" aria-label="Groups by how sure Jev was">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="px-2">How sure</TableHead>
-                      <TableHead className="px-2 text-right">Answers</TableHead>
-                      <TableHead className="px-2 text-right">Average sure</TableHead>
-                      <TableHead className="px-2 text-right">Right</TableHead>
-                      <TableHead className="px-2 text-right">Gap</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {seen.map((b) => {
-                      const g = gap(b);
-                      return (
-                        <TableRow key={b.lo}>
-                          <TableCell className="px-2 py-2"><Link className="underline-offset-4 link-grow" href={evaluation(b.lo, b.hi)}>{range(b)}</Link></TableCell>
-                          <TableCell className="px-2 py-2 text-right tabular-nums">{b.n}</TableCell>
-                          <TableCell className="px-2 py-2 text-right tabular-nums">{pct(b.mean_confidence)}</TableCell>
-                          <TableCell className="px-2 py-2 text-right tabular-nums">{pct(b.accuracy)}</TableCell>
-                          <TableCell className={cn("px-2 py-2 text-right tabular-nums", b.n >= LOW_N && g !== null && g <= -5 && "text-destructive")}>
+                <DataTable
+                  className="mt-3"
+                  label="Groups by how sure Jev was"
+                  storageKey="calibration-groups"
+                  rows={seen}
+                  rowKey={(b) => b.lo}
+                  columns={[
+                    { key: "range", header: "How sure", cell: (b) => <Link className="underline-offset-4 link-grow" href={evaluation(b.lo, b.hi)}>{range(b)}</Link> },
+                    { key: "n", header: "Answers", align: "right", cellClassName: "tabular-nums" },
+                    { key: "mean", header: "Average sure", align: "right", cellClassName: "tabular-nums", cell: (b) => pct(b.mean_confidence) },
+                    { key: "right", header: "Right", align: "right", cellClassName: "tabular-nums", cell: (b) => pct(b.accuracy) },
+                    {
+                      key: "gap",
+                      header: "Gap",
+                      align: "right",
+                      cellClassName: "tabular-nums",
+                      cell: (b) => {
+                        const g = gap(b);
+                        return (
+                          <span className={cn(b.n >= LOW_N && g !== null && g <= -5 && "text-destructive")}>
                             {g === null ? "–" : `${g >= 0 ? "+" : "−"}${Math.abs(g).toFixed(0)} points`}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                          </span>
+                        );
+                      },
+                    },
+                  ]}
+                />
               </details>
             </div>
           );

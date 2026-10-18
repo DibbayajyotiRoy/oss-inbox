@@ -2,10 +2,10 @@
 import { useRepo } from "@/components/repo";
 import { Button } from "@/components/ui/button";
 import { CardSection } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Load } from "@/components/ui/load";
 import { Status } from "@/components/ui/status";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
 import { api } from "@/lib/api";
 import { type LabelPlan, NEED, labelRows } from "@/lib/types";
@@ -56,26 +56,17 @@ export function Labels() {
               ) : (
                 <Status tone="success">All configured labels exist</Status>
               )}
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead>Used for</TableHead>
-                    <TableHead>Label</TableHead>
-                    <TableHead className="text-right">On GitHub</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((r) => (
-                    <TableRow key={r.purpose}>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{r.purpose}</TableCell>
-                      <TableCell className="font-mono text-[13px]">{r.label}</TableCell>
-                      <TableCell className="text-right">
-                        {r.missing ? <Status tone="warning">Missing</Status> : <Status tone="success">Exists</Status>}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <DataTable
+                label="Labels"
+                storageKey="settings-labels"
+                rows={rows}
+                rowKey={(r) => r.purpose}
+                columns={[
+                  { key: "purpose", header: "Used for", cellClassName: "font-mono text-xs text-muted-foreground" },
+                  { key: "label", header: "Label", cellClassName: "font-mono text-[13px]" },
+                  { key: "github", header: "On GitHub", align: "right", cell: (r) => (r.missing ? <Status tone="warning">Missing</Status> : <Status tone="success">Exists</Status>) },
+                ]}
+              />
             </div>
           );
         }}

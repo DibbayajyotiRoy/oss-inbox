@@ -6,19 +6,20 @@ import { Button } from "@/components/ui/button";
 import { CardSection } from "@/components/ui/card";
 import { CodeBlock } from "@/components/ui/code-block";
 import { CopyButton } from "@/components/ui/copy-button";
+import { DataTable } from "@/components/ui/data-table";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Load } from "@/components/ui/load";
 import { Status } from "@/components/ui/status";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toaster";
 import { api } from "@/lib/api";
 import { when } from "@/lib/fmt";
 import { type CiToken, NEED, type NewToken } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
+import { cn } from "@/lib/utils";
 import { Confirm, Gate, RowsSkeleton, useRun } from "./parts";
 import { ACTIONS_STEP, curlReport } from "./snippets";
 
@@ -60,30 +61,27 @@ export function Tokens() {
           empty={<EmptyState title="No CI tokens yet" description="Create one to send CI failures here." action={<Button onClick={() => setCreating(true)}>Create token</Button>} />}
         >
           {(d) => (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>Name</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead><span className="sr-only">Actions</span></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {d.items.map((t) => (
-                  <TableRow key={t.id} className={t.revoked_at ? "text-muted-foreground" : undefined}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell className="text-muted-foreground tabular-nums">{when(t.created_at)} · {t.created_by}</TableCell>
-                    <TableCell>
-                      {t.revoked_at ? <Status tone="neutral">Revoked {when(t.revoked_at)}</Status> : <Status tone="success">Active</Status>}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {!t.revoked_at && <Button variant="ghost" size="sm" onClick={() => setRevoking(t)}>Revoke</Button>}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              label="CI tokens"
+              storageKey="settings-tokens"
+              rows={d.items}
+              rowKey={(t) => t.id}
+              columns={[
+                { key: "name", header: "Name", cell: (t) => <span className={cn("font-medium", t.revoked_at && "text-muted-foreground")}>{t.name}</span> },
+                { key: "created", header: "Created", cellClassName: "text-muted-foreground tabular-nums", cell: (t) => `${when(t.created_at)} · ${t.created_by}` },
+                {
+                  key: "status",
+                  header: "Status",
+                  cell: (t) => (t.revoked_at ? <Status tone="neutral">Revoked {when(t.revoked_at)}</Status> : <Status tone="success">Active</Status>),
+                },
+                {
+                  key: "actions",
+                  header: <span className="sr-only">Actions</span>,
+                  align: "right",
+                  cell: (t) => !t.revoked_at && <Button variant="ghost" size="sm" onClick={() => setRevoking(t)}>Revoke</Button>,
+                },
+              ]}
+            />
           )}
         </Load>
       )}

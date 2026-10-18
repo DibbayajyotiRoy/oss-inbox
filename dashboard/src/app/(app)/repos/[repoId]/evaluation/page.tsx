@@ -9,6 +9,7 @@ import { useCommands } from "@/components/shell/commands";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardSection } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InfoHint } from "@/components/ui/info-hint";
 import { InlineCode } from "@/components/ui/inline-code";
@@ -16,8 +17,8 @@ import { Load } from "@/components/ui/load";
 import { Meter } from "@/components/ui/meter";
 import { Notice } from "@/components/ui/notice";
 import { PageHeader } from "@/components/ui/page-header";
+import { Section, SectionNav } from "@/components/ui/section-nav";
 import { Busy, Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { answers, fixed, pct, repoPath } from "@/lib/fmt";
 import { type EvalQuestion, type Evaluation } from "@/lib/types";
 import { questionLabel } from "@/lib/questions";
@@ -41,6 +42,7 @@ export default function EvaluationPage() {
   return (
     <>
       <PageHeader title="Accuracy" description="How often Jev was right." />
+      <SectionNav>
       <div className="flex flex-col gap-6">
         <BackfillCard bf={bf} canAct={canAct} />
         <Load
@@ -59,6 +61,7 @@ export default function EvaluationPage() {
           {(d) => <Results d={d} repoId={repo.id} thresholds={thresholds} />}
         </Load>
       </div>
+      </SectionNav>
     </>
   );
 }
@@ -75,51 +78,73 @@ function Results({ d, repoId, thresholds }: { d: Evaluation; repoId: number; thr
         </p>
       </Notice>
 
-      <CardSection title="Accuracy by question" hint="How often Jev matched your answers. The tick marks how sure Jev must be now.">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Question</TableHead>
-              <TableHead>Right</TableHead>
-              <TableHead className="max-sm:hidden">
-                Average gap <InfoHint label="About the average gap">How far apart, on average, how sure Jev says it is and how often it is right. Lower is better.</InfoHint>
-              </TableHead>
-              <TableHead className="max-sm:hidden">Suggested</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {d.questions.map((x) => (
-              <TableRow key={x.id} data-state={x.id === sel.id ? "selected" : undefined}>
-                <TableCell className="py-3 align-middle">
-                  <Link href={here(`q=${encodeURIComponent(x.id)}`)} scroll={false} aria-current={x.id === sel.id || undefined} className="text-[13px] font-medium underline-offset-4 link-grow max-sm:text-xs">
-                    {questionLabel(x.id)}
-                  </Link>
-                  <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums sm:hidden">Average gap {fixed(x.ece)} · suggested {pct(x.recommended_threshold)}</span>
-                </TableCell>
-                <TableCell className="py-3 align-middle">
+      <Section id="accuracy" label="Accuracy by question">
+        <CardSection title="Accuracy by question" hint="How often Jev matched your answers. The tick marks how sure Jev must be now.">
+          <DataTable
+            label="Accuracy by question"
+            storageKey="eval-questions"
+            rows={d.questions}
+            rowKey={(x) => x.id}
+            selected={(x) => x.id === sel.id}
+            columns={[
+              {
+                key: "question",
+                header: "Question",
+                cellClassName: "py-3 align-middle",
+                cell: (x) => (
+                  <>
+                    <Link href={here(`q=${encodeURIComponent(x.id)}`)} scroll={false} aria-current={x.id === sel.id || undefined} className="text-[13px] font-medium underline-offset-4 link-grow max-sm:text-xs">
+                      {questionLabel(x.id)}
+                    </Link>
+                    <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums sm:hidden">Average gap {fixed(x.ece)} · suggested {pct(x.recommended_threshold)}</span>
+                  </>
+                ),
+              },
+              {
+                key: "right",
+                header: "Right",
+                cellClassName: "py-3 align-middle",
+                cell: (x) => (
                   <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-3">
                     <Meter value={x.accuracy} threshold={thresholds.get(x.id)} label="How often right" hideLabel className="w-44 max-sm:w-28" />
                     <span className="text-xs text-muted-foreground tabular-nums">out of {answers(x.n)}</span>
                   </div>
-                </TableCell>
-                <TableCell className="py-3 align-middle tabular-nums max-sm:hidden">
-                  {fixed(x.ece)} <span className="text-xs text-muted-foreground">out of {answers(x.n)}</span>
-                </TableCell>
-                <TableCell className="py-3 align-middle tabular-nums max-sm:hidden">
-                  {x.recommended_threshold === null ? (
+                ),
+              },
+              {
+                key: "gap",
+                header: (
+                  <>
+                    Average gap <InfoHint label="About the average gap">How far apart, on average, how sure Jev says it is and how often it is right. Lower is better.</InfoHint>
+                  </>
+                ),
+                className: "max-sm:hidden",
+                cellClassName: "py-3 align-middle tabular-nums",
+                cell: (x) => (
+                  <>
+                    {fixed(x.ece)} <span className="text-xs text-muted-foreground">out of {answers(x.n)}</span>
+                  </>
+                ),
+              },
+              {
+                key: "suggested",
+                header: "Suggested",
+                className: "max-sm:hidden",
+                cellClassName: "py-3 align-middle tabular-nums",
+                cell: (x) =>
+                  x.recommended_threshold === null ? (
                     <span className="text-muted-foreground">Needs more answers ({x.n.toLocaleString()} so far)</span>
                   ) : (
                     <>
                       {pct(x.recommended_threshold)} <span className="text-xs text-muted-foreground">now {pct(thresholds.get(x.id))} · </span>
                       <Link className="text-xs underline underline-offset-4 link-grow" href={`${repoPath(repoId, "thresholds")}?q=${encodeURIComponent(x.id)}`}>Adjust</Link>
                     </>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardSection>
+                  ),
+              },
+            ]}
+          />
+        </CardSection>
+      </Section>
 
       <Detail key={sel.id} x={sel} here={here} sp={sp} threshold={thresholds.get(sel.id)} />
     </>
@@ -141,6 +166,7 @@ function Detail({ x, here, sp, threshold }: { x: EvalQuestion; here: (qs: string
   ].filter(Boolean);
   return (
     <>
+      <Section id="compare" label="Your answers vs Jev's">
       <CardSection
         title="Your answers against Jev's"
         description={`${questionLabel(x.id)} · ${answers(x.n)}`}
@@ -157,7 +183,9 @@ function Detail({ x, here, sp, threshold }: { x: EvalQuestion; here: (qs: string
           />
         )}
       </CardSection>
+      </Section>
 
+      <Section id="misses" label="Worst misses">
       <CardSection
         title="Worst misses"
         description={`Wrong answers where Jev was most sure (up to ${x.worst_misses.length})`}
@@ -169,18 +197,26 @@ function Detail({ x, here, sp, threshold }: { x: EvalQuestion; here: (qs: string
             Filtered by {chips.map((c) => <Badge key={String(c)} variant="outline">{c}</Badge>)}
           </p>
         )}
-        {misses.length === 0 ? (
-          <EmptyState
-            className="py-6"
-            art="done"
-            title={x.worst_misses.length === 0 ? "No wrong answers recorded" : "None of the worst misses match"}
-            description={x.worst_misses.length === 0 ? undefined : `Checked the ${x.worst_misses.length} worst misses.`}
-          />
-        ) : (
-          <ul className="divide-y divide-border">
-            {misses.map((m) => (
-              <li key={m.item_id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-6">
-                <div className="min-w-0 flex-1">
+        <DataTable
+          label="Worst misses"
+          storageKey="eval-misses"
+          rows={misses}
+          rowKey={(m) => m.item_id}
+          empty={
+            <EmptyState
+              className="py-6"
+              art="done"
+              title={x.worst_misses.length === 0 ? "No wrong answers recorded" : "None of the worst misses match"}
+              description={x.worst_misses.length === 0 ? undefined : `Checked the ${x.worst_misses.length} worst misses.`}
+            />
+          }
+          columns={[
+            {
+              key: "item",
+              header: "Item",
+              cellClassName: "py-3 align-middle",
+              cell: (m) => (
+                <div className="max-w-[min(34rem,60vw)]">
                   <Link href={`/items/${m.item_id}`} className="-my-0.5 inline-block max-w-full truncate py-0.5 align-top text-sm font-medium underline-offset-4 link-grow">
                     {m.number ? `#${m.number} ` : ""}<InlineCode text={m.title} />
                   </Link>
@@ -193,12 +229,18 @@ function Detail({ x, here, sp, threshold }: { x: EvalQuestion; here: (qs: string
                     )}
                   </p>
                 </div>
-                <Meter value={m.confidence} threshold={threshold} className="sm:w-56" />
-              </li>
-            ))}
-          </ul>
-        )}
+              ),
+            },
+            {
+              key: "sure",
+              header: "How sure Jev was",
+              cellClassName: "py-3 align-middle",
+              cell: (m) => <Meter value={m.confidence} threshold={threshold} className="w-40 sm:w-56" />,
+            },
+          ]}
+        />
       </CardSection>
+      </Section>
     </>
   );
 }

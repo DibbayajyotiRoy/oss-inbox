@@ -3,9 +3,10 @@ import { ChevronRight, Eye, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/ui/copy-button";
+import { DataTable } from "@/components/ui/data-table";
+import { Section as NavSection } from "@/components/ui/section-nav";
 import { Select } from "@/components/ui/select";
 import { Status, type StatusTone } from "@/components/ui/status";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
 import { api, errText } from "@/lib/api";
 import { pct, when } from "@/lib/fmt";
@@ -15,15 +16,16 @@ import { cn } from "@/lib/utils";
 
 type Override = ItemDetail["overrides"][number];
 
+/** One item-page section; `SectionNav` lists it under its title. */
 export function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-3">
+    <NavSection id={title.toLowerCase().replace(/[^a-z0-9]+/g, "-")} label={title} className="flex flex-col gap-3">
       <div className="flex items-baseline gap-3">
         <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
         {aside && <span className="text-sm text-muted-foreground">{aside}</span>}
       </div>
       {children}
-    </section>
+    </NavSection>
   );
 }
 
@@ -182,6 +184,7 @@ export function Decisions({ runs, overrides, canAct, reload }: { runs: Run[]; ov
 /** The exact state text of the latest run: mono, collapsed by default, copyable. */
 export function Seen({ run }: { run?: Run }) {
   return (
+    <NavSection id="what-jev-saw" label="What Jev saw">
     <details className="group">
       <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-md outline-none select-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <ChevronRight aria-hidden className="size-4 text-muted-foreground motion-safe:transition-transform motion-safe:duration-150 group-open:rotate-90" />
@@ -199,46 +202,32 @@ export function Seen({ run }: { run?: Run }) {
         )}
       </div>
     </details>
+    </NavSection>
   );
 }
 
-/** Phones get stacked cards (`cards`, one `li` each) instead of a table that would scroll sideways. */
-const Responsive = ({ cards, children }: { cards: ReactNode; children: ReactNode }) => (
-  <>
-    <ul className="divide-y rounded-lg border md:hidden">{cards}</ul>
-    <div className="max-md:hidden">{children}</div>
-  </>
-);
-const CARD = "flex flex-col gap-1 p-3";
 const mono = "font-mono text-[13px]";
 
 export function ActionsTaken({ actions }: { actions: ItemDetail["actions"] }) {
   if (!actions.length) return <Muted>Nothing was changed on GitHub.</Muted>;
-  const dry = (a: ItemDetail["actions"][number]) => a.dry_run && <Badge variant="warning" title="Recorded only. Nothing was written to GitHub.">Dry run</Badge>;
   return (
-    <Responsive
-      cards={actions.map((a) => (
-        <li key={a.id} className={CARD}>
-          <div className="flex items-center justify-between gap-2"><span className={mono}>{a.kind}</span>{dry(a)}</div>
-          <span className={cn(mono, "break-all text-muted-foreground")}>{a.github_ref ?? "none"}</span>
-          <span className="text-xs text-muted-foreground tabular-nums">{when(a.created_at)}</span>
-        </li>
-      ))}
-    >
-      <Table>
-        <TableHeader><TableRow className="hover:bg-transparent"><TableHead>When</TableHead><TableHead>Action</TableHead><TableHead>Reference</TableHead><TableHead><span className="sr-only">Status</span></TableHead></TableRow></TableHeader>
-        <TableBody>
-          {actions.map((a) => (
-            <TableRow key={a.id}>
-              <TableCell className="text-muted-foreground tabular-nums">{when(a.created_at)}</TableCell>
-              <TableCell className={mono}>{a.kind}</TableCell>
-              <TableCell className={cn(mono, "text-muted-foreground")}>{a.github_ref ?? "none"}</TableCell>
-              <TableCell className="text-right">{dry(a)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Responsive>
+    <DataTable
+      label="What was done on GitHub"
+      storageKey="item-actions"
+      rows={actions}
+      rowKey={(a) => a.id}
+      columns={[
+        { key: "when", header: "When", cellClassName: "text-muted-foreground tabular-nums", cell: (a) => when(a.created_at) },
+        { key: "kind", header: "Action", cellClassName: mono },
+        { key: "ref", header: "Reference", cellClassName: cn(mono, "text-muted-foreground"), cell: (a) => a.github_ref ?? "none" },
+        {
+          key: "status",
+          header: <span className="sr-only">Status</span>,
+          align: "right",
+          cell: (a) => a.dry_run && <Badge variant="warning" title="Recorded only. Nothing was written to GitHub.">Dry run</Badge>,
+        },
+      ]}
+    />
   );
 }
 
@@ -246,74 +235,53 @@ export function OverridesHistory({ overrides, runs }: { overrides: Override[]; r
   if (!overrides.length) return <Muted>No one has changed Jev&apos;s answers here.</Muted>;
   const question = new Map(runs.flatMap((r) => r.decisions.map((x) => [x.id, x.question_id] as const)));
   const qid = (o: Override) => question.get(o.decision_id) ?? "";
-  const list = [...overrides].reverse();
   return (
-    <Responsive
-      cards={list.map((o) => (
-        <li key={o.id} className={CARD}>
-          <span><span className="text-muted-foreground">{questionLabel(qid(o))}</span> <span className="font-medium">{answerText(qid(o), o.new_answer)}</span></span>
-          <span className="text-xs text-muted-foreground">{o.user} · <span className="tabular-nums">{when(o.created_at)}</span></span>
-        </li>
-      ))}
-    >
-      <Table>
-        <TableHeader><TableRow className="hover:bg-transparent"><TableHead>When</TableHead><TableHead>Who</TableHead><TableHead>Question</TableHead><TableHead>New answer</TableHead></TableRow></TableHeader>
-        <TableBody>
-          {list.map((o) => (
-            <TableRow key={o.id}>
-              <TableCell className="text-muted-foreground tabular-nums">{when(o.created_at)}</TableCell>
-              <TableCell>{o.user}</TableCell>
-              <TableCell>{questionLabel(qid(o))}</TableCell>
-              <TableCell className="font-medium">{answerText(qid(o), o.new_answer)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Responsive>
+    <DataTable
+      label="Answers changed by people"
+      storageKey="item-overrides"
+      rows={[...overrides].reverse()}
+      rowKey={(o) => o.id}
+      columns={[
+        { key: "when", header: "When", cellClassName: "text-muted-foreground tabular-nums", cell: (o) => when(o.created_at) },
+        { key: "user", header: "Who" },
+        { key: "question", header: "Question", cell: (o) => questionLabel(qid(o)) },
+        { key: "answer", header: "New answer", cellClassName: "font-medium", cell: (o) => answerText(qid(o), o.new_answer) },
+      ]}
+    />
   );
 }
 
 export function RunsTable({ runs }: { runs: Run[] }) {
   if (!runs.length) return <Muted>Jev hasn&apos;t looked at this item yet.</Muted>;
-  const calibration = (r: Run) => (r.calibrated ? <Badge variant="success">Calibrated</Badge> : <Badge variant="warning" title="Probabilities from this backend are not calibrated.">Uncalibrated</Badge>);
   return (
-    <Responsive
-      cards={runs.map((r) => (
-        <li key={r.id} className={CARD}>
-          <div className="flex items-center justify-between gap-2">
-            <span className="tabular-nums">#{r.id} <span className="text-muted-foreground">{r.trigger}</span></span>
-            {calibration(r)}
-          </div>
-          <span className={mono}>{r.model_version} <span className="text-muted-foreground">{r.backend}</span></span>
-          <span className="text-xs text-muted-foreground tabular-nums">{when(r.created_at)} · {r.latency_ms} ms · {r.tokens_in.toLocaleString("en-US")} tokens · ${r.cost_usd.toFixed(4)}</span>
-          {r.error && <Status tone="danger" className="items-start whitespace-normal">Run failed: {r.error}</Status>}
-        </li>
-      ))}
-    >
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead>Run</TableHead><TableHead>When</TableHead><TableHead>Model</TableHead><TableHead>Calibration</TableHead>
-            <TableHead className="text-right">Latency</TableHead><TableHead className="text-right">Tokens</TableHead><TableHead className="text-right">Cost</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {runs.flatMap((r) => [
-            <TableRow key={r.id} className={r.error ? "border-b-0" : undefined}>
-              <TableCell className="tabular-nums">#{r.id} <span className="text-muted-foreground">{r.trigger}</span></TableCell>
-              <TableCell className="text-muted-foreground tabular-nums">{when(r.created_at)}</TableCell>
-              <TableCell className={mono}>{r.model_version} <span className="text-muted-foreground">{r.backend}</span></TableCell>
-              <TableCell>{calibration(r)}</TableCell>
-              <TableCell className="text-right tabular-nums">{r.latency_ms} ms</TableCell>
-              <TableCell className="text-right tabular-nums">{r.tokens_in.toLocaleString("en-US")}</TableCell>
-              <TableCell className="text-right tabular-nums">${r.cost_usd.toFixed(4)}</TableCell>
-            </TableRow>,
-            ...(r.error
-              ? [<TableRow key={`${r.id}-e`}><TableCell colSpan={7} className="pt-0 whitespace-normal"><Status tone="danger">Run failed: {r.error}</Status></TableCell></TableRow>]
-              : []),
-          ])}
-        </TableBody>
-      </Table>
-    </Responsive>
+    <DataTable
+      label="Checks Jev ran"
+      storageKey="item-runs"
+      rows={runs}
+      rowKey={(r) => r.id}
+      columns={[
+        {
+          key: "run",
+          header: "Run",
+          cellClassName: "tabular-nums",
+          cell: (r) => (
+            <>
+              #{r.id} <span className="text-muted-foreground">{r.trigger}</span>
+              {r.error && <Status tone="danger" className="mt-1 max-w-72 items-start whitespace-normal">Run failed: {r.error}</Status>}
+            </>
+          ),
+        },
+        { key: "when", header: "When", cellClassName: "text-muted-foreground tabular-nums", cell: (r) => when(r.created_at) },
+        { key: "model", header: "Model", cellClassName: mono, cell: (r) => <>{r.model_version} <span className="text-muted-foreground">{r.backend}</span></> },
+        {
+          key: "calibration",
+          header: "Calibration",
+          cell: (r) => (r.calibrated ? <Badge variant="success">Calibrated</Badge> : <Badge variant="warning" title="Probabilities from this backend are not calibrated.">Uncalibrated</Badge>),
+        },
+        { key: "latency", header: "Latency", align: "right", cellClassName: "tabular-nums", cell: (r) => `${r.latency_ms} ms` },
+        { key: "tokens", header: "Tokens", align: "right", cellClassName: "tabular-nums", cell: (r) => r.tokens_in.toLocaleString("en-US") },
+        { key: "cost", header: "Cost", align: "right", cellClassName: "tabular-nums", cell: (r) => `$${r.cost_usd.toFixed(4)}` },
+      ]}
+    />
   );
 }

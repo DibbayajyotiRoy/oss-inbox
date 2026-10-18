@@ -18,6 +18,8 @@ export type Column<T> = {
   width?: string
   /** For both header and cells, e.g. `"max-sm:hidden"`. */
   className?: string
+  /** Cells only, e.g. `"py-3 align-middle"` for rows that hold a meter. */
+  cellClassName?: string
 }
 
 /** Choices for rows shown at once; 0 = all. */
@@ -55,6 +57,7 @@ export function DataTable<T>({
   defaultRows = 10,
   onRowClick,
   rowHref,
+  selected,
   empty,
   className,
 }: {
@@ -68,8 +71,10 @@ export function DataTable<T>({
   /** One of 5, 10, 25, 50, 0 (all). */
   defaultRows?: number
   onRowClick?: (row: T) => void
-  /** Row link: the first cell becomes a real link and the whole row clicks through. */
+  /** Row link: the first cell becomes a real link and the whole row clicks through, so keep other links out of it. */
   rowHref?: (row: T) => string
+  /** Marks the current row (muted fill). */
+  selected?: (row: T) => boolean
   /** Shown instead of the table when there are no rows. */
   empty?: React.ReactNode
   className?: string
@@ -147,6 +152,7 @@ export function DataTable<T>({
               return (
                 <TableRow
                   key={rowKey(row)}
+                  data-state={selected?.(row) ? "selected" : undefined}
                   tabIndex={onRowClick ? 0 : undefined}
                   className={cn(clickable && "cursor-pointer", onRowClick && "outline-none focus-visible:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset")}
                   onClick={clickable ? (e) => !inner(e) && (href ? router.push(href) : onRowClick?.(row)) : undefined}
@@ -156,7 +162,7 @@ export function DataTable<T>({
                     const v = c.cell ? c.cell(row) : (row as Record<string, unknown>)[c.key]
                     const content = v == null || v === "" ? "–" : v
                     return (
-                      <TableCell key={c.key} className={cn(c.align && ALIGN[c.align], c.className)}>
+                      <TableCell key={c.key} className={cn(c.align && ALIGN[c.align], c.className, c.cellClassName)}>
                         {href && i === 0 ? (
                           <Link href={href} className="link-grow rounded-sm underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             {content as React.ReactNode}

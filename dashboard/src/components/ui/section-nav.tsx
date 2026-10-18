@@ -183,7 +183,6 @@ export function SectionNav({ children, className }: { children: React.ReactNode;
               <li key={i.id}>
                 <a
                   href={`#${i.id}`}
-                  title={i.label}
                   aria-current={i.id === current.id ? "location" : undefined}
                   onClick={(e) => {
                     if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return // new tab etc.
@@ -191,7 +190,7 @@ export function SectionNav({ children, className }: { children: React.ReactNode;
                     go(i.id)
                     focusSection(i.id)
                   }}
-                  className="block truncate rounded-r-md py-1 pr-1 pl-3 text-[13px] leading-5 text-muted-foreground outline-none motion-safe:transition-[color] motion-safe:duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-[current=location]:text-foreground"
+                  className="block rounded-r-md py-1 pr-1 pl-3 text-[13px] leading-5 text-muted-foreground outline-none motion-safe:transition-[color] motion-safe:duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-[current=location]:text-foreground"
                 >
                   {i.label}
                 </a>

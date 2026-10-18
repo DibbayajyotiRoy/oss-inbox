@@ -15,6 +15,7 @@ import { InlineCode } from "@/components/ui/inline-code";
 import { Kbd } from "@/components/ui/kbd";
 import { Load } from "@/components/ui/load";
 import { PageHeader } from "@/components/ui/page-header";
+import { SectionNav } from "@/components/ui/section-nav";
 import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Status, type StatusTone } from "@/components/ui/status";
 import { repoPath } from "@/lib/fmt";
@@ -115,6 +116,8 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
         />
       </div>
 
+      <SectionNav>
+      <div className="flex flex-col gap-10">
       <Section title="What Jev decided" aside={runs.length ? `${runs.length} ${runs.length === 1 ? "check" : "checks"}` : undefined}>
         <Decisions runs={runs} overrides={d.overrides} canAct={card?.role !== "viewer"} reload={reload} />
       </Section>
@@ -122,6 +125,8 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
       <Section title="What was done on GitHub"><ActionsTaken actions={d.actions} /></Section>
       <Section title="Answers changed by people"><OverridesHistory overrides={d.overrides} runs={runs} /></Section>
       <Section title="Checks Jev ran"><RunsTable runs={runs} /></Section>
+      </div>
+      </SectionNav>
     </div>
   );
 }

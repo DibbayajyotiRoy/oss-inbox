@@ -1,9 +1,9 @@
 "use client";
 import { useRepo } from "@/components/repo";
 import { CardSection } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Load, LoadMore } from "@/components/ui/load";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { when } from "@/lib/fmt";
 import type { AuditRow } from "@/lib/types";
 import { usePaged } from "@/lib/use-api";
@@ -47,35 +47,37 @@ function Rows() {
     >
       {(rows) => (
         <>
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Who</TableHead>
-                <TableHead>What</TableHead>
-                <TableHead className="max-sm:hidden">On</TableHead>
-                <TableHead className="text-right">When</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.actor}</TableCell>
-                  <TableCell>
+          <DataTable
+            label="Activity log"
+            storageKey="settings-audit"
+            rows={rows}
+            rowKey={(r) => r.id}
+            columns={[
+              { key: "actor", header: "Who", cellClassName: "font-medium" },
+              {
+                key: "what",
+                header: "What",
+                cell: (r) => (
+                  <>
                     <span className="text-[13px]" title={r.action}>{ACTION[r.action] ?? r.action}</span>
                     {detail(r.details) && (
                       <span className="block max-w-[min(26rem,40vw)] max-sm:max-w-28 truncate font-mono text-xs text-muted-foreground" title={detail(r.details)}>
                         {detail(r.details)}
                       </span>
                     )}
-                  </TableCell>
-                  <TableCell className="max-w-32 truncate text-muted-foreground max-sm:hidden">{r.target ?? "–"}</TableCell>
-                  <TableCell className="text-right text-muted-foreground tabular-nums">
-                    <time dateTime={r.created_at}>{when(r.created_at)}</time>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </>
+                ),
+              },
+              { key: "target", header: "On", className: "max-sm:hidden", cellClassName: "max-w-32 truncate text-muted-foreground" },
+              {
+                key: "when",
+                header: "When",
+                align: "right",
+                cellClassName: "text-muted-foreground tabular-nums",
+                cell: (r) => <time dateTime={r.created_at}>{when(r.created_at)}</time>,
+              },
+            ]}
+          />
           <LoadMore list={list} />
         </>
       )}
