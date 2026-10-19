@@ -7,9 +7,7 @@
 
 **Live demo: [oss.dibbayajyoti.com](https://oss.dibbayajyoti.com/login)** (click "Try with sample data"; nothing touches GitHub, data resets nightly)
 
-[![Watch the 30-second demo](docs/media/oss-inbox-demo.jpg)](docs/media/oss-inbox-demo.mp4)
-
-▶ [Watch the 30-second demo (with narration)](docs/media/oss-inbox-demo.mp4)
+<video src="https://github.com/DibbayajyotiRoy/oss-inbox/raw/main/assets/demo.mp4" controls width="100%"></video>
 
 OSS Inbox is a self-hosted GitHub App and dashboard for maintainers who spend their week labeling issues, asking for missing details, checking PRs against CONTRIBUTING, and sorting through low-quality or AI-generated bug reports. It decides typed questions about each item, acts only where it has measured itself on your repo's own history, and queues everything else for you.
 
