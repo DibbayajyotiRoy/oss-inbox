@@ -12,7 +12,7 @@ def test_defaults():
     assert c.label("issue.type", "feature") == "enhancement"
     assert c.label("issue.type", "nope") is None
     assert c.label("priority", "p0") == "priority: p0"
-    assert c.label("needs_info") == "needs-info" and c.label("held") == "jev: held" and c.label("ci") == "ci-report"
+    assert c.label("needs_info") == "needs-info" and c.label("held") == "oss-inbox: held" and c.label("ci") == "ci-report"
     assert c.label("route.area", "core") == "area: core"
     assert c.core_team == ["OWNER", "MEMBER", "COLLABORATOR"]
     assert RepoConfig().model_dump() == c.model_dump()
@@ -65,9 +65,9 @@ def test_invalid_org_yaml_is_named():
 
 
 def test_edit_url_and_render_yaml():
-    assert edit_url("a/b", "main", "x", True) == "https://github.com/a/b/edit/main/.github/jev-triage.yml"
+    assert edit_url("a/b", "main", "x", True) == "https://github.com/a/b/edit/main/.github/oss-inbox.yml"
     url = edit_url("a/b", "dev", "comments: true\nmodel: x y\n", False)
-    assert url == ("https://github.com/a/b/new/dev?filename=.github/jev-triage.yml"
+    assert url == ("https://github.com/a/b/new/dev?filename=.github/oss-inbox.yml"
                    "&value=comments%3A%20true%0Amodel%3A%20x%20y%0A")
     data = {"comments": True, "features": {"spam": {"mode": "auto"}}}
     assert yaml.safe_load(render_yaml(data)) == data and render_yaml(data).startswith("comments: true")
@@ -86,8 +86,8 @@ class FakeGH:
 
 def test_load_refresh_caches_and_reads_rules(monkeypatch, repo):
     fake = FakeGH({
-        ("acme/widgets", ".github/jev-triage.yml"): ("comments: true\n", "sha-repo"),
-        ("acme/.github", ".github/jev-triage.yml"): ("features: {routing: {mode: auto}}\n", "sha-org"),
+        ("acme/widgets", ".github/oss-inbox.yml"): ("comments: true\n", "sha-repo"),
+        ("acme/.github", ".github/oss-inbox.yml"): ("features: {routing: {mode: auto}}\n", "sha-org"),
         ("acme/widgets", "CONTRIBUTING.md"): ("Be nice.", "sha-rules"),
     })
     monkeypatch.setattr(repo_config, "client_for", lambda r: fake)
@@ -102,13 +102,13 @@ def test_load_refresh_caches_and_reads_rules(monkeypatch, repo):
     assert load(row).comments and load(repo).comments  # cache: from the row, and from the DB for a stale row dict
     assert fake.calls == []
 
-    fake.files[("acme/widgets", ".github/jev-triage.yml")] = ("comments: false\n", "sha2")
+    fake.files[("acme/widgets", ".github/oss-inbox.yml")] = ("comments: false\n", "sha2")
     assert load(row, refresh=True).comments is False and fake.calls
 
 
 def test_load_org_only_and_explicit_rules_file(monkeypatch, repo):
     fake = FakeGH({
-        ("acme/.github", ".github/jev-triage.yml"): ("rules_file: docs/RULES.md\n", "sha-org"),
+        ("acme/.github", ".github/oss-inbox.yml"): ("rules_file: docs/RULES.md\n", "sha-org"),
         ("acme/widgets", "docs/RULES.md"): ("rules!", "r1"),
         ("acme/widgets", "CONTRIBUTING.md"): ("ignored", "r2"),
     })
@@ -118,8 +118,21 @@ def test_load_org_only_and_explicit_rules_file(monkeypatch, repo):
     assert (row["config_source"], row["config_sha"], row["rules_text"], row["config_text"]) == ("org", "sha-org", "rules!", None)
 
 
+def test_load_reads_legacy_jev_triage_path_when_new_file_absent(monkeypatch, repo):
+    fake = FakeGH({
+        ("acme/widgets", ".github/jev-triage.yml"): ("comments: true\n", "old-repo"),
+        ("acme/.github", ".github/jev-triage.yml"): ("features: {routing: {mode: auto}}\n", "old-org"),
+    })
+    monkeypatch.setattr(repo_config, "client_for", lambda r: fake)
+    c = load(repo)
+    assert c.comments and c.mode("routing") == "auto"
+    assert fake.calls[:2] == [("acme/widgets", ".github/oss-inbox.yml"), ("acme/widgets", ".github/jev-triage.yml")]  # new path first
+    fake.files[("acme/widgets", ".github/oss-inbox.yml")] = ("comments: false\n", "new-repo")
+    assert load(repo, refresh=True).comments is False  # the new file wins over the legacy one
+
+
 def test_load_invalid_yaml_falls_back_to_defaults(monkeypatch, repo):
-    fake = FakeGH({("acme/widgets", ".github/jev-triage.yml"): ("features: [", "s")})
+    fake = FakeGH({("acme/widgets", ".github/oss-inbox.yml"): ("features: [", "s")})
     monkeypatch.setattr(repo_config, "client_for", lambda r: fake)
     c = load(repo)
     assert c.model_dump() == RepoConfig().model_dump()
@@ -153,11 +166,11 @@ def test_render_yaml_quotes_modes_so_off_round_trips():
 
 
 def test_load_stores_config_error_and_clears_it(monkeypatch, repo):
-    fake = FakeGH({("acme/widgets", ".github/jev-triage.yml"): ("features: {spam: {mode: on}}", "s1")})
+    fake = FakeGH({("acme/widgets", ".github/oss-inbox.yml"): ("features: {spam: {mode: on}}", "s1")})
     monkeypatch.setattr(repo_config, "client_for", lambda r: fake)
     load(repo)
     row = db.fetch_one("SELECT config_source, config_error FROM repos")
     assert row["config_source"] == "default" and "features.spam.mode" in row["config_error"]
-    fake.files[("acme/widgets", ".github/jev-triage.yml")] = ('features: {spam: {mode: "auto"}}', "s2")
+    fake.files[("acme/widgets", ".github/oss-inbox.yml")] = ('features: {spam: {mode: "auto"}}', "s2")
     assert load(repo, refresh=True).mode("spam") == "auto"
     assert db.fetch_one("SELECT config_source, config_error FROM repos") == {"config_source": "repo", "config_error": None}

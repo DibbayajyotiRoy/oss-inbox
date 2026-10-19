@@ -191,19 +191,19 @@ function ConfigStep({ repo }: { repo: Repo }) {
   return (
     <div className="flex flex-col gap-6">
       {repo.config_error ? (
-        <Notice tone="warning" title="Jev cannot read your config. It is using defaults.">
+        <Notice tone="warning" title="OSS Inbox cannot read your config. It is using defaults.">
           <span className="font-mono text-xs break-words">{repo.config_error}</span>
         </Notice>
       ) : (
         <Status tone={repo.config_source === "default" ? "waiting" : "success"} className="text-sm">
-          {{ repo: "Using .github/jev-triage.yml from the repo", org: "Using your organization defaults", default: "No config file yet. Built-in defaults apply." }[repo.config_source]}
+          {{ repo: "Using .github/oss-inbox.yml from the repo", org: "Using your organization defaults", default: "No config file yet. Built-in defaults apply." }[repo.config_source]}
         </Status>
       )}
       {cfg.error ? (
         <ErrorState error={cfg.error} retry={cfg.reload} />
       ) : d ? (
         <>
-          <CodeBlock filename=".github/jev-triage.yml" code={d.yaml} className="[&_pre]:max-h-72 [&_pre]:overflow-y-auto" />
+          <CodeBlock filename=".github/oss-inbox.yml" code={d.yaml} className="[&_pre]:max-h-72 [&_pre]:overflow-y-auto" />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-[13px] text-muted-foreground">Nothing changes until you save it on GitHub.</p>
             <Button asChild variant="outline" size="sm">

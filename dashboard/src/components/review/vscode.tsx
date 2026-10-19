@@ -61,7 +61,7 @@ export function OpenInVSCode({ item }: { item: Pick<ItemSummary, "kind" | "html_
         <div className="flex flex-col gap-4">
           <p className="text-pretty">
             This opens VS Code on your computer and checks out the PR branch from {item.author ? `@${item.author}` : "its author"}. The code is untrusted,
-            so VS Code will ask whether you trust the folder. Nothing is sent to Jev Triage.
+            so VS Code will ask whether you trust the folder. Nothing is sent to OSS Inbox.
           </p>
           <p className="text-muted-foreground">You need the GitHub Pull Requests extension in VS Code for this.</p>
           <label className="flex w-fit cursor-pointer items-center gap-2">

@@ -1,6 +1,6 @@
 # Launch checklist
 
-A 30-day plan to make Jev Triage findable by the maintainers it is for. Strategy and rationale: [../positioning.md](../positioning.md). The copy for each post is in this folder.
+A 30-day plan to make OSS Inbox findable by the maintainers it is for. Strategy and rationale: [../positioning.md](../positioning.md). The copy for each post is in this folder.
 
 `YOUR-ORG` is the GitHub org that will host the repo. It appears in the README, site and docs.
 
@@ -8,11 +8,11 @@ A 30-day plan to make Jev Triage findable by the maintainers it is for. Strategy
 
 - TODO: choose the GitHub org and repo name, then replace the placeholder everywhere:
   ```bash
-  grep -rl YOUR-ORG . --exclude-dir=.git --exclude-dir=node_modules | xargs sed -i 's/YOUR-ORG/acme/g'
+  grep -rl YOUR-ORG . --exclude-dir=.git --exclude-dir=node_modules | xargs sed -i 's/YOUR-ORG/DibbayajyotiRoy/g'
   ```
-- TODO: choose the site address. If you use a custom domain instead of `acme.github.io/jev-triage/`:
+- TODO: choose the site address. If you use a custom domain instead of `dibbayajyotiroy.github.io/oss-inbox/`:
   ```bash
-  sed -i 's|https://acme.github.io/jev-triage/|https://triage.example.com/|g' site/index.html site/sitemap.xml site/robots.txt
+  sed -i 's|https://dibbayajyotiroy.github.io/oss-inbox/|https://triage.example.com/|g' site/index.html site/sitemap.xml site/robots.txt
   ```
 - TODO: confirm the CI badge in `README.md` points at the real workflow file (`.github/workflows/ci.yml` exists today).
 - TODO: confirm `LICENSE` names the right copyright holder.
@@ -46,9 +46,9 @@ devtools  github-issues
 One command sets the description, homepage and topics:
 
 ```bash
-gh repo edit YOUR-ORG/jev-triage \
+gh repo edit DibbayajyotiRoy/oss-inbox \
   --description "Open-source GitHub App for issue and PR triage. Labels, routes and screens reports, shows confidence, runs in shadow mode first, never closes anything. Self-hosted." \
-  --homepage "https://YOUR-ORG.github.io/jev-triage/" \
+  --homepage "https://dibbayajyotiroy.github.io/oss-inbox/" \
   --add-topic github-app,github-bot,issue-triage,triage-bot,issue-labeler,auto-label,duplicate-detection,maintainer-tools,open-source,pull-requests,codeowners,flaky-tests,llm,self-hosted,fastapi,nextjs,docker-compose,bug-reports,devtools,github-issues
 ```
 
@@ -70,7 +70,7 @@ Then Settings, Pages, Source: Deploy from a branch, Branch: `gh-pages`, folder `
 
 After deploying:
 
-- Crawlers read `/robots.txt` and `/sitemap.xml` only at the root of a host. On `acme.github.io/jev-triage/` those two files are ignored. Use a custom domain or an org site at `acme.github.io`, or submit the sitemap by hand in Google Search Console and Bing Webmaster Tools.
+- Crawlers read `/robots.txt` and `/sitemap.xml` only at the root of a host. On `dibbayajyotiroy.github.io/oss-inbox/` those two files are ignored. Use a custom domain or an org site at `dibbayajyotiroy.github.io`, or submit the sitemap by hand in Google Search Console and Bing Webmaster Tools.
 - Social cards need a PNG. `site/og.png` is referenced by the meta tags. If you change `site/og.svg`, re-render it:
   ```bash
   google-chrome --headless --window-size=1200,630 --screenshot=site/og.png site/og.svg
@@ -86,7 +86,7 @@ Launch day is day 15. Pick a Tuesday, Wednesday or Thursday.
 - [ ] Day 1: Replace `YOUR-ORG`. Push. Set description, topics, homepage, social preview.
 - [ ] Day 1: Follow the README quickstart on a clean machine. Time it. Fix anything that is wrong or slow.
 - [ ] Day 2: Deploy the site. Submit the sitemap. Check the share previews.
-- [ ] Day 3: Install the app on this repo in `shadow` mode. Keep `.github/jev-triage.yml` public.
+- [ ] Day 3: Install the app on this repo in `shadow` mode. Keep `.github/oss-inbox.yml` public.
 - [ ] Day 4: Capture screenshots and the screen recording.
 - [ ] Day 5: Enable Discussions. Pin "Start here: try it in shadow mode". Add `good first issue` and `help wanted` labels and 5 to 10 real starter issues.
 - [ ] Days 6 to 7: Read the rules of every channel you plan to use (subreddits, Lobsters, awesome lists). Fill the real URLs into the drafts in this folder.

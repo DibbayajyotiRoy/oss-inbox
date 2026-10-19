@@ -20,7 +20,7 @@ repro steps, check the PR against CONTRIBUTING, route to the right area. Now the
 also AI-generated reports and CI agents that file the same failure five times.
 
 I wrote an open-source GitHub App to take the repetitive part. Disclosure: I am the
-author. It is called Jev Triage, Apache-2.0, self-hosted.
+author. It is called OSS Inbox, Apache-2.0, self-hosted.
 
 How it differs from the bots I tried:
 
@@ -36,7 +36,7 @@ Limits: it needs an API key for the decision backend (TypeSafe AI's Jev model, o
 Anthropic fallback that is marked uncalibrated), it is self-hosted with Docker Compose,
 and backfill accuracy is an upper bound.
 
-Repo: https://github.com/YOUR-ORG/jev-triage
+Repo: https://github.com/DibbayajyotiRoy/oss-inbox
 
 Question for other maintainers: what is the one triage task you would trust a bot with,
 and what would it have to show you first?
@@ -58,7 +58,7 @@ Body:
 I built a GitHub App (I am the author, Apache-2.0, self-hosted) for issue and PR triage
 and I want feedback on the config design from people who maintain repos.
 
-The whole config is one file in the repo, .github/jev-triage.yml, with org defaults in
+The whole config is one file in the repo, .github/oss-inbox.yml, with org defaults in
 ORG/.github:
 
   features:
@@ -77,7 +77,7 @@ read/write, Contents read only.
 Is that the right split? Would you want the app to open a PR with config changes
 instead? What would you want a first-run check to tell you?
 
-https://github.com/YOUR-ORG/jev-triage
+https://github.com/DibbayajyotiRoy/oss-inbox
 ```
 
 ## Replies to prepare

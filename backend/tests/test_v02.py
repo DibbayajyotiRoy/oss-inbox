@@ -77,11 +77,11 @@ def test_setup_status_before_the_app_exists(monkeypatch):
 
 
 def test_setup_status_configured_counts_orgs_and_reads_the_right_key(monkeypatch, org):
-    for k, v in dict(github_app_id="42", github_app_slug="jev-triage-x", typesafe_api_key="k", anthropic_api_key="").items():
+    for k, v in dict(github_app_id="42", github_app_slug="oss-inbox-x", typesafe_api_key="k", anthropic_api_key="").items():
         monkeypatch.setattr(settings, k, v)
     s = setup_client().get("/api/setup/status").json()
-    assert (s["app_configured"], s["app_slug"], s["setup_url"], s["installations"]) == (True, "jev-triage-x", None, 1)
-    assert s["install_url"] == "https://github.com/apps/jev-triage-x/installations/new" and s["decision_key_present"] is True
+    assert (s["app_configured"], s["app_slug"], s["setup_url"], s["installations"]) == (True, "oss-inbox-x", None, 1)
+    assert s["install_url"] == "https://github.com/apps/oss-inbox-x/installations/new" and s["decision_key_present"] is True
     monkeypatch.setattr(settings, "decision_backend", "anthropic")  # the Jev key no longer counts
     s = setup_client().get("/api/setup/status").json()
     assert (s["decision_key_present"], s["calibrated"], s["model"]) == (False, False, settings.anthropic_model)
@@ -137,7 +137,7 @@ def test_onboarding_labels_step_survives_github_failure_and_caches(client, repo,
 
 
 def test_onboarding_config_error_is_explained(client, repo, gh):
-    gh.files[("acme/widgets", ".github/jev-triage.yml")] = ("features: [", "s")
+    gh.files[("acme/widgets", ".github/oss-inbox.yml")] = ("features: [", "s")
     _, s = steps(client, repo["id"])
     assert not s["config"]["done"] and "could not be parsed" in s["config"]["detail"] and "invalid YAML" in s["config"]["detail"]
 
@@ -152,7 +152,7 @@ def test_labels_plan(client, repo, gh):
     assert r["existing"] == ["bug", "Priority: P0", "wontfix"]
     assert "bug" not in r["missing"] and "priority: p0" not in [m.lower() for m in r["missing"]] and "area/core" in r["missing"] and "spam" in r["missing"]
     assert r["mapping"]["issue.type"]["feature"] == "enhancement" and r["mapping"]["route.area"] == {"core": "area/core"}
-    assert r["mapping"]["held"] == "jev: held"
+    assert r["mapping"]["held"] == "oss-inbox: held"
     gh.fail = httpx.ConnectError("down")
     redis.flushdb()
     assert client.get(f"/api/repos/{repo['id']}/labels/plan").status_code == 502
@@ -192,10 +192,10 @@ def test_render_accepts_yaml_text_verbatim(client, repo):
     r = render(client, repo, yaml=text).json()
     assert r["yaml"] == text and r["errors"] == []  # comments survive, `off` is read as "off"
     assert r["parsed"]["comments"] is True and r["parsed"]["features"]["spam"]["mode"] == "off" and r["parsed"]["features"]["routing"]["mode"] == "auto"
-    assert r["parsed"]["labels"]["held"] == "jev: held"  # defaults filled in
-    assert r["edit_url"].startswith("https://github.com/acme/widgets/new/main?filename=.github/jev-triage.yml&value=")
+    assert r["parsed"]["labels"]["held"] == "oss-inbox: held"  # defaults filled in
+    assert r["edit_url"].startswith("https://github.com/acme/widgets/new/main?filename=.github/oss-inbox.yml&value=")
     db.execute("UPDATE repos SET config_source = 'repo'")
-    assert render(client, repo, yaml=text).json()["edit_url"] == "https://github.com/acme/widgets/edit/main/.github/jev-triage.yml"
+    assert render(client, repo, yaml=text).json()["edit_url"] == "https://github.com/acme/widgets/edit/main/.github/oss-inbox.yml"
 
 
 def test_render_yaml_errors_are_readable(client, repo):
@@ -225,7 +225,7 @@ def test_set_feature_renders_yaml_and_writes_nothing(client, repo, gh, box):
     body = r.json()
     parsed = yaml.safe_load(body["yaml"])
     assert parsed["features"]["priority"] == {"mode": "auto"} and parsed["features"]["spam"] == {"mode": "off"}  # `off` stays a string
-    assert 'mode: "off"' in body["yaml"] and "filename=.github/jev-triage.yml" in body["edit_url"]
+    assert 'mode: "off"' in body["yaml"] and "filename=.github/oss-inbox.yml" in body["edit_url"]
     assert repo_config.parse_config(body["yaml"]).mode("priority") == "auto"
     assert db.fetch_one("SELECT config->'features'->'priority'->>'mode' AS m FROM repos")["m"] == "shadow"  # not applied, only rendered
 
@@ -238,7 +238,7 @@ def test_set_feature_renders_yaml_and_writes_nothing(client, repo, gh, box):
 # ---- config_error ---------------------------------------------------------------------------------------------------
 
 def test_repo_detail_exposes_config_error_until_the_file_is_fixed(client, repo, gh):
-    path = ("acme/widgets", ".github/jev-triage.yml")
+    path = ("acme/widgets", ".github/oss-inbox.yml")
     gh.files[path] = ("features: {spam: {mode: on}}", "s1")
     detail = lambda: client.get(f"/api/repos/{repo['id']}").json()  # noqa: E731
     d = detail()
@@ -251,7 +251,7 @@ def test_repo_detail_exposes_config_error_until_the_file_is_fixed(client, repo, 
 
 # ---- comment-preserving config + chained feature edits ----------------------------------------------------------------
 
-COMMENTED = """# Jev config for widgets
+COMMENTED = """# OSS Inbox config for widgets
 comments: true  # be chatty
 
 features:
@@ -272,7 +272,7 @@ def features(client, repo, **body):
 
 
 def test_get_config_returns_the_repo_file_verbatim(client, repo, gh):
-    gh.files[("acme/widgets", ".github/jev-triage.yml")] = (COMMENTED, "s1")
+    gh.files[("acme/widgets", ".github/oss-inbox.yml")] = (COMMENTED, "s1")
     repo_config.load(repo, refresh=True)
     r = client.get(f"/api/repos/{repo['id']}/config").json()
     assert r["source"] == "repo" and r["yaml"] == COMMENTED and r["parsed"]["comments"] is True
@@ -281,7 +281,7 @@ def test_get_config_returns_the_repo_file_verbatim(client, repo, gh):
 
 
 def test_feature_edit_keeps_comments_and_formatting(client, repo, gh):
-    gh.files[("acme/widgets", ".github/jev-triage.yml")] = (COMMENTED, "s1")
+    gh.files[("acme/widgets", ".github/oss-inbox.yml")] = (COMMENTED, "s1")
     repo_config.load(repo, refresh=True)
     r = features(client, repo, feature="spam", mode="auto")
     assert r["yaml"] == COMMENTED.replace("mode: off    # trial", 'mode: "auto"    # trial') and r["errors"] == []

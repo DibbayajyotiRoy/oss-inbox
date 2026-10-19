@@ -1,10 +1,11 @@
 # Configuration
 
-Config lives in your repository as `.github/jev-triage.yml`. The file is the source of truth: the dashboard shows it, previews changes, and gives you a GitHub web-editor link, but never writes to your repo (the App has no `contents: write`).
+Config lives in your repository as `.github/oss-inbox.yml`. The file is the source of truth: the dashboard shows it, previews changes, and gives you a GitHub web-editor link, but never writes to your repo (the App has no `contents: write`).
 
 - No file means defaults: every feature in `shadow`, `spam` off, no comments.
 - Org-wide defaults go in `<org>/.github` at the same path. Merge order is defaults, then org, then repo (nested keys merge).
-- Changes are picked up when the file is pushed to the default branch. Unknown keys or bad values make the whole file invalid, and Jev falls back to the defaults (which never act) until you fix it.
+- Renamed from `.github/jev-triage.yml`: that old path is still read when `.github/oss-inbox.yml` is absent, so existing repos keep working. Rename it when convenient.
+- Changes are picked up when the file is pushed to the default branch. Unknown keys or bad values make the whole file invalid, and OSS Inbox falls back to the defaults (which never act) until you fix it.
 
 ## Full reference
 
@@ -18,7 +19,7 @@ features:                       # off | shadow | auto  (default shadow, spam: of
   spam: {mode: "off"}
   ci_gate: {mode: shadow}       # CI failures posted to /api/v1/reports (docs/ci-gate.md)
 
-labels:                         # label names Jev applies; "Sync labels" in the dashboard creates missing ones
+labels:                         # label names OSS Inbox applies; "Sync labels" in the dashboard creates missing ones
   issue.type: {bug: bug, feature: enhancement, question: question, docs: documentation}
   priority: {p0: "priority: p0", p1: "priority: p1", p2: "priority: p2", p3: "priority: p3"}
   needs_info: needs-info
@@ -26,9 +27,9 @@ labels:                         # label names Jev applies; "Sync labels" in the 
   needs_docs: needs-docs
   breaking: breaking-change
   spam: spam
-  held: "jev: held"
+  held: "oss-inbox: held"
   duplicate: duplicate
-  review: "jev: needs review"
+  review: "oss-inbox: needs review"
   security: security
   ci: ci-report
   route.area: {}                # area name -> label; default is "area: <name>"
@@ -44,7 +45,7 @@ areas:                          # components, used by routing and CI filing
 
 rules_file: null                # path to your contributing rules; default: first found of
                                 # AGENTS.md, CONTRIBUTING.md, .github/CONTRIBUTING.md, docs/CONTRIBUTING.md
-comments: false                 # true allows Jev to post comments. Silent by default, for every feature
+comments: false                 # true allows OSS Inbox to post comments. Silent by default, for every feature
 model: null                     # pin a Jev model version for this repo, e.g. jev-1.13.0 (default: JEV_MODEL)
 
 ci_gate:
@@ -96,9 +97,9 @@ Confidence is the probability of the chosen answer. For yes/no questions the ans
 |---|---|
 | `off` | Feature does not run. |
 | `shadow` (default) | Decisions are recorded and items go to the review queue with suggested answers. Nothing is written to GitHub. |
-| `auto` | Decisions that are *eligible* are applied (labels, assignees, the neutral "Jev Triage" check). The rest go to the queue. |
+| `auto` | Decisions that are *eligible* are applied (labels, assignees, the neutral "OSS Inbox" check). The rest go to the queue. |
 
-Fixed rules, whatever the mode: Jev never closes, deletes, locks or transfers anything. Duplicate links and transfers are only suggestions in the queue (CI failures are the exception: a failure that matches an open issue is merged into it). Reports that look like security issues from outside the core team are never filed publicly; they go to the `held` queue, and to `ci_gate.notify_webhook_url` if set. With `DRY_RUN=true` in `.env`, even `auto` only records what it would have done.
+Fixed rules, whatever the mode: OSS Inbox never closes, deletes, locks or transfers anything. Duplicate links and transfers are only suggestions in the queue (CI failures are the exception: a failure that matches an open issue is merged into it). Reports that look like security issues from outside the core team are never filed publicly; they go to the `held` queue, and to `ci_gate.notify_webhook_url` if set. With `DRY_RUN=true` in `.env`, even `auto` only records what it would have done.
 
 ## From shadow to auto
 

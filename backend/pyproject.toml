@@ -1,5 +1,5 @@
 [project]
-name = "jev-triage"
+name = "oss-inbox"
 version = "0.1.0"
 description = "GitHub triage bot that only acts when Jev's calibrated confidence clears your threshold."
 requires-python = ">=3.12"

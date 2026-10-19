@@ -1,12 +1,12 @@
 // Ready-to-paste CI snippets (docs/ci-gate.md). Templates, not logic: keep them in step with the docs.
 
-/** A workflow step. Reads the secrets JEV_URL and JEV_CI_TOKEN, so no token is ever pasted into a workflow file. */
-export const ACTIONS_STEP = `- name: Report failure to Jev Triage
+/** A workflow step. Reads the secrets OSS_INBOX_URL and OSS_INBOX_CI_TOKEN, so no token is ever pasted into a workflow file. */
+export const ACTIONS_STEP = `- name: Report failure to OSS Inbox
   if: failure() && github.event_name == 'push'   # secrets are not available to fork PRs
   continue-on-error: true
   env:
-    JEV_URL: \${{ secrets.JEV_URL }}
-    JEV_CI_TOKEN: \${{ secrets.JEV_CI_TOKEN }}
+    OSS_INBOX_URL: \${{ secrets.OSS_INBOX_URL }}
+    OSS_INBOX_CI_TOKEN: \${{ secrets.OSS_INBOX_CI_TOKEN }}
   run: |
     # expects your test step to tee its output: make test 2>&1 | tee test.log
     jq -n \\
@@ -17,8 +17,8 @@ export const ACTIONS_STEP = `- name: Report failure to Jev Triage
       --arg sha "$GITHUB_SHA" \\
       --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \\
       '{repo: $repo, title: $title, body: $body, log_excerpt: $log, commit_sha: $sha, run_url: $run, source: "ci"}' |
-    curl -fsS -X POST "$JEV_URL/api/v1/reports" \\
-      -H "Authorization: Bearer $JEV_CI_TOKEN" -H "Content-Type: application/json" -d @-
+    curl -fsS -X POST "$OSS_INBOX_URL/api/v1/reports" \\
+      -H "Authorization: Bearer $OSS_INBOX_CI_TOKEN" -H "Content-Type: application/json" -d @-
 `;
 
 export const curlReport = (origin: string, token: string, repo: string) => `curl -fsS -X POST "${origin}/api/v1/reports" \\

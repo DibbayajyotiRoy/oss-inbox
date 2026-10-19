@@ -11,7 +11,7 @@ import { useMod } from "./commands"
 import { titleFor } from "./nav"
 import { ThemeToggle } from "./theme-toggle"
 
-const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? "https://github.com/YOUR-ORG/jev-triage/tree/main/docs"
+const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? "https://github.com/DibbayajyotiRoy/oss-inbox/tree/main/docs"
 
 export function SiteHeader({ onSearch }: { onSearch: () => void }) {
   const title = titleFor(usePathname())

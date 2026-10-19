@@ -14,7 +14,7 @@ async def lifespan(_):
     yield
 
 
-app = FastAPI(title="Jev Triage", lifespan=lifespan)
+app = FastAPI(title="OSS Inbox", lifespan=lifespan)
 for r in (auth.router, dashboard.router, webhooks.router, reports.router, setup.router):
     app.include_router(r)
 

@@ -8,8 +8,8 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"], dis
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Jev Triage", template: "%s · Jev Triage" },
-  description: "Review queue, thresholds and evaluation for Jev Triage.",
+  title: { default: "OSS Inbox", template: "%s · OSS Inbox" },
+  description: "Review queue, thresholds and evaluation for OSS Inbox.",
   icons: { icon: "/favicon.svg" },
 };
 

@@ -7,7 +7,7 @@ type Meta = { label: string; tone: StatusTone; icon: LucideIcon; role: ChartRole
 
 /** Outcome -> Status tone and chart colour. Green and teal for filed and merged, blue for queued, slate for infra, amber and red where a human should look. */
 export const OUTCOMES: Record<CiOutcome, Meta> = {
-  filed: { label: "New issue", tone: "success", icon: FilePlus2, role: "acted", help: "Jev opened a new issue" },
+  filed: { label: "New issue", tone: "success", icon: FilePlus2, role: "acted", help: "OSS Inbox opened a new issue" },
   merged: { label: "Added to issue", tone: "success", icon: GitMerge, role: "series2", help: "Matched an existing issue and joined it" },
   flaky: { label: "Random failure", tone: "neutral", icon: Bug, role: "series1", help: "A test that fails at random, so no issue was opened" },
   infra: { label: "Not a code bug", tone: "neutral", icon: ServerCrash, role: "unlabeled", help: "Looked like a problem outside your code, such as the CI machine or network" },

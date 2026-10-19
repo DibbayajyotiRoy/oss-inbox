@@ -15,15 +15,16 @@ from app.github import client_for
 
 log = logging.getLogger(__name__)
 
-CONFIG_PATH = ".github/jev-triage.yml"
+CONFIG_PATH = ".github/oss-inbox.yml"
+LEGACY_CONFIG_PATH = ".github/jev-triage.yml"  # the pre-rename name: still read when the new file is absent, so existing repos keep working
 RULES_FILES = ["AGENTS.md", "CONTRIBUTING.md", ".github/CONTRIBUTING.md", "docs/CONTRIBUTING.md"]
 FEATURES = ["inbound_gate", "issue_triage", "pr_checks", "routing", "priority", "spam", "ci_gate"]
 DEFAULT_LABELS: dict[str, Any] = {
     "issue.type": {"bug": "bug", "feature": "enhancement", "question": "question", "docs": "documentation"},
     "priority": {f"p{i}": f"priority: p{i}" for i in range(4)},
     "needs_info": "needs-info", "needs_tests": "needs-tests", "needs_docs": "needs-docs",
-    "breaking": "breaking-change", "spam": "spam", "held": "jev: held", "duplicate": "duplicate",
-    "review": "jev: needs review", "security": "security", "ci": "ci-report",
+    "breaking": "breaking-change", "spam": "spam", "held": "oss-inbox: held", "duplicate": "duplicate",
+    "review": "oss-inbox: needs review", "security": "security", "ci": "ci-report",
 }
 
 
@@ -131,8 +132,9 @@ def _refresh(repo_row: dict) -> RepoConfig:
     full = repo_row["full_name"]
     org_repo = full.split("/")[0] + "/.github"
     gh = client_for(repo_row)
-    own = gh.get_file(full, CONFIG_PATH)
-    org = gh.get_file(org_repo, CONFIG_PATH) if full != org_repo else None
+    config_file = lambda repo: gh.get_file(repo, CONFIG_PATH) or gh.get_file(repo, LEGACY_CONFIG_PATH)  # noqa: E731
+    own = config_file(full)
+    org = config_file(org_repo) if full != org_repo else None
     error = None
     try:
         cfg, source = parse_config(own and own[0], org and org[0]), "repo" if own else "org" if org else "default"

@@ -22,7 +22,7 @@ Issue text is treated as data. The model answers typed questions about it, and e
 
 ### Who can see and change what it does?
 
-The dashboard shows every decision, the exact text that was sent, the actions taken and every override. It signs you in with GitHub and checks your role on each repo. It never writes to your repo: config lives in `.github/jev-triage.yml`, and the dashboard shows the YAML with a link to GitHub's web editor. The app has no contents write permission.
+The dashboard shows every decision, the exact text that was sent, the actions taken and every override. It signs you in with GitHub and checks your role on each repo. It never writes to your repo: config lives in `.github/oss-inbox.yml`, and the dashboard shows the YAML with a link to GitHub's web editor. The app has no contents write permission.
 
 ## Accuracy
 
@@ -94,7 +94,7 @@ By default `jev-1.13.0`. You can set `model:` per repo in the YAML, or `JEV_MODE
 
 ### Who makes Jev?
 
-Jev is a model made by TypeSafe AI. Jev Triage is an independent open-source project and is not affiliated with, endorsed by, or sponsored by TypeSafe AI.
+Jev is a model made by TypeSafe AI. OSS Inbox is an independent open-source project and is not affiliated with, endorsed by, or sponsored by TypeSafe AI.
 
 ### What is the Anthropic fallback?
 
@@ -118,7 +118,7 @@ Set the feature to `off` in the YAML, or set `DRY_RUN=true` and restart. With `D
 
 ### How do I remove it?
 
-Uninstall the GitHub App from your org or repos. On the uninstall event the app deletes the org's stored data (repos, items, decisions, actions, and the rest cascade from it). Labels it already applied stay on your issues, and any comments stay on GitHub. Delete `.github/jev-triage.yml` if you want the config gone.
+Uninstall the GitHub App from your org or repos. On the uninstall event the app deletes the org's stored data (repos, items, decisions, actions, and the rest cascade from it). Labels it already applied stay on your issues, and any comments stay on GitHub. Delete `.github/oss-inbox.yml` if you want the config gone.
 
 If you self-host, stop the stack with `docker compose down`. Add `-v` to remove the Postgres and Redis volumes. Also delete the GitHub App in your GitHub settings, and revoke the TypeSafe or Anthropic key if you no longer use it.
 

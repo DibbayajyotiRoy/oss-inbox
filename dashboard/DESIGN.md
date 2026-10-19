@@ -1,4 +1,4 @@
-# Jev Triage dashboard: design system
+# OSS Inbox dashboard: design system
 
 Reference look: webora-ui dashboard (`/home/roy/Documents/webora-ui`, spec in its `docs/DESIGN.md`).
 Linear/Apple-level restraint. Read that spec and its `src/components/{ui,shell,dashboard,onboarding}` before

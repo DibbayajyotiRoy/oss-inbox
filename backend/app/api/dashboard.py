@@ -434,7 +434,7 @@ class FeatureChange(BaseModel):
 
 @router.post("/api/repos/{repo_id}/features")
 def set_feature(repo_id: int, body: FeatureChange, user: UserDep):
-    """Renders the YAML with one feature's mode changed (comments kept); the maintainer commits it on GitHub (Jev never writes repos)."""
+    """Renders the YAML with one feature's mode changed (comments kept); the maintainer commits it on GitHub (OSS Inbox never writes repos)."""
     from app import repo_config
     repo = auth.require_repo(user, repo_id, "maintainer")
     if body.feature not in repo_config.FEATURES:
@@ -499,8 +499,8 @@ def onboarding(repo_id: int, user: UserDep):
          "Turn it on to start reading new issues and PRs." + (" This is a private repo: its text will be sent to the decision backend." if row["private"] else "")),
         ("labels", "Create the labels", labels[0], False, labels[1]),
         ("config", "Add a config file", row["config_source"] != "default", True,
-         f"Your .github/jev-triage.yml could not be parsed, so defaults are in use: {row['config_error']}" if row["config_error"]
-         else "Optional. Defaults work; add .github/jev-triage.yml to set labels, areas and thresholds."),
+         f"Your .github/oss-inbox.yml could not be parsed, so defaults are in use: {row['config_error']}" if row["config_error"]
+         else "Optional. Defaults work; add .github/oss-inbox.yml to set labels, areas and thresholds."),
         ("backfill", "Measure accuracy on past issues", backfill == "done", False,
          backfill.removeprefix("error:") if backfill.startswith("error") else
          "Running..." if backfill in ("queued", "running") else "Replays your closed issues and merged PRs to show how accurate Jev is before it acts."),

@@ -86,4 +86,4 @@ def apply(ctx, verdicts: dict) -> None:
         summary = ["**Checks**", f"- Tests changed: {'yes' if f['tests'] else 'no'}", f"- Docs changed: {'yes' if f['docs'] else 'no'}",
                    f"- Size: {f['files']} files, +{f['additions']}/-{f['deletions']}", "", "**Jev**", *(lines or ["- no confident answers"])]
         first = b or r
-        actions.check_run(ctx.item, ctx.repo, sha, "Jev Triage", "\n".join(summary), first.decision_id if first else None)
+        actions.check_run(ctx.item, ctx.repo, sha, "OSS Inbox", "\n".join(summary), first.decision_id if first else None)

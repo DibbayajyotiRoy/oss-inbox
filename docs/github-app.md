@@ -1,6 +1,6 @@
 # GitHub App
 
-Jev Triage is a GitHub App you own and host. The quick way to create it is the manifest flow at `/api/setup` ([self-hosting.md](self-hosting.md)). This page is for creating it by hand and for reviewing what it can do.
+OSS Inbox is a GitHub App you own and host. The quick way to create it is the manifest flow at `/api/setup` ([self-hosting.md](self-hosting.md)). This page is for creating it by hand and for reviewing what it can do.
 
 ## Create it by hand
 
@@ -37,11 +37,11 @@ Jev Triage is a GitHub App you own and host. The quick way to create it is the m
 |---|---|---|
 | Issues | Read & write | Read new issues; apply labels and assignees; file issues for CI failures. |
 | Pull requests | Read & write | Read PR metadata and changed files; apply labels. |
-| Checks | Read & write | Post one neutral "Jev Triage" check per commit. It never fails or blocks a merge. |
-| Contents | Read | Read `.github/jev-triage.yml`, your contributing rules, the file tree and CODEOWNERS. The App cannot push code or edit files. |
+| Checks | Read & write | Post one neutral "OSS Inbox" check per commit. It never fails or blocks a merge. |
+| Contents | Read | Read `.github/oss-inbox.yml`, your contributing rules, the file tree and CODEOWNERS. The App cannot push code or edit files. |
 | Metadata | Read | Required by GitHub for every App. |
 
-Comments are posted only if a repo sets `comments: true`. Jev never closes, deletes, locks or transfers issues or PRs.
+Comments are posted only if a repo sets `comments: true`. OSS Inbox never closes, deletes, locks or transfers issues or PRs.
 
 ## Events
 

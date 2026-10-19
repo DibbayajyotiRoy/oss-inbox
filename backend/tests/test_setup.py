@@ -24,7 +24,7 @@ class Resp:
     status_code = 201
 
     def json(self):
-        return {"id": 42, "slug": "jev-triage-x", "pem": "-----BEGIN-----\nabc\n-----END-----\n",
+        return {"id": 42, "slug": "oss-inbox-x", "pem": "-----BEGIN-----\nabc\n-----END-----\n",
                 "webhook_secret": "whsec", "client_id": "Iv1.x", "client_secret": "csec"}
 
 
@@ -48,7 +48,7 @@ def test_form_manifest_and_org_target(client):
     assert m["redirect_url"] == "https://triage.example.com/api/setup/callback"
     assert m["callback_urls"] == ["https://dash.example.com/api/auth/callback"]
     assert m["default_permissions"]["contents"] == "read" and m["public"] is False
-    assert m["name"] == "Jev Triage (triage.example.com)"
+    assert m["name"] == "OSS Inbox (triage.example.com)"
     assert "github.com/organizations/acme/settings/apps/new" in client.get("/api/setup?org=acme").text
     assert client.get("/api/setup?org=a/../b").status_code == 400
 
@@ -81,11 +81,11 @@ def test_callback_writes_env(client, monkeypatch, tmp_path):
     assert calls == ["https://api.github.com/app-manifests/abc123/conversions"]
     lines = env.read_text().splitlines()
     assert lines[0] == "DRY_RUN=true"
-    assert "GITHUB_APP_ID=42" in lines and "GITHUB_APP_SLUG=jev-triage-x" in lines
+    assert "GITHUB_APP_ID=42" in lines and "GITHUB_APP_SLUG=oss-inbox-x" in lines
     assert "GITHUB_PRIVATE_KEY=-----BEGIN-----\\nabc\\n-----END-----" in lines
     assert "GITHUB_WEBHOOK_SECRET=whsec" in lines and "GITHUB_CLIENT_SECRET=csec" in lines
     assert "docker compose restart api worker" in r.text
-    assert "https://github.com/apps/jev-triage-x/installations/new" in r.text
+    assert "https://github.com/apps/oss-inbox-x/installations/new" in r.text
 
 
 def test_callback_unwritable_env_shows_values(client, monkeypatch, tmp_path):

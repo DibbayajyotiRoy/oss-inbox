@@ -12,7 +12,7 @@ INSERT INTO repos (org_id, github_repo_id, full_name, private, enabled, default_
 VALUES (%(org)s, %(id)s, %(name)s, %(private)s, NOT %(private)s, COALESCE(%(branch)s, 'main'), COALESCE(%(desc)s, ''))
 ON CONFLICT (github_repo_id) DO UPDATE SET
   org_id = EXCLUDED.org_id, full_name = EXCLUDED.full_name,
-  enabled = repos.enabled AND (NOT EXCLUDED.private OR repos.private),  -- turning private switches Jev off
+  enabled = repos.enabled AND (NOT EXCLUDED.private OR repos.private),  -- turning private switches OSS Inbox off
   private = EXCLUDED.private,
   default_branch = COALESCE(%(branch)s, repos.default_branch), description = COALESCE(%(desc)s, repos.description)
 RETURNING id"""
@@ -59,7 +59,7 @@ def _norm(label: str) -> str:
 
 
 def propose_label_map(existing: list[str]) -> dict:
-    """Map the repo's existing labels onto Jev's defaults; shaped like RepoConfig.labels, only entries that differ."""
+    """Map the repo's existing labels onto OSS Inbox's defaults; shaped like RepoConfig.labels, only entries that differ."""
     out: dict = {}
     for key, v in DEFAULT_LABELS.items():
         for answer, default in v.items() if isinstance(v, dict) else [(None, v)]:

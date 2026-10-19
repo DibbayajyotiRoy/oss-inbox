@@ -48,5 +48,5 @@ export function titleFor(pathname: string) {
   if (seg) return NAV_ITEMS.find((i) => i.seg === seg)?.label ?? "Repository"
   if (pathname.startsWith("/items/")) return "Item"
   if (pathname.startsWith("/orgs/")) return "All repositories"
-  return "Jev Triage"
+  return "OSS Inbox"
 }

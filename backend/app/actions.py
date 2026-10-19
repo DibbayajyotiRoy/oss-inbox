@@ -45,7 +45,7 @@ def assign(item: dict, repo: dict, logins: list[str], decision_id: int | None) -
 
 def comment(item: dict, repo: dict, body: str, decision_id: int | None, key: str) -> None:
     """Post once per (item, key); a repeat edits the earlier comment. A key sharing the prefix before ':' edits it too."""
-    body = body.rstrip() + f"\n\n---\n<sub>Jev Triage · [why this comment?]({settings.dashboard_url.rstrip('/')}/items/{item['id']})</sub>"
+    body = body.rstrip() + f"\n\n---\n<sub>OSS Inbox · [why this comment?]({settings.dashboard_url.rstrip('/')}/items/{item['id']})</sub>"
     comment_id = None
     if not _dry():
         gh, full = client_for(repo), repo["full_name"]
@@ -76,11 +76,11 @@ def file_issue(repo: dict, title: str, body: str, labels: list[str], decision_id
 
 
 def check_run(item: dict, repo: dict, head_sha: str, title: str, summary_md: str, decision_id: int | None) -> None:
-    """One neutral "Jev Triage" check per head sha: later calls update the first."""
+    """One neutral "OSS Inbox" check per head sha: later calls update the first."""
     check_id = None
     if not _dry():
         gh, full = client_for(repo), repo["full_name"]
-        fields = dict(name="Jev Triage", status="completed", conclusion="neutral",
+        fields = dict(name="OSS Inbox", status="completed", conclusion="neutral",
                       output={"title": title, "summary": summary_md[:65000]})
         prev = db.fetch_one(
             "SELECT payload->>'check_run_id' AS id FROM actions WHERE repo_id = %s AND kind = 'check_run' "

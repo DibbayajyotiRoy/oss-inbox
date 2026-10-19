@@ -117,7 +117,7 @@ export const NEED = {
   measured: "Turn this on after Jev is checked on your past issues",
 } as const;
 
-export const CONFIG_PATH = ".github/jev-triage.yml";
+export const CONFIG_PATH = ".github/oss-inbox.yml";
 
 /** The features in the docs' order (the API returns them in storage order). `name` is what people see; the raw id only goes in YAML and code. */
 export const FEATURES: Record<string, { name: string; about: string }> = {

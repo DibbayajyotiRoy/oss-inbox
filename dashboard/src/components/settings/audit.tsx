@@ -19,8 +19,8 @@ const ACTION: Record<string, string> = {
   "ci_token.create": "Created a CI token",
   "ci_token.revoke": "Revoked a CI token",
   "labels.sync": "Created labels",
-  "repo.enable": "Turned Jev on",
-  "repo.disable": "Turned Jev off",
+  "repo.enable": "Turned OSS Inbox on",
+  "repo.disable": "Turned OSS Inbox off",
 };
 
 const detail = (d: unknown) =>

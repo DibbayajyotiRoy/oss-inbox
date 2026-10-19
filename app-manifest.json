@@ -1,5 +1,5 @@
 {
-  "name": "Jev Triage (my-org)",
+  "name": "OSS Inbox (my-org)",
   "url": "https://triage.example.com",
   "hook_attributes": {
     "url": "https://triage.example.com/api/github/webhook",

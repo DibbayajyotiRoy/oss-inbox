@@ -1,11 +1,11 @@
 # Self-hosting
 
-Jev Triage runs as five containers: Postgres, Redis, the API, a worker, and the dashboard. You need Docker with Compose v2, a [TypeSafe API key](https://typesafe.ai), and a GitHub account or org that can own an App.
+OSS Inbox runs as five containers: Postgres, Redis, the API, a worker, and the dashboard. You need Docker with Compose v2, a [TypeSafe API key](https://typesafe.ai), and a GitHub account or org that can own an App.
 
 ## Five-minute install
 
 ```bash
-git clone https://github.com/YOUR-ORG/jev-triage && cd jev-triage
+git clone https://github.com/DibbayajyotiRoy/oss-inbox && cd oss-inbox
 cp .env.example .env
 ```
 
@@ -33,7 +33,7 @@ docker compose up -d --build
 
 `/api/setup` returns 404 once `GITHUB_APP_ID` is set. To skip the flow, create the App by hand: [github-app.md](github-app.md).
 
-New installs start in `shadow` mode everywhere: decisions are recorded and queued for review, nothing is written to GitHub. Add a `.github/jev-triage.yml` to change that ([configuration.md](configuration.md)). Public repositories are enabled on install; private repositories stay off until an admin opts in on the dashboard.
+New installs start in `shadow` mode everywhere: decisions are recorded and queued for review, nothing is written to GitHub. Add a `.github/oss-inbox.yml` to change that ([configuration.md](configuration.md)). Public repositories are enabled on install; private repositories stay off until an admin opts in on the dashboard.
 
 ## Webhooks on localhost (smee)
 

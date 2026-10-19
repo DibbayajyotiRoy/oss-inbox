@@ -47,8 +47,8 @@ export function Tokens() {
   return (
     <CardSection
       title="CI tokens"
-      description="Let your CI send failures to Jev."
-      hint="Each token works for one repository and is shown once. Jev keeps only a scrambled copy. Revoking one stops its CI jobs right away."
+      description="Let your CI send failures to OSS Inbox."
+      hint="Each token works for one repository and is shown once. OSS Inbox keeps only a scrambled copy. Revoking one stops its CI jobs right away."
       action={create}
     >
       {!isAdmin ? (
@@ -154,7 +154,7 @@ function CreateDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpen
 /** The one moment the token exists in plain text: secrets to add, then a paste-ready step. */
 function Created({ made, repoName }: { made: Made; repoName: string }) {
   const [tab, setTab] = useState("actions");
-  const secrets = [["JEV_CI_TOKEN", made.token], ["JEV_URL", made.origin]];
+  const secrets = [["OSS_INBOX_CI_TOKEN", made.token], ["OSS_INBOX_URL", made.origin]];
   return (
     <div className="flex flex-col gap-5">
       <div>

@@ -166,7 +166,7 @@ def test_gate_hold_skips_later_features(env, repo):
     env.config = cfg(extra="evaluation: {require_evaluation: false}\nci_gate: {notify_webhook_url: 'https://hooks.example/x'}\n")
     env.answers["gate.security_claim"] = ("true", 0.95)
     run(repo, issue(body="remote code execution via the secret exploit"))
-    assert labels() == ["jev: held"]
+    assert labels() == ["oss-inbox: held"]
     assert queue() == [("inbound_gate", "held", "possible security report")]
     assert len(env.notified) == 1 and "exploit" not in env.notified[0][1] and "acme/widgets" in env.notified[0][1]
     out = outcomes()
@@ -188,7 +188,7 @@ def test_gate_ungrounded_report_is_held_and_not_asked_for_repro(env, repo):
     env.tree = {"src/app.py"}
     env.answers.update({"gate.grounded": ("false", 0.95), "gate.reproducible": ("false", 0.95)})
     run(repo, issue(body="`src/nope.py` is broken"))
-    assert labels() == ["jev: held"] and "needs-info" not in labels()
+    assert labels() == ["oss-inbox: held"] and "needs-info" not in labels()
     assert queue()[0][2] == "references files that don't exist in the repository"
 
 
@@ -205,7 +205,7 @@ def test_gate_skipped_on_release_and_held_label_removed(env, repo):
     env.answers["gate.security_claim"] = ("true", 0.95)
     run(repo, issue(), trigger="release")
     assert not any(q.startswith("gate.") for q in env.qids[0])
-    assert [(k, p["label"]) for k, p in acts() if k == "unlabel"] == [("unlabel", "jev: held")]
+    assert [(k, p["label"]) for k, p in acts() if k == "unlabel"] == [("unlabel", "oss-inbox: held")]
 
 
 def test_duplicate_candidates_are_suggestions_only(env, repo):

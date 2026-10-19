@@ -43,7 +43,7 @@ def _require_enabled() -> None:
 def manifest() -> dict:
     host = urlparse(settings.public_url).hostname or "self-hosted"
     return {
-        "name": f"Jev Triage ({host})"[:34],  # GitHub caps app names at 34 chars
+        "name": f"OSS Inbox ({host})"[:34],  # GitHub caps app names at 34 chars
         "url": settings.public_url,
         "hook_attributes": {"url": f"{settings.public_url}/api/github/webhook", "active": True},
         "redirect_url": f"{settings.public_url}/api/setup/callback",
@@ -91,8 +91,8 @@ def setup_form(org: str | None = Query(None), auto: bool = Query(False)):
     state, nonce = secrets.token_urlsafe(24), secrets.token_urlsafe(16)
     base = f"https://github.com/organizations/{org}/settings/apps/new" if org else "https://github.com/settings/apps/new"
     res = _page(
-        "Create the Jev Triage GitHub App",
-        f"<p>Creates a private GitHub App on {html.escape(org or 'your account')} with the permissions Jev Triage needs. "
+        "Create the OSS Inbox GitHub App",
+        f"<p>Creates a private GitHub App on {html.escape(org or 'your account')} with the permissions OSS Inbox needs. "
         f"Credentials are written to your <code>.env</code>; nothing leaves this server except the request to GitHub.</p>"
         f"<form method=post action='{html.escape(base)}?state={html.escape(state)}'>"
         f"<input type=hidden name=manifest value='{html.escape(json.dumps(manifest()), quote=True)}'>"

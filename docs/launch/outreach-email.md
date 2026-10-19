@@ -1,6 +1,6 @@
 # Outreach to maintainers dealing with AI-generated reports
 
-For maintainers who have said in public that automated or low-quality reports are a problem for them. The goal is a read-only trial they run themselves, not a sale. Jev Triage is free and open source, so there is nothing to sell.
+For maintainers who have said in public that automated or low-quality reports are a problem for them. The goal is a read-only trial they run themselves, not a sale. OSS Inbox is free and open source, so there is nothing to sell.
 
 ## Rules
 
@@ -25,7 +25,7 @@ Hi NAME,
 I read your post about SPECIFIC THING (LINK). The part about DETAIL stuck with me,
 because it is the problem I built something for.
 
-I am the author of Jev Triage, an open-source GitHub App (Apache-2.0, self-hosted)
+I am the author of OSS Inbox, an open-source GitHub App (Apache-2.0, self-hosted)
 that labels, routes and screens issues and PRs. It does not reply to anyone and it
 never closes, deletes, locks or transfers anything. It starts in shadow mode: it
 records what it would do and queues it, and writes nothing to GitHub.
@@ -47,9 +47,9 @@ If it is not useful, no need to reply. I will not write again. If you try it and
 is wrong for your repo, I would like to hear how.
 
 NAME
-AUTHOR, Jev Triage
+AUTHOR, OSS Inbox
 PROJECT EMAIL
-https://github.com/YOUR-ORG/jev-triage
+https://github.com/DibbayajyotiRoy/oss-inbox
 ```
 
 ## One-week follow-up (send once, only if they did not reply)

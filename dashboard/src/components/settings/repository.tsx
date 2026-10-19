@@ -25,7 +25,7 @@ export function Repository() {
       api<Repo>(`/api/repos/${repo.id}`, { method: "PATCH", body: { enabled, acknowledge_private: enabled && repo.private ? ack : undefined } }),
     );
     if (!r) return;
-    toast.success(enabled ? "Jev turned on" : "Jev turned off", { description: repo.full_name });
+    toast.success(enabled ? "OSS Inbox turned on" : "OSS Inbox turned off", { description: repo.full_name });
     setConfirming(false);
     setAck(false);
     reload();
@@ -43,15 +43,15 @@ export function Repository() {
   return (
     <CardSection
       title="Repository"
-      description="Turn Jev on or off here."
+      description="Turn OSS Inbox on or off here."
       footer={
         repo.enabled ? (
           <Gate reason={!isAdmin && NEED.admin}>
-            <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setConfirming(true)}>Turn Jev off</Button>
+            <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setConfirming(true)}>Turn OSS Inbox off</Button>
           </Gate>
         ) : (
           <Gate reason={!isAdmin ? NEED.admin : needsAck && !ack && "Tick the box above first"}>
-            <Button loading={busy} onClick={() => set(true)}>Turn Jev on</Button>
+            <Button loading={busy} onClick={() => set(true)}>Turn OSS Inbox on</Button>
           </Gate>
         )
       }
@@ -75,9 +75,9 @@ export function Repository() {
       <Confirm
         open={confirming}
         onOpenChange={setConfirming}
-        title={`Turn Jev off on ${repo.full_name}?`}
-        description="Jev stops reading new issues and pull requests. Existing decisions and history stay."
-        label="Turn Jev off"
+        title={`Turn OSS Inbox off on ${repo.full_name}?`}
+        description="OSS Inbox stops reading new issues and pull requests. Existing decisions and history stay."
+        label="Turn OSS Inbox off"
         busy={busy}
         onConfirm={() => set(false)}
       />

@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in Jev Triage is broken or behaving unexpectedly
+description: Something in OSS Inbox is broken or behaving unexpectedly
 labels: [bug]
 body:
   - type: textarea
@@ -12,7 +12,7 @@ body:
     id: steps
     attributes:
       label: Steps to reproduce
-      description: Include the relevant part of your `.github/jev-triage.yml`.
+      description: Include the relevant part of your `.github/oss-inbox.yml`.
     validations:
       required: true
   - type: dropdown

@@ -30,7 +30,7 @@ export function Configuration() {
     <CardSection
       title="Config file"
       description="Edit the file, check it, then save it on GitHub."
-      hint="Jev reads this file from your default branch. One bad line makes the whole file invalid, and Jev falls back to safe defaults (it never acts by itself) until you fix it."
+      hint="OSS Inbox reads this file from your default branch. One bad line makes the whole file invalid, and OSS Inbox falls back to safe defaults (it never acts by itself) until you fix it."
     >
       <Load res={res} fallback={<RowsSkeleton rows={6} />}>{(doc) => <Editor doc={doc} />}</Load>
     </CardSection>

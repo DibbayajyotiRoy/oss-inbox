@@ -5,7 +5,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Jev Triage tokens (DESIGN.md). Radix Slate graphite surfaces + one brand hue (indigo) + a semantic chart palette.
+ * OSS Inbox tokens (DESIGN.md). Radix Slate graphite surfaces + one brand hue (indigo) + a semantic chart palette.
  * Brand: --primary is the solid fill (white text), --brand the text/graphic tone, --ring the focus tint.
  * Charts: acted = green, queued = blue, shadow = soft amber (hatched), wrong = red, unlabeled = slate, threshold tick = deep amber;
  * --chart-1..5 is the categorical ramp (brand, teal, amber, rose, sky). src/lib/chart-theme.ts mirrors these hexes.

@@ -50,7 +50,7 @@ def _issue_body(p: dict) -> str:
     if log_ := (p.get("log_excerpt") or "")[:4000]:
         fence = "`" * max(3, max((len(m) for m in re.findall(r"`+", log_)), default=0) + 1)
         out += f"\n\n{fence}\n{log_}\n{fence}"
-    return out + "\n\n_Filed automatically by Jev Triage CI gate._"
+    return out + "\n\n_Filed automatically by OSS Inbox CI gate._"
 
 
 def _intent(verdicts: dict, cands: list[dict], ci: bool):
@@ -83,7 +83,7 @@ def _act(outcome: str, key, p: dict, repo: dict, config, cands: list[dict], verd
         cand = next(c for c in cands if f"ci.same_as#{c['id']}" == key.question_id)
         out["merged_into"] = cand["github_number"]
         if config.comments:
-            actions.comment(cand, repo, f"Jev Triage: this failure occurred again"
+            actions.comment(cand, repo, f"OSS Inbox: this failure occurred again"
                             f"{' (' + p['run_url'] + ')' if p.get('run_url') else ''}.", key.decision_id, "ci_occurrence")
     elif outcome == "flaky":
         db.execute("""INSERT INTO flaky_tests (repo_id, test_id, occurrences, last_run_url) VALUES (%s, %s, 1, %s)

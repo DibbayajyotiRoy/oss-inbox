@@ -58,7 +58,7 @@ def test_demo_github_client_returns_seed_like_reads(demo_mode, repo):
     gh = client_for(repo)
     assert not isinstance(gh, GitHubClient)
     assert gh.permission("acme/widgets", "demo") == "admin" and gh.get_file("acme/widgets", "x") is None
-    assert "bug" in gh.list_labels("acme/widgets") and "jev: held" not in gh.list_labels("acme/widgets")  # stock labels only until set up
+    assert "bug" in gh.list_labels("acme/widgets") and "oss-inbox: held" not in gh.list_labels("acme/widgets")  # stock labels only until set up
     assert gh.create_label("acme/widgets", "x") is None
 
 

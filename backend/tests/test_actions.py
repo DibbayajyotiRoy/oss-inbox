@@ -96,7 +96,7 @@ def test_dry_run_records_without_calling_github(monkeypatch, gh, item, repo):
 
 
 def test_comment_footer_and_dedupe(gh, item, repo):
-    footer = f"\n\n---\n<sub>Jev Triage · [why this comment?]({settings.dashboard_url}/items/{item['id']})</sub>"
+    footer = f"\n\n---\n<sub>OSS Inbox · [why this comment?]({settings.dashboard_url}/items/{item['id']})</sub>"
     actions.comment(item, repo, "Please add a repro.\n", None, "triage:needs_info")
     assert gh.calls[0][1][2] == "Please add a repro." + footer
     assert "<!--" not in gh.calls[0][1][2]
@@ -126,7 +126,7 @@ def test_check_run_one_per_sha(gh, item, repo):
     actions.check_run(item, repo, "sha2222222", "Triage", "summary", None)
     assert gh.names() == ["create_check_run", "update_check_run", "create_check_run"]
     name, args, fields = gh.calls[0]
-    assert args == ("acme/widgets", "sha1111111") and fields["name"] == "Jev Triage" and fields["conclusion"] == "neutral"
+    assert args == ("acme/widgets", "sha1111111") and fields["name"] == "OSS Inbox" and fields["conclusion"] == "neutral"
     assert gh.calls[1][1] == ("acme/widgets", 101) and fields["output"]["title"] == "Triage"
     assert gh.calls[1][2]["output"] == {"title": "Triage 2", "summary": "summary 2"}
     assert [x["payload"]["check_run_id"] for x in rows("check_run")] == [101, 101, 102]

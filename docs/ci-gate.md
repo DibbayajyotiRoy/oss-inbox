@@ -1,6 +1,6 @@
 # CI gate
 
-When your CI fails, post the failure to Jev Triage. It looks for an open issue about the same problem and then decides what to do, so one flaky test does not become forty issues.
+When your CI fails, post the failure to OSS Inbox. It looks for an open issue about the same problem and then decides what to do, so one flaky test does not become forty issues.
 
 Per failure it answers two questions: what caused it (`ci.kind`: real bug, flaky test, or infrastructure) and whether it is the same problem as a candidate open issue (`ci.same_as`). Candidates come from full-text search over the repo's open issues. It never closes anything.
 
@@ -13,13 +13,13 @@ Tokens are per repository and shown once; only a SHA-256 hash is stored.
 - Dashboard: open the repo, go to its CI gate settings, create a token. Admins only. Revoke it there too.
 - Or from the server: `docker compose exec api python -m app.cli token owner/repo ci-main`
 
-Save it as the secret `JEV_CI_TOKEN`, and your API address (`PUBLIC_URL`) as `JEV_URL`.
+Save it as the secret `OSS_INBOX_CI_TOKEN`, and your API address (`PUBLIC_URL`) as `OSS_INBOX_URL`.
 
 ## 2. Post a failure
 
 ```bash
-curl -fsS -X POST "$JEV_URL/api/v1/reports" \
-  -H "Authorization: Bearer $JEV_CI_TOKEN" \
+curl -fsS -X POST "$OSS_INBOX_URL/api/v1/reports" \
+  -H "Authorization: Bearer $OSS_INBOX_CI_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "repo": "acme/widgets",
@@ -55,12 +55,12 @@ jobs:
       - uses: actions/checkout@v4
       - run: set -o pipefail; make test 2>&1 | tee test.log
 
-      - name: Report failure to Jev Triage
+      - name: Report failure to OSS Inbox
         if: failure() && github.event_name == 'push'   # secrets are not available to fork PRs
         continue-on-error: true
         env:
-          JEV_URL: ${{ secrets.JEV_URL }}
-          JEV_CI_TOKEN: ${{ secrets.JEV_CI_TOKEN }}
+          OSS_INBOX_URL: ${{ secrets.OSS_INBOX_URL }}
+          OSS_INBOX_CI_TOKEN: ${{ secrets.OSS_INBOX_CI_TOKEN }}
         run: |
           jq -n \
             --arg repo "$GITHUB_REPOSITORY" \
@@ -70,8 +70,8 @@ jobs:
             --arg sha "$GITHUB_SHA" \
             --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             '{repo: $repo, title: $title, body: $body, log_excerpt: $log, commit_sha: $sha, run_url: $run, source: "ci"}' |
-          curl -fsS -X POST "$JEV_URL/api/v1/reports" \
-            -H "Authorization: Bearer $JEV_CI_TOKEN" -H "Content-Type: application/json" -d @-
+          curl -fsS -X POST "$OSS_INBOX_URL/api/v1/reports" \
+            -H "Authorization: Bearer $OSS_INBOX_CI_TOKEN" -H "Content-Type: application/json" -d @-
 ```
 
 If you can, send one report per failing test with `failing_test` set: the flaky-test list is keyed on it (falling back to the title), and a specific title dedupes better than "job failed".
@@ -80,7 +80,7 @@ If you can, send one report per failing test with `failing_test` set: the flaky-
 
 | `outcome` | Meaning | Needs |
 |---|---|---|
-| `filed` | New failure, no matching issue: Jev opened an issue (labeled `ci-report`, plus priority/area when confident). | `auto`, `ci.kind` above threshold |
+| `filed` | New failure, no matching issue: OSS Inbox opened an issue (labeled `ci-report`, plus priority/area when confident). | `auto`, `ci.kind` above threshold |
 | `merged` | Matches an open issue: nothing new is filed and the report is attached to it (`merged_into`). A note is posted on that issue only if `comments: true`. | `auto`, `ci.same_as` above threshold |
 | `flaky` | Judged a flaky test. No issue; the test and its count appear under Flaky tests in the dashboard. | `auto`, `ci.kind` above threshold |
 | `infra` | Judged a runner/network/registry problem. No issue; `ci_gate.notify_webhook_url` gets a message if set. | `auto`, `ci.kind` above threshold |

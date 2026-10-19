@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://YOUR-ORG.github.io/jev-triage/sitemap.xml
+Sitemap: https://dibbayajyotiroy.github.io/oss-inbox/sitemap.xml

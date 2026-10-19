@@ -32,7 +32,7 @@ function NoOrgs() {
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
               ) : (
-                <Link href="/welcome">Set up Jev Triage</Link>
+                <Link href="/welcome">Set up OSS Inbox</Link>
               )}
             </Button>
           ) : undefined

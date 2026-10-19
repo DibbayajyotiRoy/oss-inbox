@@ -15,7 +15,7 @@ export function ConnectCi({ repoId, fullName }: { repoId: number; fullName: stri
   const url = useApi<{ public_url: string }>("/api/setup/status").data?.public_url;
   const base = url ?? (typeof location === "undefined" ? "" : location.origin);
   const curl = `curl -fsS -X POST "${base}/api/v1/reports" \\
-  -H "Authorization: Bearer $JEV_CI_TOKEN" \\
+  -H "Authorization: Bearer $OSS_INBOX_CI_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{
     "repo": "${fullName}",
@@ -23,21 +23,21 @@ export function ConnectCi({ repoId, fullName }: { repoId: number; fullName: stri
     "failing_test": "tests/test_cart.py::test_total",
     "source": "ci"
   }'`;
-  const actions = `- name: Report failure to Jev Triage
+  const actions = `- name: Report failure to OSS Inbox
   if: failure() && github.event_name == 'push'
   continue-on-error: true
   env:
-    JEV_CI_TOKEN: \${{ secrets.JEV_CI_TOKEN }}
+    OSS_INBOX_CI_TOKEN: \${{ secrets.OSS_INBOX_CI_TOKEN }}
   run: |
     jq -n --arg repo "$GITHUB_REPOSITORY" --arg title "CI failed: $GITHUB_WORKFLOW / $GITHUB_JOB" \\
       --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \\
       '{repo: $repo, title: $title, run_url: $run, source: "ci"}' |
     curl -fsS -X POST "${base}/api/v1/reports" \\
-      -H "Authorization: Bearer $JEV_CI_TOKEN" -H "Content-Type: application/json" -d @-`;
+      -H "Authorization: Bearer $OSS_INBOX_CI_TOKEN" -H "Content-Type: application/json" -d @-`;
   return (
     <CardSection
       title="Connect your CI"
-      description="Send CI failures here. Jev opens an issue, adds to one, or ignores each."
+      description="Send CI failures here. OSS Inbox opens an issue, adds to one, or ignores each."
       action={
         <Button asChild variant="outline" size="sm">
           <Link href={repoPath(repoId, "settings")}>
@@ -56,7 +56,7 @@ export function ConnectCi({ repoId, fullName }: { repoId: number; fullName: stri
         />
         {tab === "curl" ? <CodeBlock code={curl} filename="Terminal" /> : <CodeBlock code={actions} filename=".github/workflows/ci.yml" />}
         <p className="text-[13px] text-muted-foreground">
-          Create a token in Settings and save it in your CI as the secret <code className="font-mono text-foreground">JEV_CI_TOKEN</code>. Only admins can create tokens. Each works for this repository only.
+          Create a token in Settings and save it in your CI as the secret <code className="font-mono text-foreground">OSS_INBOX_CI_TOKEN</code>. Only admins can create tokens. Each works for this repository only.
         </p>
       </div>
     </CardSection>

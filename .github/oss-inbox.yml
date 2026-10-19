@@ -1,4 +1,4 @@
-# Jev Triage on its own repo: everything shadows, nothing comments.
+# OSS Inbox on its own repo: everything shadows, nothing comments.
 # Reference: docs/configuration.md
 features:
   inbound_gate: {mode: shadow}

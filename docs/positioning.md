@@ -29,7 +29,7 @@ Typical titles: maintainer, core team member, release manager, "the person who d
 Say no early. These users will be unhappy, and their reviews hurt.
 
 - Repos with fewer than about 10 new issues a week. `actions/labeler` and a template do the job.
-- Teams who want a chat assistant that answers users in threads. Jev Triage is silent by default and does not converse.
+- Teams who want a chat assistant that answers users in threads. OSS Inbox is silent by default and does not converse.
 - Teams who want automatic closing, stale management or "AI-written text" detection. It never closes anything and never claims text is AI-generated.
 - Orgs that cannot send issue text to an external model API. Decisions run on TypeSafe's Jev API or the Anthropic API.
 - Anyone expecting a hosted SaaS today. This is self-hosted unless someone runs an instance.
@@ -47,7 +47,7 @@ Say no early. These users will be unhappy, and their reviews hurt.
 | Pain | Promise | Where it lives |
 |---|---|---|
 | Hours spent labeling and asking for missing info | Type, repro steps, version and logs are decided once per issue; `needs-info` follows | `issue_triage`: `issue.type`, `issue.has_repro`, `issue.has_version`, `issue.has_logs` |
-| Checking PRs against CONTRIBUTING | Scored against your rules file; exact checks (tests, docs, diff size, CODEOWNERS) stay in plain code | `pr_checks`: `pr.follows_rules`, `pr.breaking`; neutral "Jev Triage" check run |
+| Checking PRs against CONTRIBUTING | Scored against your rules file; exact checks (tests, docs, diff size, CODEOWNERS) stay in plain code | `pr_checks`: `pr.follows_rules`, `pr.breaking`; neutral "OSS Inbox" check run |
 | Routing across many repos | Right repo and right area owner, defined in YAML | `routing`: `route.repo`, `route.area`, `areas:` |
 | Floods of invalid or duplicate reports | Up to six actionability questions before a human looks; security-looking external reports are held, never filed publicly | `inbound_gate`: `gate.reproducible`, `gate.grounded`, `gate.known_non_issue`, `gate.claim_supported`, `gate.security_claim`, `gate.same_as` |
 | CI agents filing the same failure | Classify as code bug, flaky test or infrastructure; link to the existing issue; hourly cap | `ci_gate`: `ci.kind`, `ci.same_as`, `max_issues_per_hour` |
@@ -56,13 +56,13 @@ Say no early. These users will be unhappy, and their reviews hurt.
 
 ## Positioning statement
 
-For maintainers of busy open-source projects who lose hours to labeling, chasing missing details and wading through low-quality reports, Jev Triage is an open-source GitHub App that decides typed questions about each issue and PR, shows its confidence, and acts only where it has measured itself against your repo's own history. Unlike chat-style assistants or prompt-based workflows, it starts in shadow mode, never closes anything, and puts its accuracy on your data in front of you before it touches a label.
+For maintainers of busy open-source projects who lose hours to labeling, chasing missing details and wading through low-quality reports, OSS Inbox is an open-source GitHub App that decides typed questions about each issue and PR, shows its confidence, and acts only where it has measured itself against your repo's own history. Unlike chat-style assistants or prompt-based workflows, it starts in shadow mode, never closes anything, and puts its accuracy on your data in front of you before it touches a label.
 
 ## One-liner and taglines
 
 Chosen one-liner:
 
-> Jev Triage is an open-source GitHub App that labels, routes and screens issues and pull requests, and only acts on the questions it has measured against your own repo's history.
+> OSS Inbox is an open-source GitHub App that labels, routes and screens issues and pull requests, and only acts on the questions it has measured against your own repo's history.
 
 Short form (README, social): **Open-source GitHub issue triage bot that shows its confidence and never closes anything.**
 
@@ -83,7 +83,7 @@ Chosen tagline works because it carries the whole difference in one clause: evid
 | Shows its confidence | Every answer is stored with the probability behind it. | Confidence is stored per decision; the dashboard shows it next to the suggestion. |
 | Proves accuracy on your history | Before auto mode acts, the question has to be measured on your closed issues and merged PRs. | `evaluation.require_evaluation` and `min_samples` (default 30). Backfill, calibration chart, recommended threshold. Accuracy is an upper bound and says so. |
 | Safe by construction | Shadow by default. Never closes, deletes, locks or transfers. | The app has no contents write. Transfers and duplicate links are queued suggestions. Reporter history is never profiled. |
-| Yours | Self-host it, read the config in your repo, pin the model. | Apache-2.0. `.github/jev-triage.yml`, org defaults in `ORG/.github`. Model pinned to `jev-1.13.0`, version stored on every run. |
+| Yours | Self-host it, read the config in your repo, pin the model. | Apache-2.0. `.github/oss-inbox.yml`, org defaults in `ORG/.github`. Model pinned to `jev-1.13.0`, version stored on every run. |
 | Cheap per decision | One model call per item, many questions. | Jev input is priced at $0.042 per million tokens. 1,000 items at 3,000 tokens each is about $0.13 of input. Check TypeSafe's pricing for the full picture. |
 
 ## Objections
@@ -141,7 +141,7 @@ Competitor-aware:
 - github agentic workflows issue triage
 - ai-triage github action alternative
 - actions/labeler vs ai labeler
-- stale bot alternative (careful: Jev Triage is not a stale bot; only target this where the page explains the difference)
+- stale bot alternative (careful: OSS Inbox is not a stale bot; only target this where the page explains the difference)
 
 Where each goes:
 
@@ -151,7 +151,7 @@ Where each goes:
 | GitHub topics (max 20) | See [launch/checklist.md](launch/checklist.md) |
 | README H1 and first paragraph | "GitHub issue triage bot", "label", "route", "pull requests" |
 | Site title, meta description, H1, H2s | "open-source GitHub issue triage bot", "AI-generated bug reports", "duplicate issue detection" |
-| Marketplace name and short description | "Jev Triage", "Triage bot that measures itself on your history before it acts" |
+| Marketplace name and short description | "OSS Inbox", "Triage bot that measures itself on your history before it acts" |
 | Blog and dev.to titles | Problem-aware phrases, as questions maintainers ask |
 
 ## Discovery channels, ranked by effort and impact
@@ -181,7 +181,7 @@ Verify each list is active and read its contribution rules before opening a PR. 
 
 - `todogroup/awesome-ospo`: tools for running open-source programs. Fits the OSPO secondary ICP.
 - `fffaraz/awesome-github`: curated GitHub tools.
-- `awesome-selfhosted/awesome-selfhosted`: submissions go through its data repo and have formatting rules (license, language, short description). Jev Triage depends on an external model API, so expect the list's third-party-service marker to apply.
+- `awesome-selfhosted/awesome-selfhosted`: submissions go through its data repo and have formatting rules (license, language, short description). OSS Inbox depends on an external model API, so expect the list's third-party-service marker to apply.
 - An "awesome OSS maintainers tools" list, if it is still active when you check (search GitHub for the exact repo).
 
 Skip lists for AI agents or chatbots. It is a different category and the wrong audience.

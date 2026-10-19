@@ -273,5 +273,5 @@ def test_ensure_labels_creates_only_missing(monkeypatch, repo):
     monkeypatch.setattr(install, "load", lambda r: parse_config("labels: {needs_info: Needs Info}\nareas: {core: {}}"))
     out = install.ensure_labels(repo)
     assert out == created and "bug" not in created and "enhancement" not in created
-    assert {"Needs Info", "area: core", "priority: p0", "jev: held", "ci-report"} <= set(created)
+    assert {"Needs Info", "area: core", "priority: p0", "oss-inbox: held", "ci-report"} <= set(created)
     assert "needs-info" not in created

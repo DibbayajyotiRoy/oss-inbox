@@ -118,7 +118,7 @@ export function PendingTray({ repoId, changes, onUndo, onClear }: { repoId: numb
             </ul>
           )}
           <div aria-busy={busy} className={cn("overflow-hidden rounded-lg border border-border bg-muted/30 motion-safe:transition-opacity motion-safe:duration-150", busy && "opacity-60")}>
-            <div className="flex h-9 items-center border-b border-border bg-muted/40 px-3 font-mono text-xs">.github/jev-triage.yml</div>
+            <div className="flex h-9 items-center border-b border-border bg-muted/40 px-3 font-mono text-xs">.github/oss-inbox.yml</div>
             <pre tabIndex={0} aria-label="Changes to the file" className="max-h-80 overflow-auto py-2 font-mono text-[13px] leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
               <code className="grid min-w-max">
                 {lines.map((l, k) => (

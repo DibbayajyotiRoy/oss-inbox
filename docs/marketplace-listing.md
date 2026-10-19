@@ -1,6 +1,6 @@
 # GitHub Marketplace listing
 
-Copy and checklist for listing Jev Triage on GitHub Marketplace. Field limits below come from GitHub's Marketplace docs as read in October 2026. Re-check them in the listing form before you submit.
+Copy and checklist for listing OSS Inbox on GitHub Marketplace. Field limits below come from GitHub's Marketplace docs as read in October 2026. Re-check them in the listing form before you submit.
 
 ## Read this first: a listing needs a hosted instance
 
@@ -16,16 +16,16 @@ If you are not ready to host, skip the listing. Self-hosters can still find the 
 
 | Field | Limit (from GitHub docs) | Value |
 |---|---|---|
-| Listing name | 255 chars, must be unique, cannot match another GitHub account name unless it is yours | Jev Triage |
+| Listing name | 255 chars, must be unique, cannot match another GitHub account name unless it is yours | OSS Inbox |
 | Very short description | 40 to 80 chars recommended, no end punctuation, no call to action | Triage bot that measures itself on your history before it acts |
-| Introductory description | 150 to 250 chars recommended, begin with the app name | Jev Triage labels, routes and checks issues and pull requests. It starts in shadow mode, shows its confidence, is measured against your repo's own history before it acts, and never closes anything. |
+| Introductory description | 150 to 250 chars recommended, begin with the app name | OSS Inbox labels, routes and checks issues and pull requests. It starts in shadow mode, shows its confidence, is measured against your repo's own history before it acts, and never closes anything. |
 | Detailed description | 1,000 chars max, 3 to 5 value propositions, each with a level-3 title | See below (796 chars) |
 | Primary category | required | Open Source management |
 | Secondary category | optional | Project management |
 | Supported languages | optional, up to 10 | Leave empty. It works on any repo, whatever the language |
-| Customer support URL | required | `https://github.com/YOUR-ORG/jev-triage/issues` or a Discussions URL |
+| Customer support URL | required | `https://github.com/DibbayajyotiRoy/oss-inbox/issues` or a Discussions URL |
 | Privacy policy URL | required | `https://YOUR-DOMAIN/privacy` (TODO: write and host it; outline below) |
-| Documentation URL | optional | `https://github.com/YOUR-ORG/jev-triage/tree/main/docs` |
+| Documentation URL | optional | `https://github.com/DibbayajyotiRoy/oss-inbox/tree/main/docs` |
 | Company URL | optional | `https://github.com/YOUR-ORG` or the project site |
 | Status URL | optional | Only if you run a status page for the hosted instance |
 | Setup URL (GitHub Apps) | after install | The dashboard URL of the hosted instance |
@@ -48,7 +48,7 @@ Replay closed issues and merged PRs, see accuracy and calibration per question, 
 No closing, deleting, locking or transfers. Duplicate links and transfers are suggestions you accept.
 
 ### Config in your repo
-Settings live in .github/jev-triage.yml. Apache-2.0, self-hostable. Jev is a model by TypeSafe AI; this project is independent.
+Settings live in .github/oss-inbox.yml. Apache-2.0, self-hostable. Jev is a model by TypeSafe AI; this project is independent.
 ```
 
 ## Feature bullets (for the repo, site and any longer copy field)
@@ -70,8 +70,8 @@ Marketplace shows the app's permissions. Be ready to justify each one in the des
 |---|---|
 | Issues: read and write | Read new issues, apply labels, assign owners |
 | Pull requests: read and write | Read PRs and changed files, apply labels |
-| Checks: read and write | Post one neutral "Jev Triage" check run per commit |
-| Contents: read | Read `.github/jev-triage.yml` and the contributing rules file |
+| Checks: read and write | Post one neutral "OSS Inbox" check run per commit |
+| Contents: read | Read `.github/oss-inbox.yml` and the contributing rules file |
 | Metadata: read | Required by GitHub |
 
 There is no contents write. Events: `installation`, `installation_repositories`, `issues`, `pull_request`, `push`.

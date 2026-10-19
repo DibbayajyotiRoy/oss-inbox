@@ -5,7 +5,7 @@ import { api, errText } from "./api";
 import type { Mode, Rendered, Repo } from "./types";
 
 /**
- * Feature-mode edits for one repo. Jev never writes the config file: each pick POSTs /features with the YAML
+ * Feature-mode edits for one repo. OSS Inbox never writes the config file: each pick POSTs /features with the YAML
  * rendered so far, so edits chain into one file for the user to commit (`out`). Picking a mode the repo already
  * has undoes the edit, and with nothing left the rendering is dropped. Input is ignored while one is rendering.
  */

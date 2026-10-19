@@ -1,15 +1,15 @@
-# Jev Triage
+# OSS Inbox
 
 **Open-source GitHub issue triage bot. It labels, routes and screens issues and pull requests, shows its confidence, and never closes anything.**
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![CI](https://github.com/YOUR-ORG/jev-triage/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR-ORG/jev-triage/actions/workflows/ci.yml)
+[![CI](https://github.com/DibbayajyotiRoy/oss-inbox/actions/workflows/ci.yml/badge.svg)](https://github.com/DibbayajyotiRoy/oss-inbox/actions/workflows/ci.yml)
 
-Jev Triage is a self-hosted GitHub App and dashboard for maintainers who spend their week labeling issues, asking for missing details, checking PRs against CONTRIBUTING, and sorting through low-quality or AI-generated bug reports. It decides typed questions about each item, acts only where it has measured itself on your repo's own history, and queues everything else for you.
+OSS Inbox is a self-hosted GitHub App and dashboard for maintainers who spend their week labeling issues, asking for missing details, checking PRs against CONTRIBUTING, and sorting through low-quality or AI-generated bug reports. It decides typed questions about each item, acts only where it has measured itself on your repo's own history, and queues everything else for you.
 
 It starts in **shadow mode**: it records what it would do and changes nothing.
 
-> Jev is a model made by [TypeSafe AI](https://typesafe.ai). Jev Triage is an independent open-source project and is not affiliated with, endorsed by, or sponsored by TypeSafe AI.
+> Jev is a model made by [TypeSafe AI](https://typesafe.ai). OSS Inbox is an independent open-source project and is not affiliated with, endorsed by, or sponsored by TypeSafe AI.
 
 ## Why
 
@@ -22,7 +22,7 @@ It starts in **shadow mode**: it records what it would do and changes nothing.
 | Feature | Questions it answers | Typical result |
 |---|---|---|
 | `issue_triage` | Bug, feature, question or docs? Repro steps? Version? Logs? | Type label, `needs-info` |
-| `pr_checks` | Breaking change? Follows your contributing rules? Plus exact checks in code: tests changed, docs changed, diff size, CODEOWNERS | Labels, a neutral "Jev Triage" check run |
+| `pr_checks` | Breaking change? Follows your contributing rules? Plus exact checks in code: tests changed, docs changed, diff size, CODEOWNERS | Labels, a neutral "OSS Inbox" check run |
 | `routing` | Which repo? Which area? | Owner assigned, or a transfer suggestion in the queue |
 | `priority` | p0 to p3 | Priority label |
 | `inbound_gate` | Reproducible? Grounded in this repo? Known non-issue? Claim supported? Security claim? Same as an existing issue? | Held or queued for a human. Security-looking external reports are never filed publicly |
@@ -55,7 +55,7 @@ When you accept or override a suggestion in the dashboard, it becomes ground tru
 - **Never closes.** No closing, deleting, locking or transferring. Transfers and duplicate links are suggestions you accept.
 - **Silent by default.** Comments are off unless you set `comments: true`. When on, they are plain markdown a human can read in full, ending with a link to why the comment was made.
 - **Measured before auto.** With the default `evaluation.require_evaluation: true`, a question needs at least `min_samples` (default 30) measured examples with accuracy at or above its threshold before it may act.
-- **Reviewable config.** Settings live in `.github/jev-triage.yml` in your repo. Org defaults go in `ORG/.github`. The dashboard shows the YAML and a link to GitHub's web editor. It never writes to your repo.
+- **Reviewable config.** Settings live in `.github/oss-inbox.yml` in your repo. Org defaults go in `ORG/.github`. The dashboard shows the YAML and a link to GitHub's web editor. It never writes to your repo.
 - **Fails safe.** A typo'd key or invalid YAML makes the app fall back to the defaults, which never act.
 - **Untrusted input.** Item text is data. Actions are fixed code paths per answer, so text inside a report cannot instruct the app to do something else.
 - **Pinned model.** Default `jev-1.13.0`. Override per repo with `model:` or globally with `JEV_MODEL`. The version the backend reports is stored on every run.
@@ -68,7 +68,7 @@ Backfill accuracy is an upper bound: only items your maintainers labeled are cou
 ### Try it with sample data (no GitHub, no API key)
 
 ```bash
-git clone https://github.com/YOUR-ORG/jev-triage.git && cd jev-triage
+git clone https://github.com/DibbayajyotiRoy/oss-inbox.git && cd oss-inbox
 cp .env.example .env && echo "DEMO_MODE=true" >> .env
 docker compose up -d --build
 docker compose exec api python -m app.cli demo   # seeds a sample org with 3 repos
@@ -81,7 +81,7 @@ Open `http://localhost:3000/login` and click **Try with sample data**. Every scr
 Self-host in about five minutes with Docker Compose. You need Docker with Compose v2, a [TypeSafe API key](https://typesafe.ai), and a GitHub account or org that can own an App. Full guide: [docs/self-hosting.md](docs/self-hosting.md).
 
 ```bash
-git clone https://github.com/YOUR-ORG/jev-triage.git && cd jev-triage
+git clone https://github.com/DibbayajyotiRoy/oss-inbox.git && cd oss-inbox
 cp .env.example .env     # set TYPESAFE_API_KEY and SESSION_SECRET; keep DRY_RUN=true at first
 docker compose up -d --build
 ```
@@ -95,7 +95,7 @@ First run:
 1. Install the app on one repo. Everything starts in `shadow`.
 2. In the dashboard, run the backfill for that repo. It replays your closed issues and merged PRs and changes nothing on GitHub.
 3. Read the calibration view and the worst misses. Set thresholds from the recommended values.
-4. Switch one feature to `auto` in `.github/jev-triage.yml`, then set `DRY_RUN=false`. Watch the queue.
+4. Switch one feature to `auto` in `.github/oss-inbox.yml`, then set `DRY_RUN=false`. Watch the queue.
 
 You can also print an accuracy table from the CLI: `docker compose exec api python -m app.cli eval OWNER/REPO --limit 200`.
 
@@ -106,7 +106,7 @@ Public repos are enabled on install. Private repos stay off until an admin opts 
 One file, in your repo. [docs/configuration.md](docs/configuration.md) is the full reference.
 
 ```yaml
-# .github/jev-triage.yml
+# .github/oss-inbox.yml
 features:
   issue_triage: { mode: auto }     # off | shadow | auto  (default: shadow)
   pr_checks:    { mode: shadow }
@@ -143,19 +143,19 @@ CI agents and flaky tests create duplicate issues. Post the failure to the gate 
 
 ```yaml
 # .github/workflows/ci.yml (fragment)
-- name: Report failure to Jev Triage
+- name: Report failure to OSS Inbox
   if: failure()
   env:
-    JEV_URL: ${{ vars.JEV_TRIAGE_URL }}
-    JEV_TOKEN: ${{ secrets.JEV_TRIAGE_CI_TOKEN }}   # created in the dashboard
+    OSS_INBOX_URL: ${{ vars.OSS_INBOX_URL }}
+    OSS_INBOX_TOKEN: ${{ secrets.OSS_INBOX_CI_TOKEN }}   # created in the dashboard
   run: |
     jq -n --arg repo "$GITHUB_REPOSITORY" --arg sha "$GITHUB_SHA" \
           --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
           --arg log "$(tail -n 80 test.log)" \
       '{repo:$repo, title:"CI failure", body:"Automated report.", log_excerpt:$log,
         commit_sha:$sha, run_url:$run, source:"ci"}' \
-    | curl -fsS -X POST "$JEV_URL/api/v1/reports" \
-        -H "Authorization: Bearer $JEV_TOKEN" -H "Content-Type: application/json" -d @-
+    | curl -fsS -X POST "$OSS_INBOX_URL/api/v1/reports" \
+        -H "Authorization: Bearer $OSS_INBOX_TOKEN" -H "Content-Type: application/json" -d @-
 ```
 
 Outcomes are `filed`, `merged`, `flaky`, `infra`, `queued` or `rate_limited`. Reports with `source: "external"` go through the inbound gate only and are never filed publicly.
@@ -164,7 +164,7 @@ Outcomes are `filed`, `merged`, `flaky`, `infra`, `queued` or `rate_limited`. Re
 
 Short version. Full, fair version: [docs/comparison.md](docs/comparison.md).
 
-| | Jev Triage | Conversational agents (e.g. Dosu) | Prompt-based workflows (GitHub agentic workflows, DIY LLM Actions) | Rule-based (actions/labeler, stale bot) |
+| | OSS Inbox | Conversational agents (e.g. Dosu) | Prompt-based workflows (GitHub agentic workflows, DIY LLM Actions) | Rule-based (actions/labeler, stale bot) |
 |---|---|---|---|---|
 | Approach | Typed questions, fixed actions | Talks in threads | Your prompt, run on events | Path or time rules |
 | Confidence per decision | Stored and shown | Not the design | Model's own claim, or none | Not applicable |
@@ -172,7 +172,7 @@ Short version. Full, fair version: [docs/comparison.md](docs/comparison.md).
 | Default behaviour | Shadow, silent | Posts comments | Whatever the prompt does | Applies its rules |
 | Hosting | Self-hosted | Hosted service | GitHub or your own runners | GitHub Actions or an app |
 
-Use `actions/labeler` for path-based labels. It is good at that. Use a conversational agent if you want answers posted in threads. Use Jev Triage when you want decisions you can measure.
+Use `actions/labeler` for path-based labels. It is good at that. Use a conversational agent if you want answers posted in threads. Use OSS Inbox when you want decisions you can measure.
 
 ## Decision backend
 
@@ -197,12 +197,12 @@ Trust, accuracy, privacy, cost, what happens when it is wrong, how to uninstall:
 
 GitHub App permissions: Issues read/write, Pull requests read/write, Checks read/write, Contents read, Metadata read. Events: installation, installation_repositories, issues, pull_request, push.
 
-## Using Jev Triage on your repo?
+## Using OSS Inbox on your repo?
 
 If you want to say so, here is a badge. It is optional.
 
 ```markdown
-[![Triaged with Jev Triage](https://img.shields.io/badge/triage-Jev%20Triage-2563eb)](https://github.com/YOUR-ORG/jev-triage)
+[![Triaged with OSS Inbox](https://img.shields.io/badge/triage-OSS%20Inbox-2563eb)](https://github.com/DibbayajyotiRoy/oss-inbox)
 ```
 
 ## Contributing, security, license

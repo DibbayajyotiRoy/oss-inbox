@@ -6,7 +6,7 @@ from app.redis_client import redis
 from app.settings import settings
 
 QUEUE, DEAD = "jev:jobs", "jev:jobs:dead"
-CONFIG_PATH = ".github/jev-triage.yml"
+CONFIG_PATHS = {".github/oss-inbox.yml", ".github/jev-triage.yml"}  # the second is the pre-rename name, still read
 
 
 def enqueue(job_type: str, **payload) -> None:
@@ -23,9 +23,9 @@ def _push(repo: dict, payload: dict) -> None:
     if payload.get("ref") != f"refs/heads/{branch}":
         return
     touched = {p for c in payload.get("commits") or [] for k in ("added", "modified", "removed") for p in c.get(k, [])}
-    if repo["full_name"].endswith("/.github") and CONFIG_PATH in touched:  # org defaults changed: every repo re-reads
+    if repo["full_name"].endswith("/.github") and CONFIG_PATHS & touched:  # org defaults changed: every repo re-reads
         ids = [r["id"] for r in db.fetch_all("SELECT id FROM repos WHERE org_id = %s AND enabled", (repo["org_id"],))]
-    elif repo["enabled"] and touched & {CONFIG_PATH, (repo["config"] or {}).get("rules_file")}:
+    elif repo["enabled"] and touched & {*CONFIG_PATHS, (repo["config"] or {}).get("rules_file")}:
         ids = [repo["id"]]
     else:
         return

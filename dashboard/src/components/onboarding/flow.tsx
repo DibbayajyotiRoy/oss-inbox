@@ -29,7 +29,7 @@ export function Brand() {
         <path d="M2.5 11.5a6 6 0 1 1 11 0" />
         <path d="m8 9 2.5-3.5" />
       </svg>
-      Jev Triage
+      OSS Inbox
     </Link>
   );
 }

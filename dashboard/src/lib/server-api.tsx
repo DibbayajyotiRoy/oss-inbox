@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { Seed } from "./seed"
 
 /**
- * GET the Jev API on the server with the visitor's session, so first-paint data ships in the HTML instead of
+ * GET the OSS Inbox API on the server with the visitor's session, so first-paint data ships in the HTML instead of
  * waiting for hydration plus a fetch. Same path in one request = one call. Unreachable or failing gives
  * undefined (the client then fetches and shows the real error); a 401 sends the visitor to /login.
  * Only document requests preload: client navigations (RSC requests) skip it, so they keep their instant

@@ -21,7 +21,7 @@ Out of scope: a wrong label or a model misjudgment (open a normal issue; accurac
 
 In your own Postgres, never sent elsewhere except as described in [docs/github-app.md](docs/github-app.md):
 
-- Installation and repo metadata, and your parsed `.github/jev-triage.yml`.
+- Installation and repo metadata, and your parsed `.github/oss-inbox.yml`.
 - Issue, PR and CI report titles, bodies and authors' logins, and the exact text sent to the decision backend for each decision.
 - Decisions (answer, confidence, model version), actions taken, overrides, ground-truth labels, and an audit log.
 - Dashboard sessions, including the signed-in user's GitHub user-to-server token, until the session expires.

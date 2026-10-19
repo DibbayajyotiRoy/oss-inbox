@@ -17,7 +17,7 @@ import { Rows } from "./parts";
 
 /**
  * Per-feature setting: Off, Learning (suggest only) or On. On is open only where every question of that feature is
- * checked. Changes are collected into one rendered file, because Jev never writes to the repo.
+ * checked. Changes are collected into one rendered file, because OSS Inbox never writes to the repo.
  */
 export function ModesStep({ repo, reload }: { repo: Repo; reload: () => void }) {
   const { mode, pick, edits, out, busy } = useModeEdits(repo);
@@ -55,7 +55,7 @@ export function ModesStep({ repo, reload }: { repo: Repo; reload: () => void }) 
       {edits.length ? (
         <section aria-label="Save your changes" className="flex flex-col gap-3 rounded-lg border p-4">
           <h2 className="text-sm font-medium">Save this file to apply it</h2>
-          <p className="text-[13px] text-muted-foreground">Nothing changes until you save it on GitHub. Jev never edits your repository itself.</p>
+          <p className="text-[13px] text-muted-foreground">Nothing changes until you save it on GitHub. OSS Inbox never edits your repository itself.</p>
           {out ? (
             <>
               <CodeBlock filename={CONFIG_PATH} code={out.yaml} className="[&_pre]:max-h-64 [&_pre]:overflow-y-auto" />

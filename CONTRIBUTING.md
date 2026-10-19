@@ -1,6 +1,6 @@
 # Contributing
 
-Jev Triage is a FastAPI backend (`backend/`) and a Next.js dashboard (`dashboard/`). Keep changes small: write what is needed, no speculative config or abstractions.
+OSS Inbox is a FastAPI backend (`backend/`) and a Next.js dashboard (`dashboard/`). Keep changes small: write what is needed, no speculative config or abstractions.
 
 ## Dev setup
 

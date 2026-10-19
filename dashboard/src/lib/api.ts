@@ -6,7 +6,7 @@ export class ApiError extends Error {
 
 type Init = { method?: "POST" | "PATCH" | "DELETE"; body?: unknown };
 
-/** Typed fetch for the Jev API (proxied at /api). Throws ApiError; a 401 sends the browser to /login. */
+/** Typed fetch for the OSS Inbox API (proxied at /api). Throws ApiError; a 401 sends the browser to /login. */
 export async function api<T>(path: string, init: Init = {}): Promise<T> {
   const hasBody = init.body !== undefined;
   const res = await fetch(path, {

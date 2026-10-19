@@ -1,4 +1,4 @@
-# Jev Triage — Build Contract
+# OSS Inbox — Build Contract
 
 Single source of truth for module boundaries. Each worker creates/edits ONLY the
 files it owns (see **Ownership**). Need something from another module? Code
@@ -24,7 +24,7 @@ test file per module covering the real branches.
 4. **Silent by default**: comments only if repo config `comments: true` (all
    features, incl. CI "merged" notes). Never close/delete/lock/transfer.
    Transfers and duplicate links are suggestions (queued), except CI `ci.same_as`.
-5. **Config truth = YAML** `.github/jev-triage.yml` in the repo; org defaults in
+5. **Config truth = YAML** `.github/oss-inbox.yml` in the repo; org defaults in
    `<org>/.github` repo same path. Dashboard never writes repos: it renders YAML
    + a GitHub web-editor link. App has no contents write.
 6. Exact checks stay in code: tests/docs changed, diff size, CODEOWNERS.
@@ -77,7 +77,7 @@ Orchestrator (done, import don't edit): `backend/pyproject.toml`, `backend/schem
 | W5 dashboard-api | `app/auth.py`, `app/api/dashboard.py`, `app/audit.py`, `tests/test_auth.py`, `tests/test_dashboard_api.py` |
 | W6 evaluation | `app/backfill.py`, `app/metrics.py`, `app/cli.py`, `tests/test_backfill.py`, `tests/test_metrics.py` |
 | W7 frontend | everything under `dashboard/` except `dashboard/Dockerfile` |
-| W8 infra | `docker-compose.yml`, `backend/Dockerfile`, `dashboard/Dockerfile`, `.env.example`, `Makefile`, `.github/workflows/*`, `.github/ISSUE_TEMPLATE/*`, `.github/jev-triage.yml`, `app/api/setup.py`, `app-manifest.json`, `LICENSE`, `CONTRIBUTING.md`, `SECURITY.md`, `docs/{self-hosting,configuration,github-app,ci-gate}.md`, `.gitignore` |
+| W8 infra | `docker-compose.yml`, `backend/Dockerfile`, `dashboard/Dockerfile`, `.env.example`, `Makefile`, `.github/workflows/*`, `.github/ISSUE_TEMPLATE/*`, `.github/oss-inbox.yml`, `app/api/setup.py`, `app-manifest.json`, `LICENSE`, `CONTRIBUTING.md`, `SECURITY.md`, `docs/{self-hosting,configuration,github-app,ci-gate}.md`, `.gitignore` |
 | W9 positioning | `README.md`, `site/**`, `docs/{positioning,marketplace-listing,comparison,faq}.md`, `docs/launch/**` |
 (`app/...` and `tests/...` paths are under `backend/`.)
 
@@ -177,7 +177,7 @@ def unlabel(item, repo, label: str, decision_id) -> None
 def comment(item, repo, body: str, decision_id, key: str) -> None   # once per (item, key) via comment_state; edits prior bot comment
 def assign(item, repo, logins, decision_id) -> None
 def file_issue(repo, title, body, labels, decision_id) -> dict
-def check_run(item, repo, head_sha, title, summary_md, decision_id) -> None   # one "Jev Triage" check per sha, conclusion neutral
+def check_run(item, repo, head_sha, title, summary_md, decision_id) -> None   # one "OSS Inbox" check per sha, conclusion neutral
 ```
 
 ### W3 `app.pipeline`

@@ -19,7 +19,7 @@ A path-based labeler is great at paths, but it cannot tell a bug from a question
 
 ## What I built
 
-Jev Triage is a self-hosted GitHub App with a dashboard. For each issue or PR it asks typed questions. What kind of issue is this? Are there steps to reproduce? Does this PR follow our rules? Which area owns it? Is this CI failure the same as an open issue? Each answer is mapped to a fixed action: a label, an assignee, a neutral check run. It does not write replies unless you turn comments on.
+OSS Inbox is a self-hosted GitHub App with a dashboard. For each issue or PR it asks typed questions. What kind of issue is this? Are there steps to reproduce? Does this PR follow our rules? Which area owns it? Is this CI failure the same as an open issue? Each answer is mapped to a fixed action: a label, an assignee, a neutral check run. It does not write replies unless you turn comments on.
 
 Three things make it different.
 
@@ -44,13 +44,13 @@ You need a decision backend. The default is TypeSafe AI's Jev model, pinned to `
 ## Try it
 
 ```bash
-git clone https://github.com/YOUR-ORG/jev-triage.git && cd jev-triage
+git clone https://github.com/DibbayajyotiRoy/oss-inbox.git && cd oss-inbox
 cp .env.example .env
 docker compose up -d --build
 ```
 
-Open `http://localhost:8000/api/setup`, create the GitHub App, install it on one repo, run the backfill, and read the calibration page before you change anything to `auto`. The [self-hosting guide](https://github.com/YOUR-ORG/jev-triage/blob/main/docs/self-hosting.md) has the details.
+Open `http://localhost:8000/api/setup`, create the GitHub App, install it on one repo, run the backfill, and read the calibration page before you change anything to `auto`. The [self-hosting guide](https://github.com/DibbayajyotiRoy/oss-inbox/blob/main/docs/self-hosting.md) has the details.
 
 I would like to know which questions are missing, which defaults are wrong for your repo, and what you would have to see before you trusted it with a label. Open an issue or a discussion.
 
-Jev Triage is Apache-2.0: https://github.com/YOUR-ORG/jev-triage
+OSS Inbox is Apache-2.0: https://github.com/DibbayajyotiRoy/oss-inbox

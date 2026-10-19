@@ -158,11 +158,14 @@ def push(commits, ref="refs/heads/main"):
 
 
 def test_push_syncs_config_changes(calls, repo):
-    jobs.webhook("push", push([[".github/jev-triage.yml"]]))
+    jobs.webhook("push", push([[".github/oss-inbox.yml"]]))
     assert queued() == [{"type": "sync_repo", "payload": {"repo_id": repo["id"]}, "attempts": 0}]
     redis.delete(jobs.QUEUE)
+    jobs.webhook("push", push([[".github/jev-triage.yml"]]))  # the pre-rename path still counts
+    assert len(queued()) == 1
+    redis.delete(jobs.QUEUE)
     jobs.webhook("push", push([["README.md"]]))
-    jobs.webhook("push", push([[".github/jev-triage.yml"]], ref="refs/heads/feature"))
+    jobs.webhook("push", push([[".github/oss-inbox.yml"]], ref="refs/heads/feature"))
     db.execute("UPDATE repos SET config = %s", (Jsonb({"rules_file": "CONTRIBUTING.md"}),))
     jobs.webhook("push", push([["CONTRIBUTING.md"]]))
     assert len(queued()) == 1
@@ -172,7 +175,7 @@ def test_push_to_org_defaults_repo_syncs_every_enabled_repo(calls, repo):
     ids = [db.fetch_one("INSERT INTO repos (org_id, github_repo_id, full_name, enabled) VALUES (%s, %s, %s, %s) RETURNING id",
                         (repo["org_id"], 3000 + i, name, en))["id"]
            for i, (name, en) in enumerate([("acme/.github", True), ("acme/off", False)])]
-    jobs.webhook("push", {**push([[".github/jev-triage.yml"]]), "repository": {"id": 3000, "default_branch": "main"}})
+    jobs.webhook("push", {**push([[".github/oss-inbox.yml"]]), "repository": {"id": 3000, "default_branch": "main"}})
     assert sorted(j["payload"]["repo_id"] for j in queued()) == sorted([repo["id"], ids[0]])
 
 

@@ -1,6 +1,6 @@
 """`python -m app.cli demo`: seed org `demo-org` with ~60 days of believable triage history, so every dashboard screen
 has something to show in DEMO_MODE. Idempotent (wipes demo-org first). Deterministic shape: random.Random(7); dates are
-relative to now. The story: Jev was installed 35 days ago, backfilled the older closed items, then ran in shadow mode;
+relative to now. The story: OSS Inbox was installed 35 days ago, backfilled the older closed items, then ran in shadow mode;
 features were promoted to auto one by one once their accuracy looked right. Every GitHub action is dry-run.
 
 Simplified from the real pipeline (app.pipeline / app.features.*): the same outcome rules, one function instead of five."""
@@ -25,7 +25,7 @@ CONTRIBUTORS = ["lena-ostrom", "dev-anand", "carlos-m", "yuki-t", "fatima-z", "b
                 "ana-lucia", "viktor-p", "chloe-dubois", "ravi-n", "elif-k", "tom-hargrove", "isabel-r", "kofi-a"]
 STRANGERS = ["throwaway2291", "user48213", "jdoe-dev", "acme-it-ops", "k4rma", "bluefox88", "new-to-oss", "sysadmin_greg",
              "anon-reporter", "maria-g", "cto-at-startup", "devops-dan", "hana-b", "diego-f", "oleg-s", "maya-l"]
-INSTALL_DAYS = 35  # Jev was installed this long ago; older items arrived through the backfill
+INSTALL_DAYS = 35  # OSS Inbox was installed this long ago; older items arrived through the backfill
 HARD = {"priority": .5, "route.area": .66, "pr.follows_rules": .45, "route.repo": .8, "issue.type": .74, "ci.kind": .78}  # P(confident band); default .84
 
 _AREA = {  # owner, description, files
@@ -624,7 +624,7 @@ class _Seed:
                     do("assign", ref, logins=[a[1]])
             elif kind == "check_run":
                 sha = _sha(repo, item["title"])
-                do("check_run", f"{repo['full']}@{sha[:7]}", head_sha=sha, check_run_id=None, title="Jev Triage")
+                do("check_run", f"{repo['full']}@{sha[:7]}", head_sha=sha, check_run_id=None, title="OSS Inbox")
             elif kind == "file_issue":
                 self.action(repo, None, V[q], t, "file_issue", None, title=item["title"], labels=[repo["cfg"].label("ci")], number=None)
         item["decisions"] = V
@@ -728,7 +728,7 @@ class _Seed:
                 merged = target["number"]
                 used.add(f"ci.same_as#{target['id']}")
             if scenario == "filed":
-                issue = self.make_item(repo, "issue", f"[CI] {test} fails on main", "Filed automatically by the Jev Triage CI gate.", None, t, "open", source="ci_agent")
+                issue = self.make_item(repo, "issue", f"[CI] {test} fails on main", "Filed automatically by the OSS Inbox CI gate.", None, t, "open", source="ci_agent")
                 filed = issue["number"]
                 repo["issues"].append(dict(id=issue["id"], number=filed, title=issue["title"], area=area, type="bug"))
         acted = outcome in ("filed", "merged", "flaky", "infra")
@@ -874,7 +874,7 @@ def seed() -> dict:
                             created_at=s.install + timedelta(days=1), revoked_at=s.ago(20) if revoked else None)
                 s.log(repo, "mira-k", "ci_token.create", name, {"token_id": tid}, s.install + timedelta(days=1))
             for at, action, det in ((s.install - timedelta(hours=1), "repo.enable", {"acknowledge_private": False}),
-                                    (s.install - timedelta(minutes=50), "labels.sync", {"created": ["jev: held", "jev: needs review", "ci-report"]}),
+                                    (s.install - timedelta(minutes=50), "labels.sync", {"created": ["oss-inbox: held", "oss-inbox: needs review", "ci-report"]}),
                                     (s.install, "backfill.queue", {})):
                 s.log(repo, "mira-k", action, repo["full"], det, at)
         for (repo_id, test), f in s.flaky.items():

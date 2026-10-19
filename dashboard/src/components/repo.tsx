@@ -127,7 +127,7 @@ export function RepoHeader({ repo }: { repo: Repo }) {
         <Notice
           tone="destructive"
           className="mt-4"
-          title={`Jev cannot read your ${CONFIG_PATH}. It is using the default settings.`}
+          title={`OSS Inbox cannot read your ${CONFIG_PATH}. It is using the default settings.`}
           action={
             <Link href={`${settings}?s=config`} className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-destructive link-grow">
               Fix in settings <ArrowRight aria-hidden className="size-3.5" />
@@ -140,7 +140,7 @@ export function RepoHeader({ repo }: { repo: Repo }) {
       {!repo.enabled && (
         <Notice
           className="mt-4"
-          title="Jev is not reading this repository yet"
+          title="OSS Inbox is not reading this repository yet"
           action={
             repo.role === "admin" ? (
               <Link href={onboardingHref(repo.id)} className="inline-flex shrink-0 items-center gap-1 text-sm font-medium link-grow">

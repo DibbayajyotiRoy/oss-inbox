@@ -36,7 +36,7 @@ export function Automation() {
       title="Automation"
       description="Choose what Jev may do, per feature."
       hint="On: Jev acts by itself, but only after it has been checked on enough of your past answers. Learning: Jev suggests and never acts. Off: Jev does nothing."
-      footer={<p className="text-[13px] text-muted-foreground">Jev never changes your repo itself. A change applies once you save the file to {repo.default_branch}.</p>}
+      footer={<p className="text-[13px] text-muted-foreground">OSS Inbox never changes your repo itself. A change applies once you save the file to {repo.default_branch}.</p>}
     >
       <ul className="divide-y divide-border">
         {featureModes(repo).map(([f]) => {

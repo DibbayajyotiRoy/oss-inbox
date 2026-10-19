@@ -17,7 +17,7 @@ Fits the OSPO secondary audience. The list has a GitHub management area. Pick th
 Entry:
 
 ```markdown
-- [Jev Triage](https://github.com/YOUR-ORG/jev-triage) - Self-hosted GitHub App that labels, routes and screens issues and pull requests across many repos, with org-wide defaults and a review dashboard. Starts in shadow mode and never closes anything.
+- [OSS Inbox](https://github.com/DibbayajyotiRoy/oss-inbox) - Self-hosted GitHub App that labels, routes and screens issues and pull requests across many repos, with org-wide defaults and a review dashboard. Starts in shadow mode and never closes anything.
 ```
 
 ## fffaraz/awesome-github
@@ -27,7 +27,7 @@ A list of GitHub tools. Pick the section for apps and bots.
 Entry:
 
 ```markdown
-- [Jev Triage](https://github.com/YOUR-ORG/jev-triage) - Open-source GitHub App for issue and PR triage. Shows confidence, runs in shadow mode first, and is measured on your repo's history before it acts.
+- [OSS Inbox](https://github.com/DibbayajyotiRoy/oss-inbox) - Open-source GitHub App for issue and PR triage. Shows confidence, runs in shadow mode first, and is measured on your repo's history before it acts.
 ```
 
 ## awesome-selfhosted/awesome-selfhosted
@@ -35,9 +35,9 @@ Entry:
 This list has strict rules. Submissions go through its data repository as a YAML file, and the format has changed over time, so copy the template from that repo's contributing guide, not from here. The fields below are a starting point.
 
 ```yaml
-name: Jev Triage
-website_url: https://YOUR-ORG.github.io/jev-triage/
-source_code_url: https://github.com/YOUR-ORG/jev-triage
+name: OSS Inbox
+website_url: https://dibbayajyotiroy.github.io/oss-inbox/
+source_code_url: https://github.com/DibbayajyotiRoy/oss-inbox
 description: GitHub App that labels, routes and screens issues and pull requests, with a review dashboard. Starts in shadow mode, shows its confidence, never closes anything.
 licenses:
   - Apache-2.0
@@ -61,7 +61,7 @@ Notes:
 Search GitHub for "awesome oss maintainers tools". If one is active, add this to its triage or automation section:
 
 ```markdown
-- [Jev Triage](https://github.com/YOUR-ORG/jev-triage) - Triage bot for GitHub that decides typed questions, shows its confidence, and is measured on your history before it acts. Self-hosted, Apache-2.0.
+- [OSS Inbox](https://github.com/DibbayajyotiRoy/oss-inbox) - Triage bot for GitHub that decides typed questions, shows its confidence, and is measured on your history before it acts. Self-hosted, Apache-2.0.
 ```
 
 ## PR text (adapt for each list)
@@ -69,13 +69,13 @@ Search GitHub for "awesome oss maintainers tools". If one is active, add this to
 Title:
 
 ```
-Add Jev Triage
+Add OSS Inbox
 ```
 
 Body:
 
 ```
-Adds Jev Triage, a self-hosted GitHub App for issue and PR triage (Apache-2.0).
+Adds OSS Inbox, a self-hosted GitHub App for issue and PR triage (Apache-2.0).
 
 - What it does: labels, routes and screens issues and PRs; checks PRs against contributing rules; groups duplicate CI failures.
 - Why it fits this list: LIST-SPECIFIC REASON.
@@ -86,4 +86,4 @@ Disclosure: I am the author. Happy to adjust the entry, wait until the project m
 
 ## Do not submit to
 
-Lists of AI agents, chatbots or LLM apps. Jev Triage is deliberately not a chat agent, and it will draw the wrong audience.
+Lists of AI agents, chatbots or LLM apps. OSS Inbox is deliberately not a chat agent, and it will draw the wrong audience.

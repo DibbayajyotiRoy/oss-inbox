@@ -15,11 +15,11 @@ Show HN: A GitHub issue triage bot that starts in shadow mode and never closes
 Alternatives:
 
 ```
-Show HN: Jev Triage, a GitHub triage bot that measures itself first
-Show HN: Jev Triage, open-source triage that proves itself on your history
+Show HN: OSS Inbox, a GitHub triage bot that measures itself first
+Show HN: OSS Inbox, open-source triage that proves itself on your history
 ```
 
-URL: `https://github.com/YOUR-ORG/jev-triage`
+URL: `https://github.com/DibbayajyotiRoy/oss-inbox`
 
 ## First comment
 
@@ -31,7 +31,7 @@ and CI agents that file the same failure over and over. curl ended its bug bount
 Google stopped taking product reports in its OSS VRP, both because of floods of
 automated submissions. Most projects cannot do that.
 
-Jev Triage is a self-hosted GitHub App plus a dashboard. It does not chat. For each
+OSS Inbox is a self-hosted GitHub App plus a dashboard. It does not chat. For each
 issue or PR it asks typed questions (what kind of issue is this, are there repro
 steps, does this PR follow our rules, which area owns it, is this CI failure the same
 as an open issue) and maps each answer to a fixed action, like a label or an assignee.
