@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     public_url: str = "http://localhost:8000"
     dashboard_url: str = "http://localhost:3000"
     dry_run: bool = False
+    cron_secret: str = ""  # Vercel cron sends "Authorization: Bearer $CRON_SECRET" (demo reset)
     demo_mode: bool = False  # DEMO_MODE=true: sign in as "demo", no GitHub calls, every action dry-run
     backfill_limit: int = 500
     retention_days: int = 365

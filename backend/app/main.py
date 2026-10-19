@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+import hmac
+
+from fastapi import FastAPI, Header, HTTPException
 
 from app import auth, webhooks
 from app.api import dashboard, reports, setup
@@ -17,6 +19,15 @@ async def lifespan(_):
 app = FastAPI(title="OSS Inbox", lifespan=lifespan)
 for r in (auth.router, dashboard.router, webhooks.router, reports.router, setup.router):
     app.include_router(r)
+
+
+if settings.demo_mode:
+    @app.get("/api/demo/reset")
+    def demo_reset(authorization: str | None = Header(None)):
+        if not settings.cron_secret or not hmac.compare_digest(authorization or "", f"Bearer {settings.cron_secret}"):
+            raise HTTPException(401)
+        from app import demo
+        return demo.seed()
 
 
 @app.get("/api/health")
