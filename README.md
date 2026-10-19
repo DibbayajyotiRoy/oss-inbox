@@ -5,6 +5,8 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/DibbayajyotiRoy/oss-inbox/actions/workflows/ci.yml/badge.svg)](https://github.com/DibbayajyotiRoy/oss-inbox/actions/workflows/ci.yml)
 
+**Live demo: [oss.dibbayajyoti.com](https://oss.dibbayajyoti.com/login)** (click "Try with sample data"; nothing touches GitHub, data resets nightly)
+
 OSS Inbox is a self-hosted GitHub App and dashboard for maintainers who spend their week labeling issues, asking for missing details, checking PRs against CONTRIBUTING, and sorting through low-quality or AI-generated bug reports. It decides typed questions about each item, acts only where it has measured itself on your repo's own history, and queues everything else for you.
 
 It starts in **shadow mode**: it records what it would do and changes nothing.
