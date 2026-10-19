@@ -178,6 +178,22 @@ Short version. Full, fair version: [docs/comparison.md](docs/comparison.md).
 
 Use `actions/labeler` for path-based labels. It is good at that. Use a conversational agent if you want answers posted in threads. Use OSS Inbox when you want decisions you can measure.
 
+## Alternatives
+
+Other tools maintainers use for issue and PR triage. Each is good at something; pick by what you need.
+
+| Project | What it does | Pick it when |
+|---|---|---|
+| [Dosu](https://dosu.dev) | Hosted AI agent that answers, labels and documents in issue threads | You want a bot that replies to users |
+| [GitHub Agentic Workflows](https://github.com/githubnext/gh-aw) | Natural-language workflows that run AI agents in GitHub Actions | You want to write your own triage prompt |
+| [actions/ai-inference](https://github.com/actions/ai-inference) | Calls GitHub Models from a workflow step | You want one LLM call in an Action |
+| [actions/labeler](https://github.com/actions/labeler) | Labels PRs by changed file paths | Path rules are enough |
+| [actions/stale](https://github.com/actions/stale) | Marks and closes inactive issues and PRs | You want time-based cleanup |
+| [Probot](https://github.com/probot/probot) | Framework for building GitHub Apps (many triage bots are built on it) | You want to build your own bot |
+| [Issue Label Bot](https://github.com/machine-learning-apps/Issue-Label-Bot) (archived) | Early ML issue labeler (bug, feature, question) | Historical reference |
+
+OSS Inbox differs in one way: it measures itself on your repo's own history before it acts, shows its confidence on every decision, starts in learning mode, and never closes anything. It works alongside `actions/labeler` and `actions/stale` rather than replacing them.
+
 ## Decision backend
 
 - **Default:** TypeSafe's Jev API (`POST /v1/systemone`), pinned to `jev-1.13.0`. Jev returns calibrated probabilities. Input is priced at $0.042 per million tokens at the time of writing. Check TypeSafe's site for current pricing.
