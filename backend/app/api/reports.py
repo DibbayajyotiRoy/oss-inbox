@@ -37,7 +37,11 @@ def create_report(body: Report, authorization: str | None = Header(default=None)
         raise HTTPException(403, "repository is not enabled")
     if not ratelimit.allow(f"reports:{row['id']}", 120, 60):
         raise HTTPException(429, "rate limit exceeded (120 requests/minute)", headers={"Retry-After": "60"})
+    return submit(row, body)
 
+
+def submit(row: dict, body: Report) -> dict:
+    """Store a report for an already-authorised repo row and run the CI gate on it (also used by the MCP submit_report tool)."""
     ci = body.source == "ci"
     with db.transaction() as c:
         report_id = c.execute("INSERT INTO ci_reports (repo_id, source, payload) VALUES (%s, %s, %s) RETURNING id",

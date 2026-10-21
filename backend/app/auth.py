@@ -112,6 +112,8 @@ def current_user(request: Request) -> User:
 
 
 def role(user: User, repo_row: dict) -> str | None:
+    if (ids := getattr(user, "agent_repo_ids", None)) is not None:  # MCP agent (app.api.agent_tokens): fixed repo scope, never above maintainer
+        return "maintainer" if repo_row["id"] in ids else None
     if settings.demo_mode:
         return "admin" if repo_row["full_name"].startswith(f"{DEMO_ORG}/") else None
     key = f"jev:role:{repo_row['id']}:{user.id}"

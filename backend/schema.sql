@@ -208,3 +208,16 @@ CREATE INDEX IF NOT EXISTS audit_repo ON audit_log (repo_id, created_at DESC);
 ALTER TABLE repos ADD COLUMN IF NOT EXISTS backfill_progress jsonb;  -- {processed,total,with_truth,errors,started_at,finished_at}
 ALTER TABLE repos ADD COLUMN IF NOT EXISTS config_error text;        -- parse error of the repo's YAML while defaults are in use
 ALTER TABLE repos ADD COLUMN IF NOT EXISTS config_text text;         -- the repo's .github/oss-inbox.yml verbatim (comments kept); null when absent
+
+-- v0.3 (additive): bearer tokens for the MCP agent interface (/api/mcp)
+CREATE TABLE IF NOT EXISTS agent_tokens (
+  id bigserial PRIMARY KEY,
+  repo_id bigint NOT NULL REFERENCES repos(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  scopes text[] NOT NULL DEFAULT '{read}' CHECK (cardinality(scopes) > 0 AND scopes <@ ARRAY['read','write']),
+  token_hash text UNIQUE NOT NULL,           -- sha256 hex of "oi_..."; plaintext shown once
+  created_by text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_used_at timestamptz,
+  revoked_at timestamptz
+);

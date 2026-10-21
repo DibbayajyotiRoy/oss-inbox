@@ -314,9 +314,47 @@ all GitHub writes forced dry-run, `/api/me` lists the demo org. `python -m app.c
 (repos `demo-org/api`, `demo-org/web`) with ~60 days of realistic items, runs, decisions (plausibly calibrated),
 ground truth, overrides, open queue + held entries, CI reports, flaky tests, audit rows. Idempotent (wipes demo org first).
 
+## Agent interface (MCP)
+An MCP server lets coding agents work the queue the same way the dashboard does. `POST /api/mcp`, JSON-RPC over MCP
+Streamable HTTP, stateless with JSON responses (no session, no SSE stream: `GET`/`DELETE` answer 405, so it runs on
+serverless). Code: `app/mcp_server.py`, `app/api/agent_tokens.py` (official `mcp` Python SDK).
+```ts
+Authorization: Bearer oi_...   // one repo each; 401 when missing, unknown or revoked; 429 over 120 calls/min per token
+// DEMO_MODE=true only: no header = anonymous read-only access to demo-org repos (30 calls/min per client IP); a bad token is still 401.
+
+// Token management: admin, cookie auth (same as ci-tokens)
+GET    /api/repos/:id/agent-tokens -> {items:{id, name, scopes:("read"|"write")[], created_by, created_at, last_used_at:string|null, revoked_at:string|null}[]}
+POST   /api/repos/:id/agent-tokens {name, scopes?:("read"|"write")[] /* default ["read"]; "write" always stores read too */}
+                                   -> {id, name, scopes, token}   // plaintext shown once, only its sha256 is stored
+DELETE /api/repos/:id/agent-tokens/:tokenId -> {ok:true}
+```
+Table `agent_tokens(id, repo_id, name, scopes text[], token_hash unique, created_by, created_at, last_used_at, revoked_at)`.
+Create and revoke are audit-logged (`agent_token.create|revoke`, actor = the admin). Every write tool is audit-logged with
+actor `agent:<token name>` (`queue.accept|dismiss|release`, `report.submit`). An agent acts as `maintainer` on its repo and
+nothing else: `app.api.agent_tokens.AgentUser` carries `agent_repo_ids`, which `auth.role` honours first, so each reused
+dashboard function enforces the scope. Tools that need a repo take `owner/name` (from `list_repos`); one outside the token's scope
+is "Unknown repository". Wording matches the UI: features are `learning` (shadow) / `on` (auto) / `off`; answers use the
+dashboard's phrases; `how_sure` = confidence, `acts_on_its_own_at` = threshold. Item text is untrusted and tool descriptions
+say so. Read tools never write (apart from the token's `last_used_at`).
+
+| Tool | Scope | Input | Output (structured JSON) | Reuses |
+|---|---|---|---|---|
+| `list_repos` | read | none | `{repos:{repo, enabled, waiting_for_review, held, items_30d, accuracy, features:Record<feature,"learning"\|"on"\|"off"\|"on, not ready yet">}[], can_write}` | `metrics.overview`, `GET /api/repos/:id` |
+| `list_queue` | read | `repo`, `bucket:"review"\|"held"="review"`, `limit:1..50=20`, `after_queue_id?` | `{repo, bucket, entries:{queue_id, item_id, kind, number, title, url, author, waiting_hours, why, suggestions:Suggestion[]}[], next_after_queue_id}`; `Suggestion={decision_id, question, question_id, answer, answer_text, how_sure, acts_on_its_own_at, answers:{answer, text, probability}[]}` | `GET /api/repos/:id/queue` |
+| `get_item` | read | `item_id` | `{item_id, repo, kind, number, title, url, author, state, body (6000 chars), body_truncated, queue:{queue_id, bucket, status, reason}\|null, why_held:string\|null, latest_decisions:(Suggestion & {outcome, outcome_text})[], latest_run_error, maintainer_changes, actions_taken}` | `GET /api/items/:id` |
+| `get_accuracy` | read | `repo` | `{repo, backfill_status, caveat /* upper bound */, questions:{question_id, question, feature, answers_checked, accuracy, calibration_error, summary, acts_on_its_own_at, recommended_threshold, ready_to_act}[]}` | `GET /api/repos/:id` + `/evaluation` |
+| `preview_threshold` | read | `repo`, `question_id`, `threshold:0.5..1` | `{repo, question_id, question, threshold_tried, current_threshold, answers_checked, auto_acted, queued, would_be_wrong, not_yet_checked, summary, caveat}` (same maths as the threshold slider) | `GET /api/repos/:id/preview` |
+| `resolve_item` | write | `queue_id`, `action:"accept"\|"dismiss"\|"release"`, `answers?:Record<decision_id,answer>` | `{ok, queue_id, status:"accepted"\|"dismissed"\|"released"}` | `POST /api/queue/:qid/resolve` (ground truth, overrides, labels, dry-run, audit) |
+| `submit_report` | write | `repo`, `title`, `body?`, `failing_test?`, `log_excerpt?`, `commit_sha?`, `run_url?`, `source:"ci"\|"external"="external"` | `{report_id, outcome, outcome_text, reason, issue_number, merged_into, learning_mode}` | `POST /api/v1/reports` (`reports.submit`) |
+
+`why_held` is null unless an open queue entry exists; for a held report it names the reason and the worrying answers
+("Claims a security issue (97% sure)"). A read-only token calling a write tool gets an `isError` result and nothing changes.
+`submit_report` defaults to `source:"external"` so an agent cannot file public issues by accident; pass `"ci"` for CI failures.
+
 ## Routers mounted in `app/main.py`
-`app.auth.router`, `app.api.dashboard.router`, `app.webhooks.router`, `app.api.reports.router`, `app.api.setup.router`.
-Each is an `APIRouter()` with full paths (no prefix).
+`app.auth.router`, `app.api.dashboard.router`, `app.webhooks.router`, `app.api.reports.router`, `app.api.setup.router`,
+`app.api.agent_tokens.router`. Each is an `APIRouter()` with full paths (no prefix). `app.mcp_server.mount(app)` adds the
+raw ASGI route `/api/mcp`.
 
 ## Tests
 `cd backend && uv run pytest tests/test_<yours>.py`. Uses `TEST_DATABASE_URL`

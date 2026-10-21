@@ -4,8 +4,8 @@ import hmac
 
 from fastapi import FastAPI, Header, HTTPException
 
-from app import auth, webhooks
-from app.api import dashboard, reports, setup
+from app import auth, mcp_server, webhooks
+from app.api import agent_tokens, dashboard, reports, setup
 from app.db import init_schema
 from app.settings import settings
 
@@ -17,8 +17,9 @@ async def lifespan(_):
 
 
 app = FastAPI(title="OSS Inbox", lifespan=lifespan)
-for r in (auth.router, dashboard.router, webhooks.router, reports.router, setup.router):
+for r in (auth.router, dashboard.router, webhooks.router, reports.router, setup.router, agent_tokens.router):
     app.include_router(r)
+mcp_server.mount(app)  # POST/GET/DELETE /api/mcp
 
 
 if settings.demo_mode:
