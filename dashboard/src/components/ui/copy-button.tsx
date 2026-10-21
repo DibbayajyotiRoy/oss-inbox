@@ -8,7 +8,7 @@ import { Button, type ButtonProps } from "./button"
 import { SwapText } from "./presence"
 import { toast } from "./toaster"
 
-async function writeClipboard(value: string) {
+export async function writeClipboard(value: string) {
   if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(value)
   // Non-secure contexts (plain http on a LAN host) have no async clipboard.
   const el = document.createElement("textarea")

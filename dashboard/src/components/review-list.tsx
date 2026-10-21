@@ -1,8 +1,9 @@
 "use client";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowDown, ArrowUp, Check, ExternalLink, Undo2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Bot, Check, ExternalLink, Undo2, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { copyForAgent, queueContext } from "@/components/agents/context";
 import { Preview, PreviewSkeleton, optionsOf, type Act } from "@/components/review/preview";
 import { ROW_H, Row, RowSkeleton, itemRef } from "@/components/review/row";
 import { useCommands } from "@/components/shell/commands";
@@ -194,6 +195,7 @@ export function ReviewList({ bucket }: { bucket: "review" | "held" }) {
     { id: "review:dismiss", label: "Dismiss", group, icon: X, keys: "d", run: () => act("dismiss") },
     ...(held ? [{ id: "review:release", label: "Release to triage", group, keys: "r", keywords: "unhold release", run: () => act("release") }] : []),
     { id: "review:open", label: "Open item", group, keys: "e", run: openItem },
+    { id: "review:agent", label: "Copy item for agent", group, icon: Bot, keywords: "mcp ai claude chat context markdown", run: () => cur && copyForAgent(queueContext(cur, held)) },
     { id: "review:github", label: "Open on GitHub", group, icon: ExternalLink, keys: "o", run: () => cur?.item.html_url && window.open(cur.item.html_url, "_blank", "noopener") },
     { id: "review:undo", label: "Undo dismiss", group, icon: Undo2, keys: "u", run: () => undo() },
     { id: "review:pick", label: "Pick that answer", group, keys: "1–9" },

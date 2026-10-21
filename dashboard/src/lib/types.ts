@@ -82,6 +82,10 @@ export type Rendered = { yaml: string; edit_url: string; errors: string[] };
 export type RenderedConfig = Rendered & { parsed: Parsed };
 export type NewToken = { id: number; name: string; token: string };
 export type CiToken = { id: number; name: string; created_by: string; created_at: string; revoked_at: string | null };
+/** MCP agent tokens (GET/POST /api/repos/:id/agent-tokens). `token` is only in the POST reply, once. */
+export type AgentScope = "read" | "write";
+export type AgentToken = { id: number; name: string; scopes: AgentScope[]; created_by: string; created_at: string; last_used_at: string | null; revoked_at: string | null };
+export type NewAgentToken = { id: number; name: string; scopes: AgentScope[]; token: string };
 export type AuditRow = { id: number; actor: string; action: string; target: string | null; details: unknown; created_at: string };
 
 // v0.2: onboarding, demo mode (CONTRACT.md "v0.2 additions").

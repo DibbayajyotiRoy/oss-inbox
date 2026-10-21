@@ -31,7 +31,7 @@ export function Section({ title, aside, children }: { title: string; aside?: Rea
 
 const Muted = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 
-const OUTCOME: Record<string, { tone: StatusTone; label: string; icon?: LucideIcon }> = {
+export const OUTCOME: Record<string, { tone: StatusTone; label: string; icon?: LucideIcon }> = {
   acted: { tone: "success", label: "Acted on its own" },
   queued: { tone: "waiting", label: "Waiting for you" },
   held: { tone: "warning", label: "Held" },

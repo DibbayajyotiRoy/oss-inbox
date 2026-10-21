@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FileCode2, GitBranch, KeyRound, Lock, ScrollText, Tag, Workflow, type LucideIcon } from "lucide-react";
+import { Bot, FileCode2, GitBranch, KeyRound, Lock, ScrollText, Tag, Workflow, type LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import { useRepo } from "@/components/repo";
 import { PageHeader } from "@/components/ui/page-header";
+import { Agents } from "@/components/agents/settings";
 import { Audit } from "@/components/settings/audit";
 import { Automation } from "@/components/settings/automation";
 import { Configuration } from "@/components/settings/configuration";
@@ -21,6 +22,7 @@ const SECTIONS: { id: string; label: string; icon: LucideIcon; View: ComponentTy
   { id: "config", label: "Config file", icon: FileCode2, View: Configuration },
   { id: "labels", label: "Labels", icon: Tag, View: Labels },
   { id: "tokens", label: "CI tokens", icon: KeyRound, View: Tokens, need: "admin" },
+  { id: "agents", label: "Agents & MCP", icon: Bot, View: Agents, need: "admin" },
   { id: "repository", label: "Repository", icon: GitBranch, View: Repository },
   { id: "audit", label: "Activity log", icon: ScrollText, View: Audit, need: "maintainer" },
 ];
@@ -31,7 +33,7 @@ export default function Settings() {
   const cur = SECTIONS.find((x) => x.id === s) ?? SECTIONS[0];
   return (
     <>
-      <PageHeader title="Settings" description="Automation, config file, CI tokens, access." />
+      <PageHeader title="Settings" description="Automation, config file, tokens, agents, access." />
       <div className="grid gap-6 lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-10">
         <nav
           aria-label="Settings sections"

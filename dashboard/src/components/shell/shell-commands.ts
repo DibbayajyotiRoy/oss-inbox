@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { FolderGit2, Keyboard, LayoutGrid, LogOut, SunMoon } from "lucide-react"
+import { Bot, FolderGit2, Keyboard, LayoutGrid, LogOut, SunMoon } from "lucide-react"
 
 import { repoPath } from "@/lib/fmt"
 import { useCommands } from "./commands"
@@ -22,7 +22,10 @@ export function useShellCommands({ onShortcuts }: { onShortcuts: () => void }) {
       ? [{ id: "go:org", label: "Go to all repositories", group: "Go to", icon: LayoutGrid, keys: "g o", run: () => router.push(`/orgs/${orgId}`) }]
       : []),
     ...(repoId !== null
-      ? NAV_ITEMS.map((i) => ({ id: `go:${i.seg}`, label: `Go to ${i.label}`, group: "Go to", icon: i.icon, keys: i.keys, run: () => router.push(repoPath(repoId, i.seg)) }))
+      ? [
+          ...NAV_ITEMS.map((i) => ({ id: `go:${i.seg}`, label: `Go to ${i.label}`, group: "Go to", icon: i.icon, keys: i.keys, run: () => router.push(repoPath(repoId, i.seg)) })),
+          { id: "go:agents", label: "Connect an agent (MCP)", group: "Go to", icon: Bot, keywords: "mcp claude cursor vscode token ai", run: () => router.push(`${repoPath(repoId, "settings")}?s=agents`) },
+        ]
       : []),
     ...(overview?.repos ?? [])
       .filter((r) => r.id !== repoId)

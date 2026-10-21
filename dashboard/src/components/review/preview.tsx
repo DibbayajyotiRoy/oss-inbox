@@ -2,6 +2,7 @@
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { CopyForAgent, queueContext } from "@/components/agents/context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InlineCode } from "@/components/ui/inline-code";
@@ -244,11 +245,10 @@ export function Preview({ e, held, picks, active, onPick, onAct, className }: {
             <OpenedBy who={e.item} at={e.item.created_at} />
             <span className="tabular-nums">waiting {age(e.age_hours)}</span>
           </p>
-          {e.item.kind === "pr" && (
-            <div className="mt-3">
-              <OpenInVSCode item={e.item} />
-            </div>
-          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <OpenInVSCode item={e.item} />
+            <CopyForAgent text={() => queueContext(e, held)} />
+          </div>
         </header>
 
         {held ? (

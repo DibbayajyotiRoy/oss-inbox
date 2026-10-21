@@ -1,8 +1,9 @@
 "use client";
-import { CircleDot, CircleCheck, ExternalLink, GitMerge, type LucideIcon } from "lucide-react";
+import { Bot, CircleDot, CircleCheck, ExternalLink, GitMerge, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { CopyForAgent, copyForAgent, itemContext } from "@/components/agents/context";
 import { OpenedBy } from "@/components/review/author";
 import { itemRef, kindName } from "@/components/review/row";
 import { OpenInVSCode } from "@/components/review/vscode";
@@ -19,6 +20,7 @@ import { SectionNav } from "@/components/ui/section-nav";
 import { Busy, Skeleton } from "@/components/ui/skeleton";
 import { Status, type StatusTone } from "@/components/ui/status";
 import { repoPath } from "@/lib/fmt";
+import { answerText } from "@/lib/questions";
 import type { ItemDetail } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 
@@ -57,7 +59,15 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
   const ref = itemRef(item);
   const github = () => item.html_url && window.open(item.html_url, "_blank", "noopener");
 
+  // The latest check's answers, as markdown for an AI chat.
+  const context = () => {
+    const ds = runs.find((r) => r.decisions.length)?.decisions ?? [];
+    const why = ds.filter((x) => x.outcome === "held").map((x) => answerText(x.question_id, x.answer)).join("; ");
+    return itemContext(item, ds, why, !!why);
+  };
+
   useCommands([
+    { id: "item:agent", label: "Copy item for agent", group: "Item", icon: Bot, keywords: "mcp ai claude chat context markdown", run: () => copyForAgent(context()) },
     { id: "item:github", label: "Open on GitHub", group: "Item", icon: ExternalLink, keys: "o", run: github },
     { id: "item:back", label: `Back to ${list.endsWith("/held") ? "held" : "needs review"}`, group: "Item", keys: "Esc", run: back },
   ]);
@@ -103,6 +113,7 @@ function Detail({ d, reload }: { d: ItemDetail; reload: () => void }) {
           actions={
             <>
               <OpenInVSCode item={item} />
+              <CopyForAgent text={context} />
               {item.html_url && (
                 <Button variant="outline" size="sm" onClick={github}>
                   Open on GitHub<Kbd className="max-sm:hidden">O</Kbd>

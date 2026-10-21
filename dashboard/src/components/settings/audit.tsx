@@ -18,6 +18,8 @@ const ACTION: Record<string, string> = {
   "backfill.queue": "Started a check on past issues",
   "ci_token.create": "Created a CI token",
   "ci_token.revoke": "Revoked a CI token",
+  "agent_token.create": "Created an agent token",
+  "agent_token.revoke": "Revoked an agent token",
   "labels.sync": "Created labels",
   "repo.enable": "Turned OSS Inbox on",
   "repo.disable": "Turned OSS Inbox off",

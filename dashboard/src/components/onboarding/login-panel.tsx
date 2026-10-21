@@ -10,6 +10,7 @@ import { Status } from "@/components/ui/status";
 import type { SetupStatus } from "@/lib/types";
 import { questionLabel } from "@/lib/questions";
 import { useApi } from "@/lib/use-api";
+import { DemoAgentHint } from "@/components/agents/demo-hint";
 import { Brand } from "./flow";
 
 import { GitHubMark, SettleMeter } from "./parts";
@@ -62,6 +63,7 @@ export function LoginPanel() {
                   <Button asChild variant="link" size="sm" className="h-8 self-start">
                     <Link href="/welcome">Set up your own instance</Link>
                   </Button>
+                  <DemoAgentHint />
                 </>
               ) : (
                 <>

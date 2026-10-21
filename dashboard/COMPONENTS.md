@@ -61,6 +61,18 @@ One treatment per role, 150ms `ease-settle`, only on pointers that hover. Use th
 | Chip (a `Badge` that is a link) | lifts 1px | `Badge` |
 | Text link | underline draws in from the left; an `underline` link thickens instead | `link-grow` utility (`Button variant="link"`) |
 
+## Agents and MCP (`@/components/agents/<file>`)
+
+| File | Exports |
+|---|---|
+| `settings` | `Agents`: the admin-only Settings > "Agents & MCP" section (token list, create dialog with read/write scopes, revoke confirm, the `${origin}/api/mcp` endpoint) |
+| `connect` | `Connect` `{url, token}` tabs (Claude Code, Cursor, VS Code, Other) of paste-ready setup; `useMcpUrl()`; `claudeCode(url, token?)` (no token = the read-only demo command) |
+| `context` | `itemContext(item, readings, why?, held?)` and `queueContext(entry, held)` build a compact markdown block about one item; `copyForAgent(text)` copies it and toasts; `CopyForAgent` `{text: () => string}` is the button (item page header, queue preview). ⌘K: "Copy item for agent" |
+| `demo-hint` | `DemoAgentHint`: "Try it from your agent" with the token-less demo command, on the demo login |
+
+⌘K "Connect an agent (MCP)" (shell commands) opens `settings?s=agents`. Token API: `GET/POST/DELETE /api/repos/:id/agent-tokens`
+(`AgentToken`, `NewAgentToken` in `@/lib/types`); the token is in the POST reply only. `writeClipboard` (`copy-button`) is the shared clipboard call.
+
 ## Libraries (`@/lib/*`)
 
 - First-paint data: wrap a layout or page in `<Preloaded paths={[...]}>` (`@/lib/server-api`, server only; forwards the visitor's cookie to `API_URL`).
