@@ -1,16 +1,26 @@
 """Redis list queue + job handlers. `python -m app.worker` pops and runs them."""
 import json
+import logging
 
 from app import db
 from app.redis_client import redis
 from app.settings import settings
 
+log = logging.getLogger("jev.jobs")
 QUEUE, DEAD = "jev:jobs", "jev:jobs:dead"
 CONFIG_PATHS = {".github/oss-inbox.yml", ".github/jev-triage.yml"}  # the second is the pre-rename name, still read
 
 
 def enqueue(job_type: str, **payload) -> None:
-    redis.rpush(QUEUE, json.dumps({"type": job_type, "payload": payload, "attempts": 0}))
+    if not settings.inline_jobs:
+        redis.rpush(QUEUE, json.dumps({"type": job_type, "payload": payload, "attempts": 0}))
+        return
+    # serverless (INLINE_JOBS=true): no worker process, so run now; no retries, a failure goes straight to the dead list
+    try:  # ponytail: runs inside the request, so it must fit the host's function timeout; use a worker for big backfills
+        HANDLERS[job_type](**payload)
+    except Exception as e:
+        log.exception("inline job %s failed, moving to %s", job_type, DEAD)
+        redis.rpush(DEAD, json.dumps({"type": job_type, "payload": payload, "attempts": 1, "error": repr(e)}))
 
 
 def _set_state(repo: dict, kind: str, number: int, state: str) -> None:

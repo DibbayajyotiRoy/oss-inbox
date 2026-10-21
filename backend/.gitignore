@@ -3,3 +3,4 @@
 .agents/
 .claude/
 skills-lock.json
+.env.github-app

@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     demo_mode: bool = False  # DEMO_MODE=true: sign in as "demo", no GitHub calls, every action dry-run
     backfill_limit: int = 500
     retention_days: int = 365
+    inline_jobs: bool = False  # INLINE_JOBS=true: run jobs inside the request (serverless hosts without a worker)
 
     @field_validator("github_private_key")
     @classmethod

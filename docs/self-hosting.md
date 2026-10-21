@@ -78,3 +78,28 @@ Also keep a copy of `.env`: it holds the App's private key.
 **Upgrades.** `git pull && docker compose up -d --build`. The schema is applied on startup and only ever adds.
 
 **Logs and health.** `make logs`, and `curl localhost:8000/api/health` returns the active backend and model.
+
+### Vercel
+
+Serverless functions have no long-running worker and no writable `.env`, so two things change: jobs run inside the request, and you create the GitHub App from your own machine.
+
+1. **Jobs inline.** Set `INLINE_JOBS=true`. `jobs.enqueue` then runs each job immediately instead of pushing it to Redis, and the webhook still answers `202`. There are no retries: a failed job is logged and pushed to the `jev:jobs:dead` list. Backfills run inside one request, so keep `BACKFILL_LIMIT` small enough to fit the function timeout. The 24-hour retention purge is started by the worker, so it does not run.
+2. **Storage.** Add Neon (Postgres) and Upstash (Redis) from the Vercel Marketplace. The app reads `DATABASE_URL` (Neon injects it) and `REDIS_URL` (Upstash's `rediss://` connection string; set it by hand if the integration only adds `KV_*`).
+3. **Deploy once** with `PUBLIC_URL` (the API's URL), `DASHBOARD_URL`, `SESSION_SECRET`, `TYPESAFE_API_KEY`, `DRY_RUN=true` and `INLINE_JOBS=true` set, so the App can point at real URLs.
+4. **Create the App locally.** This starts a one-shot server on `127.0.0.1:8765`, opens a page that sends the manifest to GitHub, exchanges the code, and writes the credentials to a file (mode 600, never printed):
+
+   ```bash
+   cd backend
+   uv run python -m app.cli create-app \
+     --public-url https://api.example.com --dashboard-url https://triage.example.com \
+     [--org <org-login>] [--name "OSS Inbox"] [--out .env.github-app]
+   ```
+
+   It prints the install URL (`https://github.com/apps/<slug>/installations/new`). `.env.github-app` is git-ignored; delete it after step 5.
+5. **Push the values to Vercel** (run in the linked project; `read -r` keeps the `\n` escapes in the private key intact):
+
+   ```bash
+   while IFS='=' read -r k v; do printf '%s' "$v" | vercel env add "$k" production; done < .env.github-app
+   ```
+
+6. Redeploy, then open the install URL and pick your repositories.

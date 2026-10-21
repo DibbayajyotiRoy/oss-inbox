@@ -40,15 +40,16 @@ def _require_enabled() -> None:
         raise HTTPException(404)
 
 
-def manifest() -> dict:
-    host = urlparse(settings.public_url).hostname or "self-hosted"
+def manifest(public_url: str | None = None, dashboard_url: str | None = None, redirect_url: str | None = None) -> dict:
+    public_url, dashboard_url = public_url or settings.public_url, dashboard_url or settings.dashboard_url
+    host = urlparse(public_url).hostname or "self-hosted"
     return {
         "name": f"OSS Inbox ({host})"[:34],  # GitHub caps app names at 34 chars
-        "url": settings.public_url,
-        "hook_attributes": {"url": f"{settings.public_url}/api/github/webhook", "active": True},
-        "redirect_url": f"{settings.public_url}/api/setup/callback",
-        "callback_urls": [f"{settings.dashboard_url}/api/auth/callback"],
-        "setup_url": settings.dashboard_url,
+        "url": public_url,
+        "hook_attributes": {"url": f"{public_url}/api/github/webhook", "active": True},
+        "redirect_url": redirect_url or f"{public_url}/api/setup/callback",
+        "callback_urls": [f"{dashboard_url}/api/auth/callback"],
+        "setup_url": dashboard_url,
         "request_oauth_on_install": False,
         "public": False,
         "default_permissions": {
@@ -106,6 +107,18 @@ def setup_form(org: str | None = Query(None), auto: bool = Query(False)):
     return res
 
 
+def env_values(d: dict) -> dict[str, str]:
+    """GitHub's manifest-conversion response -> the env lines the app needs."""
+    return {
+        "GITHUB_APP_ID": str(d["id"]),
+        "GITHUB_APP_SLUG": d["slug"],
+        "GITHUB_PRIVATE_KEY": d["pem"].strip().replace("\n", "\\n"),
+        "GITHUB_WEBHOOK_SECRET": d["webhook_secret"],
+        "GITHUB_CLIENT_ID": d["client_id"],
+        "GITHUB_CLIENT_SECRET": d["client_secret"],
+    }
+
+
 def _write_env(values: dict[str, str]) -> bool:
     path = Path(os.environ.get("SETUP_ENV_PATH", ".env"))
     try:
@@ -132,14 +145,7 @@ def setup_callback(request: Request, code: str = Query(...), state: str = Query(
     if r.status_code != 201:
         return _page("GitHub rejected the code", f"<p>HTTP {r.status_code}. Codes are single use and expire after an hour; start again at <a href='/api/setup'>/api/setup</a>.</p>", 502)
     d = r.json()
-    values = {
-        "GITHUB_APP_ID": str(d["id"]),
-        "GITHUB_APP_SLUG": d["slug"],
-        "GITHUB_PRIVATE_KEY": d["pem"].strip().replace("\n", "\\n"),
-        "GITHUB_WEBHOOK_SECRET": d["webhook_secret"],
-        "GITHUB_CLIENT_ID": d["client_id"],
-        "GITHUB_CLIENT_SECRET": d["client_secret"],
-    }
+    values = env_values(d)
     if _write_env(values):
         saved = "<p>Credentials saved to your <code>.env</code>.</p>"
     else:
