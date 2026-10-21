@@ -330,6 +330,28 @@ evaluation:
   </div>
 </section>
 
+<section class="agents" id="agents" aria-labelledby="ag-h">
+  <div class="wrap ag">
+    <div>
+      <h2 id="ag-h">Works with your agents.</h2>
+      <p class="lead">An MCP endpoint lets Claude Code, Cursor or VS Code read your queue, check accuracy and resolve items, under the same thresholds, modes, dry-run and audit log as a person. Nothing it can do closes an issue.</p>
+      <ul class="chips" aria-label="MCP tools">
+        <li>Your repos<code>list_repos</code></li><li>Review queue<code>list_queue</code></li><li>One decision<code>get_item</code></li><li>Measured accuracy<code>get_accuracy</code></li><li>What-if threshold<code>preview_threshold</code></li><li>Accept or dismiss (write token)<code>resolve_item</code></li><li>Post a report (write token)<code>submit_report</code></li>
+      </ul>
+    </div>
+    <div>
+      <div class="code"><div class="code-h"><span class="mono">public demo, read-only, no token</span><button type="button" class="cp" data-cp><i class="fl"></i><span>Copy</span></button></div><pre tabindex="0"><code>claude mcp add --transport http \
+  oss-inbox-demo \
+  https://oss.dibbayajyoti.com/api/mcp</code></pre></div>
+      <div class="code"><div class="code-h"><span class="mono">your instance, with a repo-scoped token</span><button type="button" class="cp" data-cp><i class="fl"></i><span>Copy</span></button></div><pre tabindex="0"><code>claude mcp add --transport http \
+  oss-inbox \
+  https://YOUR-DASHBOARD/api/mcp \
+  --header "Authorization: Bearer $OSS_INBOX_TOKEN"</code></pre></div>
+      <p class="note">Create tokens in Settings, Agents &amp; MCP. Cursor and VS Code config, every tool and the safety rules: <a href="https://github.com/DibbayajyotiRoy/oss-inbox/blob/main/docs/mcp.md">the MCP guide</a>.</p>
+    </div>
+  </div>
+</section>
+
 <section class="faq" id="faq" aria-labelledby="fq-h">
   <div class="wrap fq-g">
     <div class="fq-h">

@@ -13,6 +13,8 @@ OSS Inbox is a self-hosted GitHub App and dashboard for maintainers who spend th
 
 It starts in **shadow mode**: it records what it would do and changes nothing.
 
+Your AI agent can use it too: an [MCP endpoint](docs/mcp.md) lets Claude Code, Cursor or VS Code read the queue and resolve items under the same rules as a person.
+
 > Jev is a model made by [TypeSafe AI](https://typesafe.ai). OSS Inbox is an independent open-source project and is not affiliated with, endorsed by, or sponsored by TypeSafe AI.
 
 ## Why
@@ -164,6 +166,21 @@ CI agents and flaky tests create duplicate issues. Post the failure to the gate 
 
 Outcomes are `filed`, `merged`, `flaky`, `infra`, `queued` or `rate_limited`. Reports with `source: "external"` go through the inbound gate only and are never filed publicly.
 
+## Use it from your AI agent (MCP)
+
+OSS Inbox serves an [MCP](https://modelcontextprotocol.io) endpoint at `<your dashboard url>/api/mcp`, so Claude Code, Cursor or VS Code can read the queue, check accuracy, try a threshold and resolve items.
+
+- Tools: `list_repos`, `list_queue`, `get_item`, `get_accuracy`, `preview_threshold`, plus `resolve_item` and `submit_report` (write).
+- Tokens are scoped to repos and are read or write. Create them in **Settings > Agents & MCP**.
+- Agents act under the same thresholds, modes, dry-run and audit log as people. Nothing ever closes an issue.
+- Try it read-only on the public demo, no token:
+
+```bash
+claude mcp add --transport http oss-inbox-demo https://oss.dibbayajyoti.com/api/mcp
+```
+
+Cursor and VS Code config, every tool and the safety rules: [docs/mcp.md](docs/mcp.md).
+
 ## How it compares
 
 Short version. Full, fair version: [docs/comparison.md](docs/comparison.md).
@@ -201,6 +218,12 @@ OSS Inbox differs in one way: it measures itself on your repo's own history befo
 
 Claude is a trademark of Anthropic. This project is not affiliated with Anthropic.
 
+### Why Jev
+
+Most LLMs are tuned with RLHF, which rewards answers that people rate highly. TypeSafe argues that this rewards answers that sound right, not answers that are right. It says Jev is trained with RLCD (reinforcement learning for calibrated decisions), which rewards outcome accuracy. Jev returns a typed decision plus a probability meant to match how often it is right: of the answers it gives at 0.90, about 90% should be correct. That is what a threshold design needs. A cutoff of 0.90 only means something if 0.90 means 0.90, so OSS Inbox checks it against your own history before it acts, and the dashboard shows the calibration. Jev is also built to be called by software: automate above a threshold, send the rest to a human, which is the loop here. See [TypeSafe's model explained](https://www.mindstudio.ai/blog/typesafe-jev-rlcd-vs-rlhf) for the background.
+
+**Unverified.** TypeSafe's claims about Jev's speed, cost and accuracy are self-reported and have not been independently verified, and the article describes model access as a waitlist. OSS Inbox is independent of TypeSafe AI and publishes no accuracy figure for that reason. Measure it on your repo.
+
 ## FAQ
 
 Trust, accuracy, privacy, cost, what happens when it is wrong, how to uninstall: [docs/faq.md](docs/faq.md).
@@ -211,6 +234,7 @@ Trust, accuracy, privacy, cost, what happens when it is wrong, how to uninstall:
 - [Configuration reference](docs/configuration.md)
 - [GitHub App setup and permissions](docs/github-app.md)
 - [CI gate](docs/ci-gate.md)
+- [Agents and MCP](docs/mcp.md)
 - [FAQ](docs/faq.md)
 - [Comparison](docs/comparison.md)
 - [Positioning](docs/positioning.md)

@@ -83,6 +83,7 @@ Chosen tagline works because it carries the whole difference in one clause: evid
 | Shows its confidence | Every answer is stored with the probability behind it. | Confidence is stored per decision; the dashboard shows it next to the suggestion. |
 | Proves accuracy on your history | Before auto mode acts, the question has to be measured on your closed issues and merged PRs. | `evaluation.require_evaluation` and `min_samples` (default 30). Backfill, calibration chart, recommended threshold. Accuracy is an upper bound and says so. |
 | Safe by construction | Shadow by default. Never closes, deletes, locks or transfers. | The app has no contents write. Transfers and duplicate links are queued suggestions. Reporter history is never profiled. |
+| Agent-native | Your agent can read the queue, check accuracy and resolve items over MCP, under the same rules as a person. | `/api/mcp`, repo-scoped read and write tokens, the same thresholds, modes, dry-run and audit log. Public demo is read-only, no token. Still never closes anything. See [mcp.md](mcp.md). |
 | Yours | Self-host it, read the config in your repo, pin the model. | Apache-2.0. `.github/oss-inbox.yml`, org defaults in `ORG/.github`. Model pinned to `jev-1.13.0`, version stored on every run. |
 | Cheap per decision | One model call per item, many questions. | Jev input is priced at $0.042 per million tokens. 1,000 items at 3,000 tokens each is about $0.13 of input. Check TypeSafe's pricing for the full picture. |
 
@@ -99,6 +100,12 @@ No. It asks whether a report is actionable (reproducible, grounded in the repo, 
 
 **"Vendor lock-in."**
 Apache-2.0, self-hosted, config in your repo as YAML. The decision backend is a small interface with two implementations: TypeSafe's Jev (default) and Anthropic Claude (fallback). The fallback is marked uncalibrated in the dashboard, so lean on measured accuracy there rather than the raw confidence. Jev itself is a TypeSafe AI model, and this project is independent of TypeSafe AI.
+
+**"I do not want an AI agent loose on my repo."**
+It is not loose. An agent gets a repo-scoped token, read or write, and acts under the same thresholds, modes, dry-run and audit log as a person. A read token changes nothing. No tool closes, deletes, locks or transfers anything, and item text coming back through the tools is untrusted data. Try it read-only on the public demo first. See [mcp.md](mcp.md).
+
+**"Why a calibrated model and not just an LLM?"**
+A threshold needs a confidence that matches how often the model is right. TypeSafe says Jev is trained for calibrated decisions (RLCD), and the app still measures it on your history before acting. TypeSafe's speed and accuracy claims are self-reported and unverified, so do not repeat them as fact. See [faq.md](faq.md#why-a-calibrated-model-instead-of-an-llm).
 
 **"Privacy."**
 The item title and body (truncated), your contributing rules and a few repo facts go to the decision backend. Current labels are not sent. Private repos are off until an admin acknowledges that private content goes to the backend. Stored prompt text is purged after the retention window. See [faq.md](faq.md).
@@ -184,7 +191,7 @@ Verify each list is active and read its contribution rules before opening a PR. 
 - `awesome-selfhosted/awesome-selfhosted`: submissions go through its data repo and have formatting rules (license, language, short description). OSS Inbox depends on an external model API, so expect the list's third-party-service marker to apply.
 - An "awesome OSS maintainers tools" list, if it is still active when you check (search GitHub for the exact repo).
 
-Skip lists for AI agents or chatbots. It is a different category and the wrong audience.
+Skip lists for AI agents or chatbots. It is a different category and the wrong audience. MCP server directories are a separate case: list there only once the endpoint is public and stable, and describe it as a triage server for agents, not a chatbot.
 
 ## 30-day launch, in four weeks
 
@@ -217,5 +224,6 @@ Self-hosters send nothing back. Do not add telemetry to answer these. Ask for op
 - Say what it does in the first sentence. Name the keyword in the first paragraph.
 - No hype words. No fabricated users, stars, testimonials or accuracy figures.
 - "Jev" is TypeSafe AI's model. This project is independent and not affiliated. Say so wherever Jev is named in a section that explains how it works.
+- TypeSafe's claims about Jev (speed, cost, accuracy) are self-reported and unverified. Leave them out, or say so next to them.
 - Compare by design, not by mood. Say what the other tool is good at.
 - Short sentences. If a sentence needs an adjective to be true, cut the adjective.

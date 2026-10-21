@@ -305,6 +305,14 @@ pre code { padding: 0; background: none; font-size: inherit; }
 .qs-sec a { color: var(--fg); }
 .qs-sec p code, .qs-sec dd code { background: var(--muted); }
 
+/* ---- agents: the MCP snippet beside the tool list; reuses .chips and .code ---- */
+.ag { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem 4rem; }
+.ag h2 { margin-bottom: 1rem; }
+.ag .lead { max-width: 34rem; }
+.ag .code + .code { margin-top: 1rem; }
+.ag .note { margin-top: 1rem; }
+.ag .code-h .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* ---- faq ---- */
 .fq-g { display: grid; gap: 2.5rem 5rem; }
 .fq-h h2 { margin-bottom: 1.5rem; }
@@ -410,6 +418,7 @@ html:not(.js) .ruler .thr { translate: calc(.8 * 100cqw - 50%) 0; }
   .reg > div { grid-template-columns: 18rem 1fr 1fr; }
   .reg .ids { grid-column: auto; }
   .fq-g { grid-template-columns: 4fr 7fr; align-items: start; }
+  .ag { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; }
   .fq-h { position: sticky; top: 6rem; }
 }
 /* the specimen only stages itself where it is sticky and motion is welcome */

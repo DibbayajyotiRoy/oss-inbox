@@ -96,9 +96,25 @@ By default `jev-1.13.0`. You can set `model:` per repo in the YAML, or `JEV_MODE
 
 Jev is a model made by TypeSafe AI. OSS Inbox is an independent open-source project and is not affiliated with, endorsed by, or sponsored by TypeSafe AI.
 
+### Why a calibrated model instead of an LLM?
+
+A threshold only works if the confidence behind it is honest. A chat LLM can write "I am 95% sure", but that number is usually a guess in words, not a measured hit rate. A calibrated model returns a typed answer plus a probability meant to match how often it is right, so "at or above 0.90" means something you can check.
+
+Jev, made by TypeSafe AI, is trained for this (RLCD, reinforcement learning for calibrated decisions, rather than RLHF) and is built to be called by software: act above a threshold, queue the rest for a human. OSS Inbox does not take that on trust. It measures accuracy and calibration on your own closed issues and merged PRs before any question may act.
+
+TypeSafe's speed, cost and accuracy claims for Jev are self-reported and not independently verified ([background](https://www.mindstudio.ai/blog/typesafe-jev-rlcd-vs-rlhf)). If you want an LLM to write replies in threads, use one. This app asks typed questions and runs fixed actions, which is a different job.
+
 ### What is the Anthropic fallback?
 
 An alternative backend (`DECISION_BACKEND=anthropic`) that asks the same questions of a Claude model. Its confidences are not calibrated, so the dashboard flags runs from it and thresholds mean much less. Use it to try the app, not to run `auto` mode. The eligibility rule still applies: a question has to be measured before it acts. Claude is a trademark of Anthropic, and this project is not affiliated with Anthropic.
+
+## Agents
+
+### Can my agent use it?
+
+Yes. OSS Inbox serves an MCP endpoint at `<your dashboard url>/api/mcp`, so Claude Code, Cursor or VS Code can list repos, read the queue, look at an item, check accuracy and preview a threshold. With a write token an agent can also resolve queue entries and submit reports. Tokens are repo-scoped and created in Settings > Agents & MCP.
+
+Agents follow the same rules as people: the same thresholds, modes, dry-run and audit log. A read token cannot change anything, and no tool closes, deletes, locks or transfers an issue. Try it read-only on the public demo with no token. Setup for each client: [mcp.md](mcp.md).
 
 ## When it is wrong
 
